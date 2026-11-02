@@ -12,7 +12,9 @@
 
 ## Global Constraints
 
-- Waluta PLN, kwoty `numeric(12,2)`, zaokrąglenie do 0,01 dopiero w wyniku końcowym.
+- Waluta PLN, kwoty `numeric(12,2)`. Zaokrąglenie do 0,01 następuje per pozycja wyceny, a nagłówek to suma zaokrąglonych pozycji, więc rozbicie zawsze sumuje się do `total` co do grosza (zmiana po recenzji Codex).
+- Walidacja wejścia wyceny jest w bazie (`_quote_lines`), nie tylko w n8n: wymiary mebla na wymiar 20–300 cm, ilość to liczba całkowita 1–1000, produkt musi mieć BOM i `labor_hours > 0`. Błędy: `INVALID_SPEC`, `INVALID_QTY`, `INCOMPLETE_PRODUCT`, `NO_PRICE`, `NO_ITEMS`; zamówienie dostaje wtedy `needs_review`.
+- Statusy zamówienia zmienia tylko system: `upsert_order` przyjmuje wyłącznie `new`, `needs_info`, `needs_review`, a `estimate_quote` odrzuca zamówienie po przejściu do realizacji (`ORDER_LOCKED`).
 - Stawka robocizny: 120 PLN/h. Marża: 25% (od materiałów i robocizny). Naddatek na odpad: 15%. To założenia demo, trzymane w tabeli `settings`, a nie w kodzie.
 - Cena hurtowni jest ważna 30 dni od `updated_at`. Ceny `<= 0` są ignorowane.
 - Stan magazynowy nigdy nie spada poniżej 0. Dostępne = `stock - reserved`.
