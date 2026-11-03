@@ -78,6 +78,10 @@ Wymagane: Docker (np. OrbStack), Supabase CLI, Node.js 20+, lokalne `agy` (Antig
 
 Hasło operatora do linków zatwierdzania generuje `scripts/n8n.sh` i zapisuje w `.env.local`.
 
+## Salony stacjonarne
+
+Handlowiec w salonie wypełnia formularz na tablecie (`web/showroom.html`, w przygotowaniu). Zamówienie trafia do funkcji `showroom_order`: salon jest identyfikowany kodem i tokenem z tabeli `showrooms`, a nazwa salonu i e-mail handlowca pochodzą z bazy, nigdy od tabletu. Klient musi wyrazić zgodę na kontakt. Z pozycjami zamówienie jest wyceniane jak w kalkulatorze; bez pozycji powstaje lead do oceny przez handlowca (`needs_review`).
+
 ## Ograniczenia, które znam
 
 - **Brak limitu żądań i antybota** na publicznych endpointach. n8n nie ma go wbudowanego, więc przed publicznym wdrożeniem potrzebny jest reverse proxy (np. Caddy lub Cloudflare).
@@ -101,7 +105,7 @@ Zaplanowane, jeszcze niewdrożone: automatyczne zamówienia do hurtowni, follow-
 ## Struktura repozytorium
 
 ```
-supabase/migrations   schemat i funkcje SQL (001–015)
+supabase/migrations   schemat i funkcje SQL (001–016)
 supabase/tests        testy SQL (DO + assert, w transakcji z rollbackiem)
 supabase/seed.sql     dane demo
 n8n/code, prompts     źródła węzłów Code i promptów
