@@ -5,17 +5,29 @@ import { runCode } from './harness.mjs';
 const cfg = { publicUrl: 'http://x', team: 'Jan, Anna ,Piotr' };
 const ID = '11111111-2222-3333-4444-555555555555';
 
-test('id-prep przepuszcza tylko poprawny UUID z adresu lub formularza', () => {
+test('id-prep (GET) przepuszcza tylko poprawny UUID z adresu', () => {
   const ok = runCode('id-prep', { input: [{ query: { order_id: ID.toUpperCase() } }] })[0];
   assert.deepEqual([ok.valid, ok.id], [true, ID]);
-  const form = runCode('id-prep', { input: [{ query: {}, body: { task_id: ID, assignee: 'Jan' } }] })[0];
-  assert.deepEqual([form.valid, form.id, form.assignee], [true, ID, 'Jan']);
   for (const bad of [undefined, '', 'abc', `${ID}'; drop`, ID + 'x', ['x'], { a: 1 }]) {
     const r = runCode('id-prep', { input: [{ query: { order_id: bad } }] })[0];
     assert.equal(r.valid, false, `id: ${JSON.stringify(bad)}`);
     assert.equal(r.id, null);
   }
   assert.equal(runCode('id-prep', { input: [{}] })[0].valid, false);
+});
+
+test('id-prep-post: identyfikator tylko z formularza, kontrola Origin dla każdego POST', () => {
+  const post = (over) => runCode('id-prep-post', { input: [{ query: {}, headers: { host: 'localhost:5678' }, body: { task_id: ID, assignee: 'Jan' }, ...over }] })[0];
+  const form = post({});
+  assert.deepEqual([form.valid, form.id, form.assignee], [true, ID, 'Jan']);
+  // strona n8n jest w piaskownicy CSP: prawdziwy formularz wysyła Origin: null i Sec-Fetch-Site: cross-site
+  assert.equal(post({ headers: { host: 'localhost:5678', origin: 'null', 'sec-fetch-site': 'cross-site' } }).valid, true);
+  assert.equal(post({ headers: { host: 'localhost:5678', origin: 'http://localhost:5678' } }).valid, true);
+  assert.equal(post({ headers: { host: 'localhost:5678', origin: 'https://evil.example' } }).valid, false);
+  // pusty POST z identyfikatorem tylko w adresie nie przechodzi (także z obcego Origin)
+  assert.equal(post({ query: { order_id: ID }, body: {} }).valid, false);
+  assert.equal(post({ query: { order_id: ID }, body: {}, headers: { host: 'x', origin: 'https://evil.example' } }).valid, false);
+  assert.equal(post({ query: { order_id: ID }, body: { order_id: 'zly' } }).valid, false);
 });
 
 const ctx = (over = {}) => ({ order_id: ID, status: 'quoted', customer_email: 'k@example.com',
@@ -82,16 +94,16 @@ test('zakończenie zadania: strona sukcesu, a powtórka to komunikat 409', () =>
   assert.match(again.html, /już zakończone/);
 });
 
-test('id-prep odrzuca formularz wysłany z innej witryny (Sec-Fetch-Site: cross-site)', () => {
-  const post = (site) => runCode('id-prep', { input: [{ query: {}, body: { order_id: ID, assignee: 'Jan' }, headers: site ? { 'sec-fetch-site': site } : {} }] })[0];
-  assert.equal(post('same-origin').valid, true);
-  assert.equal(post(undefined).valid, true);          // curl i skrypty nie wysyłają tego nagłówka
-  assert.equal(post('same-site').valid, true);
-  const cross = post('cross-site');
-  assert.deepEqual([cross.valid, cross.id], [false, null]);
-  // GET z linku w mailu może pochodzić z innej witryny, więc go nie blokujemy
+test('GET z linku z innej witryny jest dozwolony, a POST z obcym Origin odrzucony', () => {
+  // link w mailu lub na Slacku otwiera się z innej witryny (Sec-Fetch-Site: cross-site), więc GET nie jest blokowany
   const get = runCode('id-prep', { input: [{ query: { order_id: ID }, headers: { 'sec-fetch-site': 'cross-site' } }] })[0];
   assert.equal(get.valid, true);
+  const post = (origin) => runCode('id-prep-post', { input: [{ query: {}, body: { order_id: ID, assignee: 'Jan' }, headers: { host: 'h:5678', ...(origin ? { origin } : {}) } }] })[0];
+  assert.equal(post(undefined).valid, true);          // curl i skrypty nie wysyłają Origin
+  assert.equal(post('null').valid, true);             // formularz ze strony n8n w piaskownicy CSP
+  assert.equal(post('http://h:5678').valid, true);
+  const cross = post('https://evil.example');
+  assert.deepEqual([cross.valid, cross.id], [false, null]);
 });
 
 test('bad-link zwraca stronę 400', () => {

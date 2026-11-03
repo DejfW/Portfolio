@@ -1,12 +1,8 @@
-// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.
-// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.
+// Czyta i waliduje identyfikator z adresu (?order_id=..., ?task_id=... albo ?po_id=...) dla stron otwieranych linkiem (GET).
+// Zwraca {valid, id}. Nic poza poprawnym UUID nie przechodzi dalej. Żądania zmieniające stan (POST) obsługuje id-prep-post.
 //@include page
 const i = $input.first().json;
-const src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});
-// Przeglądarka oznacza żądania z innych witryn nagłówkiem Sec-Fetch-Site: cross-site; formularz z naszej strony to same-origin.
-const crossSite = !!(i.body && typeof i.body === 'object' && Object.keys(i.body).length)
-  && String((i.headers || {})['sec-fetch-site'] || '').toLowerCase() === 'cross-site';
-const id = src.order_id !== undefined ? src.order_id : src.task_id;
-const assignee = typeof src.assignee === 'string' ? src.assignee : '';
-const valid = isUuid(id) && !crossSite;
-return [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];
+const q = i.query || {};
+const id = q.order_id !== undefined ? q.order_id : (q.task_id !== undefined ? q.task_id : q.po_id);
+const valid = isUuid(id);
+return [{ json: { valid, id: valid ? id.toLowerCase() : null } }];

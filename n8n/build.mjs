@@ -21,6 +21,7 @@ const STOCK_WORKFLOW_ID = 'stock0000000001';
 const DELIVER_WORKFLOW_ID = 'deliver00000001';
 const CALC_WORKFLOW_ID = 'calc00000000001';
 const REPORT_WORKFLOW_ID = 'report000000001';
+const PO_WORKFLOW_ID = 'po0000000000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
 
@@ -263,7 +264,7 @@ function buildTeamTasks() {
     // POST /approve -> zlecenie zadania
     hook('POST approve', 'POST', 'approve', 260, 'team-approve-post'),
     configNode([220, 260], 'Config POST'),
-    codeNode('Parse approve', [440, 260], code('id-prep')),
+    codeNode('Parse approve', [440, 260], code('id-prep-post')),
     boolIf('Approve form valid?', [660, 260], '$json.valid'),
     rpc('Approve order', [880, 200], 'approve_order',
       `{ p_order_id: $json.id, p_assignee: $json.assignee, p_public_url: $('Config POST').first().json.publicUrl }`),
@@ -276,7 +277,7 @@ function buildTeamTasks() {
 
     // POST /task-done -> zamknięcie zadania
     hook('POST task-done', 'POST', 'task-done', 700, 'team-done-post'),
-    codeNode('Parse done', [440, 700], code('id-prep')),
+    codeNode('Parse done', [440, 700], code('id-prep-post')),
     boolIf('Done form valid?', [660, 700], '$json.valid'),
     rpc('Task done', [880, 640], 'task_done', `{ p_task_id: $json.id }`),
     codeNode('Done result', [1100, 640], code('done-result')),
@@ -523,6 +524,102 @@ function buildReport() {
   ]);
 }
 
+
+// --- 08-purchase-orders ------------------------------------------------------------------------
+// Codziennie o 7:15 (po imporcie cen z workflow 04) tworzy szkice zamówień do hurtowni z materiałów poniżej minimum
+// i wysyła właścicielowi na Slacka link zatwierdzenia. Zatwierdzenie (strona z przyciskiem, logowanie Basic) wysyła mail
+// do hurtowni, a potwierdzenie dostawy zwiększa stan magazynu. Webhook /po-run działa tylko w trybie testowym.
+
+function buildPurchasing() {
+  const hook = (name, method, path, y, id) =>
+    node(name, 'n8n-nodes-base.webhook', 2.1, [0, y],
+      { httpMethod: method, path, authentication: 'basicAuth', responseMode: 'responseNode', options: {} },
+      { webhookId: id, credentials: { httpBasicAuth: OPERATOR_CREDENTIAL } });
+
+  const nodes = [
+    node('Schedule 7:15', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], {
+      rule: { interval: [{ field: 'cronExpression', expression: '15 7 * * *' }] },
+    }),
+    node('Webhook run', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'POST', path: 'po-run', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'po-run-0001' }),
+    configNode([220, 100]),
+    codeNode('PO params', [440, 100], code('po-params')),
+    boolIf('Allowed?', [660, 100], '$json.allowed'),
+    node('Forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Via webhook?', [880, 20], '$json.viaWebhook'),
+    node('Started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -60], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    rpc('Create POs', [1320, 20], 'create_purchase_orders', `{ p_public_url: $('Config').first().json.publicUrl }`),
+
+    // GET /po-approve?po_id=... -> strona z przyciskiem
+    hook('GET po-approve', 'GET', 'po-approve', 520, 'po-approve-get'),
+    codeNode('Parse approve page', [440, 520], code('id-prep')),
+    boolIf('Approve link valid?', [660, 520], '$json.valid'),
+    rpc('PO context approve', [880, 460], 'purchase_order_context', `{ p_po_id: $json.id }`),
+    codeNode('Approve page', [1100, 460], code('po-approve-page')),
+
+    // POST /po-approve -> zatwierdzenie
+    hook('POST po-approve', 'POST', 'po-approve', 740, 'po-approve-post'),
+    configNode([220, 740], 'Config POST approve'),
+    codeNode('Parse approve', [440, 740], code('id-prep-post')),
+    boolIf('Approve form valid?', [660, 740], '$json.valid'),
+    rpc('Approve PO', [880, 680], 'approve_purchase_order', `{ p_po_id: $json.id }`),
+    codeNode('Approve result', [1100, 680], code('po-approve-result')),
+
+    // GET /po-received?po_id=... -> strona z przyciskiem
+    hook('GET po-received', 'GET', 'po-received', 960, 'po-received-get'),
+    codeNode('Parse receive page', [440, 960], code('id-prep')),
+    boolIf('Receive link valid?', [660, 960], '$json.valid'),
+    rpc('PO context receive', [880, 900], 'purchase_order_context', `{ p_po_id: $json.id }`),
+    codeNode('Receive page', [1100, 900], code('po-receive-page')),
+
+    // POST /po-received -> przyjęcie dostawy
+    hook('POST po-received', 'POST', 'po-received', 1180, 'po-received-post'),
+    codeNode('Parse receive', [440, 1180], code('id-prep-post')),
+    boolIf('Receive form valid?', [660, 1180], '$json.valid'),
+    rpc('Receive delivery', [880, 1120], 'receive_delivery', `{ p_po_id: $json.id }`),
+    codeNode('Receive result', [1100, 1120], code('po-receive-result')),
+
+    codeNode('Bad link', [880, 1000], code('bad-link')),
+    node('Respond page', 'n8n-nodes-base.respondToWebhook', 1.1, [1760, 700], {
+      respondWith: 'text',
+      responseBody: '={{ $json.html }}',
+      options: {
+        responseCode: '={{ $json.code }}',
+        responseHeaders: { entries: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }] },
+      },
+    }),
+  ];
+
+  return workflow(PO_WORKFLOW_ID, '08 Purchase orders', nodes, [
+    ['Schedule 7:15', 'Config'], ['Webhook run', 'Config'], ['Config', 'PO params'], ['PO params', 'Allowed?'],
+    ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
+    ['Via webhook?', 'Started', 0], ['Via webhook?', 'Create POs', 1], ['Started', 'Create POs'],
+
+    ['GET po-approve', 'Parse approve page'], ['Parse approve page', 'Approve link valid?'],
+    ['Approve link valid?', 'PO context approve', 0], ['Approve link valid?', 'Bad link', 1],
+    ['PO context approve', 'Approve page'], ['Approve page', 'Respond page'],
+
+    ['POST po-approve', 'Config POST approve'], ['Config POST approve', 'Parse approve'], ['Parse approve', 'Approve form valid?'],
+    ['Approve form valid?', 'Approve PO', 0], ['Approve form valid?', 'Bad link', 1],
+    ['Approve PO', 'Approve result'], ['Approve result', 'Respond page'],
+
+    ['GET po-received', 'Parse receive page'], ['Parse receive page', 'Receive link valid?'],
+    ['Receive link valid?', 'PO context receive', 0], ['Receive link valid?', 'Bad link', 1],
+    ['PO context receive', 'Receive page'], ['Receive page', 'Respond page'],
+
+    ['POST po-received', 'Parse receive'], ['Parse receive', 'Receive form valid?'],
+    ['Receive form valid?', 'Receive delivery', 0], ['Receive form valid?', 'Bad link', 1],
+    ['Receive delivery', 'Receive result'], ['Receive result', 'Respond page'],
+
+    ['Bad link', 'Respond page'],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -536,6 +633,7 @@ for (const [file, wf] of [
   ['05-deliver.json', buildDeliver()],
   ['06-calculator.json', buildCalculator()],
   ['07-weekly-report.json', buildReport()],
+  ['08-purchase-orders.json', buildPurchasing()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);

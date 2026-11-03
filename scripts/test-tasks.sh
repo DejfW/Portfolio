@@ -69,9 +69,9 @@ for who in "bez logowania:" "złe hasło:-u operator:zle-haslo" "zły użytkowni
   esac
 done
 expect "auth: żądania bez uprawnień niczego nie zmieniły" "select status || '/' || (select count(*) from tasks where order_id='$OA') from orders where id='$OA'" "quoted/0"
-args=(-s -o /dev/null -w '%{http_code}' -u "$OPERATOR_USER:$OPERATOR_PASSWORD" -H 'Sec-Fetch-Site: cross-site')
+args=(-s -o /dev/null -w '%{http_code}' -u "$OPERATOR_USER:$OPERATOR_PASSWORD" -H 'Origin: https://evil.example')
 c=$(curl "${args[@]}" -X POST "$BASE/approve" --data "order_id=$OA&assignee=Jan" || true)
-[ "$c" = "400" ] && ok "csrf: formularz z innej witryny -> 400" || fail "csrf" "HTTP $c"
+[ "$c" = "400" ] && ok "csrf: formularz z obcym Origin -> 400" || fail "csrf" "HTTP $c"
 expect "csrf: nic się nie zmieniło" "select status from orders where id='$OA'" "quoted"
 
 # --- strona zatwierdzenia: GET niczego nie zmienia ---------------------------------------------------

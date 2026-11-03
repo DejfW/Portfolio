@@ -1,0 +1,1260 @@
+{
+  "id": "po0000000000001",
+  "name": "08 Purchase orders",
+  "nodes": [
+    {
+      "id": "n119-schedule-7-15",
+      "name": "Schedule 7:15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "15 7 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n120-webhook-run",
+      "name": "Webhook run",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "po-run",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "po-run-0001"
+    },
+    {
+      "id": "n121-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n122-po-params",
+      "name": "PO params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Parametry uruchomienia zamówień do hurtowni. Harmonogram działa zawsze; wywołanie przez webhook (/po-run)\n// jest dozwolone tylko w trybie testowym (ALLOW_LLM_MOCK=1), więc z zewnątrz nikt nie wymusi tworzenia szkiców.\nconst i = $input.first().json;\nconst viaWebhook = i.headers !== undefined;\nconst allowed = !viaWebhook || i.allowMock === '1';\nreturn [{ json: { viaWebhook, allowed } }];\n"
+      }
+    },
+    {
+      "id": "n123-allowed-",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-allowed-",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n124-forbidden",
+      "name": "Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'FORBIDDEN' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "n125-via-webhook-",
+      "name": "Via webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-via-webhook-",
+              "leftValue": "={{ $json.viaWebhook }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n126-started",
+      "name": "Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'started' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n127-create-pos",
+      "name": "Create POs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/create_purchase_orders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_public_url: $('Config').first().json.publicUrl }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n128-get-po-approve",
+      "name": "GET po-approve",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        520
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "po-approve",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "po-approve-get",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n129-parse-approve-page",
+      "name": "Parse approve page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=..., ?task_id=... albo ?po_id=...) dla stron otwieranych linkiem (GET).\n// Zwraca {valid, id}. Nic poza poprawnym UUID nie przechodzi dalej. Żądania zmieniające stan (POST) obsługuje id-prep-post.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst q = i.query || {};\nconst id = q.order_id !== undefined ? q.order_id : (q.task_id !== undefined ? q.task_id : q.po_id);\nconst valid = isUuid(id);\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null } }];\n"
+      }
+    },
+    {
+      "id": "n130-approve-link-valid-",
+      "name": "Approve link valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        520
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-approve-link-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n131-po-context-approve",
+      "name": "PO context approve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/purchase_order_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_po_id: $json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n132-approve-page",
+      "name": "Approve page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Strona potwierdzenia zamówienia do hurtowni. Samo wejście w link niczego nie zmienia (skanery linków w poczcie\n// i na Slacku otwierają adresy automatycznie), dopiero przycisk wysyła formularz POST.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst c = $input.first().json;\n\nif (!c || !c.po_id) return [{ json: page('Nie znaleziono', '<h1 class=\"err\">Nie znaleziono zamówienia</h1>', 404) }];\nif (c.status !== 'draft') {\n  return [{ json: page('Zamówienie', `<h1>To zamówienie nie czeka na zatwierdzenie</h1><p>Status: <b>${esc(c.status)}</b></p>`) }];\n}\nconst rows = (c.lines || []).map((l) =>\n  `<li>${esc(l.name)}: <b>${esc(Number(l.qty))} ${esc(l.unit)}</b> po ${esc(pln(l.unit_price))}</li>`).join('');\nreturn [{\n  json: page('Zatwierdź zamówienie do hurtowni',\n    `<h1>Zamówienie do hurtowni</h1><p>Dostawca: <b>${esc(c.supplier)}</b><br>Razem: <b>${esc(pln(c.total))}</b></p><ul>${rows}</ul>` +\n    `<form method=\"post\" action=\"/webhook/po-approve\"><input type=\"hidden\" name=\"po_id\" value=\"${esc(c.po_id)}\">` +\n    `<button type=\"submit\">Zatwierdź i wyślij do hurtowni</button></form>`),\n}];\n"
+      }
+    },
+    {
+      "id": "n133-post-po-approve",
+      "name": "POST po-approve",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        740
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "po-approve",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "po-approve-post",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n134-config-post-approve",
+      "name": "Config POST approve",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        740
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n135-parse-approve",
+      "name": "Parse approve",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        740
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Walidacja formularza POST (zmiana stanu): identyfikator tylko z treści formularza, nigdy z adresu.\n// Kontrola pochodzenia dotyczy każdego POST, także z pustą treścią. Strony n8n są serwowane w piaskownicy CSP,\n// więc prawdziwy formularz wysyła Origin: null (i Sec-Fetch-Site: cross-site); odrzucamy tylko żądania z Origin\n// innej witryny. Ochroną przed obcym formularzem są też logowanie Basic i nieodgadnialny UUID w treści.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst h = i.headers || {};\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\nconst origin = String(h.origin || '').trim().toLowerCase();\nconst host = String(h['x-forwarded-host'] || h.host || '').trim().toLowerCase();\nconst sameOrigin = origin === '' || origin === 'null' || origin.replace(/^https?:\\/\\//, '') === host;\nconst id = body.order_id !== undefined ? body.order_id : (body.task_id !== undefined ? body.task_id : body.po_id);\nconst assignee = typeof body.assignee === 'string' ? body.assignee : '';\nconst valid = isUuid(id) && sameOrigin;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
+      }
+    },
+    {
+      "id": "n136-approve-form-valid-",
+      "name": "Approve form valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        740
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-approve-form-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n137-approve-po",
+      "name": "Approve PO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        680
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/approve_purchase_order",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_po_id: $json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n138-approve-result",
+      "name": "Approve result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        680
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Wynik approve_purchase_order -> strona. Mail do hurtowni zapisuje już baza, w tej samej transakcji.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst cfg = $('Config POST approve').first().json;\nconst r = $input.first().json;\nif (r.ok) {\n  const link = `${cfg.publicUrl}/webhook/po-received?po_id=${r.po_id}`;\n  return [{ json: page('Wysłano',\n    `<h1 class=\"ok\">Zamówienie wysłane</h1><p>Hurtownia: <b>${esc(r.supplier)}</b>, razem ${esc(pln(r.total))}.</p>` +\n    `<p>Gdy dostawa dotrze, potwierdź ją tutaj: <a href=\"${esc(link)}\">${esc(link)}</a></p>`) }];\n}\nconst labels = { PO_NOT_FOUND: 'Nie znaleziono zamówienia.', PO_NOT_DRAFT: 'To zamówienie zostało już zatwierdzone lub anulowane.',\n  SUPPLIER_NO_EMAIL: 'Hurtownia nie ma adresu e-mail, uzupełnij go w bazie.' };\nreturn [{ json: page('Błąd', `<h1 class=\"err\">${esc(labels[r.error] || 'Nie udało się zatwierdzić zamówienia.')}</h1>`, 409) }];\n"
+      }
+    },
+    {
+      "id": "n139-get-po-received",
+      "name": "GET po-received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        960
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "po-received",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "po-received-get",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n140-parse-receive-page",
+      "name": "Parse receive page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        960
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=..., ?task_id=... albo ?po_id=...) dla stron otwieranych linkiem (GET).\n// Zwraca {valid, id}. Nic poza poprawnym UUID nie przechodzi dalej. Żądania zmieniające stan (POST) obsługuje id-prep-post.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst q = i.query || {};\nconst id = q.order_id !== undefined ? q.order_id : (q.task_id !== undefined ? q.task_id : q.po_id);\nconst valid = isUuid(id);\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null } }];\n"
+      }
+    },
+    {
+      "id": "n141-receive-link-valid-",
+      "name": "Receive link valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        960
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-receive-link-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n142-po-context-receive",
+      "name": "PO context receive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        900
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/purchase_order_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_po_id: $json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n143-receive-page",
+      "name": "Receive page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        900
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Strona potwierdzenia dostawy (przycisk wysyła POST, sam link niczego nie zmienia).\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst c = $input.first().json;\nif (!c || !c.po_id) return [{ json: page('Nie znaleziono', '<h1 class=\"err\">Nie znaleziono zamówienia</h1>', 404) }];\nif (c.status !== 'sent') {\n  return [{ json: page('Dostawa', `<h1>Dostawa nie czeka na potwierdzenie</h1><p>Status: <b>${esc(c.status)}</b></p>`) }];\n}\nconst rows = (c.lines || []).map((l) => `<li>${esc(l.name)}: <b>${esc(Number(l.qty))} ${esc(l.unit)}</b></li>`).join('');\nreturn [{\n  json: page('Potwierdź dostawę',\n    `<h1>Potwierdź dostawę</h1><p>Dostawca: <b>${esc(c.supplier)}</b></p><ul>${rows}</ul>` +\n    `<p>Po potwierdzeniu stan magazynu wzrośnie o powyższe ilości.</p>` +\n    `<form method=\"post\" action=\"/webhook/po-received\"><input type=\"hidden\" name=\"po_id\" value=\"${esc(c.po_id)}\">` +\n    `<button type=\"submit\">Dostawa dotarła w całości</button></form>`),\n}];\n"
+      }
+    },
+    {
+      "id": "n144-post-po-received",
+      "name": "POST po-received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1180
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "po-received",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "po-received-post",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n145-parse-receive",
+      "name": "Parse receive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        1180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Walidacja formularza POST (zmiana stanu): identyfikator tylko z treści formularza, nigdy z adresu.\n// Kontrola pochodzenia dotyczy każdego POST, także z pustą treścią. Strony n8n są serwowane w piaskownicy CSP,\n// więc prawdziwy formularz wysyła Origin: null (i Sec-Fetch-Site: cross-site); odrzucamy tylko żądania z Origin\n// innej witryny. Ochroną przed obcym formularzem są też logowanie Basic i nieodgadnialny UUID w treści.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst h = i.headers || {};\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\nconst origin = String(h.origin || '').trim().toLowerCase();\nconst host = String(h['x-forwarded-host'] || h.host || '').trim().toLowerCase();\nconst sameOrigin = origin === '' || origin === 'null' || origin.replace(/^https?:\\/\\//, '') === host;\nconst id = body.order_id !== undefined ? body.order_id : (body.task_id !== undefined ? body.task_id : body.po_id);\nconst assignee = typeof body.assignee === 'string' ? body.assignee : '';\nconst valid = isUuid(id) && sameOrigin;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
+      }
+    },
+    {
+      "id": "n146-receive-form-valid-",
+      "name": "Receive form valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        1180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-receive-form-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n147-receive-delivery",
+      "name": "Receive delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        1120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/receive_delivery",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_po_id: $json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n148-receive-result",
+      "name": "Receive result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        1120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Wynik receive_delivery -> strona.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst r = $input.first().json;\nif (r.ok) return [{ json: page('Przyjęto', '<h1 class=\"ok\">Dostawa przyjęta</h1><p>Stan magazynu został zwiększony.</p>') }];\nconst labels = { PO_NOT_FOUND: 'Nie znaleziono zamówienia.', PO_NOT_SENT: 'Tej dostawy nie można przyjąć (zamówienie nie jest wysłane albo już przyjęte).' };\nreturn [{ json: page('Błąd', `<h1 class=\"err\">${esc(labels[r.error] || 'Nie udało się przyjąć dostawy.')}</h1>`, 409) }];\n"
+      }
+    },
+    {
+      "id": "n149-bad-link",
+      "name": "Bad link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        1000
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Odpowiedź na nieprawidłowy link (zły albo brakujący identyfikator).\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nreturn [{ json: page('Błędny link', '<h1 class=\"err\">Nieprawidłowy link</h1><p>Poproś o nowy w wiadomości od systemu.</p>', 400) }];\n"
+      }
+    },
+    {
+      "id": "n150-respond-page",
+      "name": "Respond page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        700
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.code }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule 7:15": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook run": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "PO params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PO params": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Via webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Via webhook?": {
+      "main": [
+        [
+          {
+            "node": "Started",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Started": {
+      "main": [
+        [
+          {
+            "node": "Create POs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET po-approve": {
+      "main": [
+        [
+          {
+            "node": "Parse approve page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse approve page": {
+      "main": [
+        [
+          {
+            "node": "Approve link valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve link valid?": {
+      "main": [
+        [
+          {
+            "node": "PO context approve",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PO context approve": {
+      "main": [
+        [
+          {
+            "node": "Approve page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve page": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST po-approve": {
+      "main": [
+        [
+          {
+            "node": "Config POST approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config POST approve": {
+      "main": [
+        [
+          {
+            "node": "Parse approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse approve": {
+      "main": [
+        [
+          {
+            "node": "Approve form valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve form valid?": {
+      "main": [
+        [
+          {
+            "node": "Approve PO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve PO": {
+      "main": [
+        [
+          {
+            "node": "Approve result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve result": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET po-received": {
+      "main": [
+        [
+          {
+            "node": "Parse receive page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse receive page": {
+      "main": [
+        [
+          {
+            "node": "Receive link valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive link valid?": {
+      "main": [
+        [
+          {
+            "node": "PO context receive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PO context receive": {
+      "main": [
+        [
+          {
+            "node": "Receive page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive page": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST po-received": {
+      "main": [
+        [
+          {
+            "node": "Parse receive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse receive": {
+      "main": [
+        [
+          {
+            "node": "Receive form valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive form valid?": {
+      "main": [
+        [
+          {
+            "node": "Receive delivery",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive delivery": {
+      "main": [
+        [
+          {
+            "node": "Receive result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive result": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bad link": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
+  },
+  "versionId": "po0000000000001-v1"
+}
