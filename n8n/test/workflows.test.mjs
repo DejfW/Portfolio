@@ -57,3 +57,15 @@ test('stan odbioru wiadomości: claim_deliveries dostaje flagi kanałów i list�
   const claim = wf['05-deliver.json'].nodes.find((n) => n.name === 'Claim');
   for (const arg of ['p_limit', 'p_only_test', 'p_slack', 'p_email', 'p_allowlist']) assert.match(claim.parameters.jsonBody, new RegExp(arg));
 });
+
+test('triage skrzynki nigdy nie wysyła poczty ani nie dotyka skrzynki (tylko szkice dla właściciela w bazie i na Slacku)', () => {
+  const types = wf['11-inbox-triage.json'].nodes.map((n) => n.type);
+  for (const t of types) assert.ok(!/emailSend|gmail|smtp|imap|microsoftOutlook/i.test(t), `niedozwolony węzeł: ${t}`);
+});
+
+test('triage: sekret intake przekazywany wyrażeniem, a nie wartością, a przekazanie nie ma sztywnego tokenu', () => {
+  const fwd = wf['11-inbox-triage.json'].nodes.find((n) => n.name === 'Forward to intake');
+  const hdr = Object.fromEntries(fwd.parameters.headerParameters.parameters.map((h) => [h.name, h.value]));
+  assert.match(hdr['X-Intake-Token'], /\$env\.INTAKE_TOKEN/);
+  assert.equal(fwd.onError, 'continueRegularOutput');
+});

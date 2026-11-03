@@ -107,6 +107,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-tokenSet",
+              "name": "tokenSet",
+              "value": "={{ !!$env.INTAKE_TOKEN }}",
+              "type": "boolean"
+            },
+            {
               "id": "cfg-authorized",
               "name": "authorized",
               "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
@@ -485,6 +491,12 @@
               "name": "emailAllowlist",
               "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
               "type": "string"
+            },
+            {
+              "id": "cfg-tokenSet",
+              "name": "tokenSet",
+              "value": "={{ !!$env.INTAKE_TOKEN }}",
+              "type": "boolean"
             },
             {
               "id": "cfg-authorized",

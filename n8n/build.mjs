@@ -23,6 +23,7 @@ const CALC_WORKFLOW_ID = 'calc00000000001';
 const REPORT_WORKFLOW_ID = 'report000000001';
 const PO_WORKFLOW_ID = 'po0000000000001';
 const FOLLOWUP_WORKFLOW_ID = 'followup0000001';
+const TRIAGE_WORKFLOW_ID = 'triage000000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
 
@@ -96,6 +97,8 @@ const configNode = (position, name = 'Config') => {
         set('slackConfigured', '={{ !!$env.SLACK_WEBHOOK_URL }}', 'boolean'),
         set('emailDelivery', env('EMAIL_DELIVERY', 'off')),
         set('emailAllowlist', `={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}`),
+        // sam fakt ustawienia sekretu (nie jego wartość): endpointy kosztowne (triage) bez sekretu odrzucają żądania
+        set('tokenSet', `={{ !!$env.INTAKE_TOKEN }}`, 'boolean'),
         set('authorized',
           `={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}`, 'boolean'),
       ],
@@ -714,6 +717,105 @@ function buildFollowup() {
   ]);
 }
 
+
+// --- 11-inbox-triage ---------------------------------------------------------------------------
+// POST /webhook/triage przyjmuje wiadomość z poczty (to punkt integracji z łącznikiem skrzynki, np. IMAP). AI klasyfikuje ją
+// (zamówienie, pytanie, reklamacja, spam), ale o trasie decyduje baza (triage_complete): zamówienie, niepewność i błąd AI
+// trafiają do intake (workflow 01 przez POST /webhook/order z tym samym external_id), pytania i reklamacje do właściciela
+// na Slacku (pytanie ze szkicem odpowiedzi do akceptacji), a spam jest tylko oznaczany. Workflow nigdy niczego nie wysyła
+// klientowi. Co 5 minut druga ścieżka przekazuje do intake wiadomości, które utknęły po awarii.
+
+function buildTriage() {
+  const promptTemplate = JSON.stringify(prompt('triage'));
+  const faq = JSON.stringify(readFileSync(join(root, '..', 'data', 'faq.md'), 'utf8'));
+  const nodes = [
+    node('Webhook', 'n8n-nodes-base.webhook', 2.1, [0, 0], {
+      httpMethod: 'POST', path: 'triage', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'inbox-triage-0001' }),
+    configNode([220, 0]),
+    codeNode('Triage normalize', [440, 0], code('triage-normalize')),
+    boolIf('Valid input?', [660, 0], '$json.valid'),
+    rpc('Receive', [880, -100], 'triage_receive',
+      `{ p: { external_id: $json.external_id, from_email: $json.from_email, subject: $json.subject, body: $json.message } }`),
+    node('Accepted', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -100], {
+      respondWith: 'json',
+      responseBody: `={{ { external_id: $('Triage normalize').first().json.external_id, status: $json.created ? 'processing' : 'duplicate' } }}`,
+      options: { responseCode: 200 },
+    }),
+    node('Rejected', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 120], {
+      respondWith: 'json',
+      responseBody: `={{ { error: $json.errors.includes('unauthorized') ? 'UNAUTHORIZED' : 'INVALID_INPUT', fields: $json.errors } }}`,
+      options: { responseCode: `={{ $json.errors.includes('unauthorized') ? 401 : 400 }}` },
+    }),
+    boolIf('First delivery?', [1320, -100], '$json.created'),
+    codeNode('Triage prompt', [1540, -100],
+      code('triage-prompt').replace('__PROMPT_TEMPLATE__', promptTemplate).replace('__FAQ__', faq)),
+    node('Ask LLM', 'n8n-nodes-base.executeWorkflow', 1.2, [1760, -100], {
+      source: 'database',
+      workflowId: { __rl: true, value: LLM_WORKFLOW_ID, mode: 'id' },
+      options: { waitForSubWorkflow: true },
+      // awaria modelu nie może zgubić wiadomości: Validate zrobi z niej pusty wynik, a baza skieruje ją do intake
+    }, { onError: 'continueRegularOutput' }),
+    codeNode('Triage validate', [1980, -100], code('triage-validate')),
+    rpc('Complete', [2200, -100], 'triage_complete', `{ p_inbox_id: $json.inbox_id, p: $json.p }`),
+    boolIf('To intake?', [2420, -100], `$json.route === 'intake'`),
+    rpc('Forward data', [2640, -160], 'inbox_forward_data', `{ p_inbox_id: $json.inbox_id }`),
+
+    // naprawa: wiadomości, które powinny trafić do intake, a nie trafiły (awaria po klasyfikacji albo przed nią)
+    node('Schedule 5 min', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 520], {
+      rule: { interval: [{ field: 'minutes', minutesInterval: 5 }] },
+    }),
+    node('Webhook sweep', 'n8n-nodes-base.webhook', 2.1, [0, 700], {
+      httpMethod: 'POST', path: 'triage-sweep', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'inbox-triage-sweep-0001' }),
+    configNode([220, 600], 'Config sweep'),
+    codeNode('Sweep params', [440, 600], code('triage-sweep-params')),
+    boolIf('Sweep allowed?', [660, 600], '$json.allowed'),
+    node('Sweep forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 760], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Sweep via webhook?', [880, 560], '$json.viaWebhook'),
+    node('Sweep started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, 480], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    rpc('Unforwarded', [1320, 560], 'inbox_unforwarded', '{}'),
+
+    // wspólny koniec: przekazanie do workflow 01
+    codeNode('Forward prep', [2860, 200], code('triage-forward-prep')),
+    node('Forward to intake', 'n8n-nodes-base.httpRequest', 4.2, [3080, 200], {
+      method: 'POST',
+      url: `={{ $json.url }}`,
+      sendHeaders: true,
+      headerParameters: { parameters: [
+        { name: 'Content-Type', value: 'application/json' },
+        // sekret i atrapa idą wprost z wyrażeń, żeby nie trafiały do danych wykonania
+        { name: 'X-Intake-Token', value: `={{ $env.INTAKE_TOKEN || '' }}` },
+        { name: 'X-LLM-Mock', value: `={{ $json.mock }}` },
+      ] },
+      sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: `={{ JSON.stringify($json.payload) }}`,
+      options: { timeout: 20000 },
+    }, { onError: 'continueRegularOutput' }),
+    boolIf('Forwarded?', [3300, 200], `['processing', 'duplicate'].includes($json.status)`),
+    rpc('Mark forwarded', [3520, 140], 'triage_mark_forwarded', `{ p_inbox_id: $('Forward prep').item.json.inbox_id }`,
+      { onError: 'continueRegularOutput' }, { response: { response: { responseFormat: 'text' } } }),
+  ];
+
+  return workflow(TRIAGE_WORKFLOW_ID, '11 Inbox triage', nodes, [
+    ['Webhook', 'Config'], ['Config', 'Triage normalize'], ['Triage normalize', 'Valid input?'],
+    ['Valid input?', 'Receive', 0], ['Valid input?', 'Rejected', 1],
+    ['Receive', 'Accepted'], ['Accepted', 'First delivery?'], ['First delivery?', 'Triage prompt', 0],
+    ['Triage prompt', 'Ask LLM'], ['Ask LLM', 'Triage validate'], ['Triage validate', 'Complete'],
+    ['Complete', 'To intake?'], ['To intake?', 'Forward data', 0], ['Forward data', 'Forward prep'],
+
+    ['Schedule 5 min', 'Config sweep'], ['Webhook sweep', 'Config sweep'], ['Config sweep', 'Sweep params'],
+    ['Sweep params', 'Sweep allowed?'], ['Sweep allowed?', 'Sweep via webhook?', 0], ['Sweep allowed?', 'Sweep forbidden', 1],
+    ['Sweep via webhook?', 'Sweep started', 0], ['Sweep via webhook?', 'Unforwarded', 1], ['Sweep started', 'Unforwarded'],
+    ['Unforwarded', 'Forward prep'],
+
+    ['Forward prep', 'Forward to intake'], ['Forward to intake', 'Forwarded?'], ['Forwarded?', 'Mark forwarded', 0],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -729,6 +831,7 @@ for (const [file, wf] of [
   ['07-weekly-report.json', buildReport()],
   ['08-purchase-orders.json', buildPurchasing()],
   ['09-quote-followup.json', buildFollowup()],
+  ['11-inbox-triage.json', buildTriage()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);
