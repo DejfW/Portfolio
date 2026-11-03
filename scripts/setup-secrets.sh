@@ -59,18 +59,29 @@ ask() {
   fi
 }
 
-echo "Dane zapisuję w $ENV_FILE (poza gitem). Wpisywane znaki nie są widoczne."
+echo "Dane zapisuję w $ENV_FILE (poza gitem). Skrypt pyta wyłącznie o sekrety, a wpisywane znaki nie są widoczne."
+echo "Wpisuj każde hasło tylko przy jego własnym pytaniu."
 echo
 echo "== Supabase (projekt Portfolio) =="
-ask SUPABASE_CLOUD_REF "Ref projektu" jawne "ifbeqnhgoemhfricouii"
-ask SUPABASE_DB_PASSWORD "Hasło do bazy projektu Portfolio" sekret
+# Ref projektu nie jest sekretem i nie jest pytaniem: pole jest jawne, więc łatwo wpisać w nie hasło.
+# Zawsze ustawiamy znaną wartość, a jeśli w pliku jest coś innego niż 20 małych liter, nadpisujemy to.
+PORTFOLIO_REF="ifbeqnhgoemhfricouii"
+set_var SUPABASE_CLOUD_REF "$PORTFOLIO_REF"
+echo "  ref projektu: $PORTFOLIO_REF"
+ask SUPABASE_DB_PASSWORD "Hasło do bazy projektu Portfolio (wpisz je tutaj, znaki nie będą widoczne)" sekret
 echo
 echo "== Gmail (dawidmarekportfolio@gmail.com) =="
-ask GMAIL_USER "Adres Gmail" jawne "dawidmarekportfolio@gmail.com"
+# Adres konta też jest stałą (nie pytamy o niego, bo pole jawne łatwo pomylić z polem na hasło).
+set_var GMAIL_USER "dawidmarekportfolio@gmail.com"
+echo "  konto: dawidmarekportfolio@gmail.com"
 ask GMAIL_APP_PASSWORD "Hasło aplikacji Google (16 znaków)" sekret
 echo
 echo "== Slack (#zamowienia-demo) =="
 ask SLACK_WEBHOOK_URL "Adres Incoming Webhook (https://hooks.slack.com/services/...)" sekret
+if has_var SLACK_WEBHOOK_URL && ! grep -q "^SLACK_WEBHOOK_URL='https://hooks.slack.com/services/" "$ENV_FILE"; then
+  echo "  uwaga: to nie wygląda jak adres Incoming Webhook Slacka; wpisz poprawny przy następnym uruchomieniu"
+  set_var SLACK_WEBHOOK_URL ""
+fi
 
 echo
 if has_var SUPABASE_DB_PASSWORD; then
