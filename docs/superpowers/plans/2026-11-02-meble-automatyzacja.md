@@ -206,6 +206,8 @@ Social media są poza zakresem (pomysł na v2, opisany w README w sekcji „co d
 
 ### Task 10: Statusy zamówień i prośba o opinię (pon. 9.11)
 
+**Zmiany względem pierwotnego planu (wykonanie):** maile składa baza (`notify_status_events`, `send_review_requests`) w tej samej transakcji co oznaczenie zdarzeń, więc workflowy `10-status-notify` i `12-review-request` tylko wołają funkcje SQL; zakończenie zamówienia ma już mail `order_done`, więc status `done` nie wysyła kolejnego; `web/status.html` woła Supabase REST rolą `anon`, a adres i klucz publiczny wstawia `scripts/serve-web.mjs`. Migracja ma numer 020, test SQL `018_status_test.sql`.
+
 **Files:**
 - Create: `supabase/migrations/011_status.sql`
 - Test: `supabase/tests/009_status_test.sql`

@@ -82,3 +82,15 @@ test('publiczne webhooki salonowe i kalkulatora nie przekazują sekretów dalej 
   const text = JSON.stringify(wf['13-showroom.json'].nodes.filter((n) => n.type.endsWith('respondToWebhook')));
   assert.ok(!/access_token|salesperson_email/.test(text), 'odpowiedzi nie zawierają tokenu ani adresu handlowca');
 });
+
+test('cykliczne powiadomienia (10, 12) wołają tylko funkcje SQL, a webhooki testowe są chronione trybem testowym', () => {
+  for (const [f, fn] of [['10-status-notify.json', 'notify_status_events'], ['12-review-request.json', 'send_review_requests']]) {
+    const w = wf[f];
+    const run = w.nodes.find((n) => n.name === 'Run');
+    assert.match(run.parameters.url, new RegExp(`/rpc/${fn}`), f);
+    const hook = w.nodes.find((n) => n.type.endsWith('webhook'));
+    assert.equal(hook.parameters.authentication, undefined, `${f}: webhook testowy bez logowania, ale za bramką trybu testowego`);
+    assert.ok(w.nodes.some((n) => n.name === 'Cron params') && w.nodes.some((n) => n.name === 'Forbidden'), `${f}: bramka trybu testowego`);
+    assert.ok(w.nodes.every((n) => !/emailSend|gmail|smtp/i.test(n.type)), `${f}: maile tylko przez kolejkę w bazie`);
+  }
+});
