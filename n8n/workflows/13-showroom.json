@@ -1,0 +1,722 @@
+{
+  "id": "showroom0000001",
+  "name": "13 Showroom",
+  "nodes": [
+    {
+      "id": "n205-info-webhook",
+      "name": "Info webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "showroom-info",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "showroom-info-0001"
+    },
+    {
+      "id": "n206-info-prep",
+      "name": "Info prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Kod salonu z adresu (?code=...). Do bazy trafia tylko poprawny kod: małe litery, cyfry i myślniki (3-40 znaków).\nconst q = $input.first().json.query || {};\nconst code = typeof q.code === 'string' ? q.code : '';\nconst valid = /^[a-z0-9-]{3,40}$/.test(code);\nreturn [{ json: { valid, code: valid ? code : '' } }];\n"
+      }
+    },
+    {
+      "id": "n207-code-valid-",
+      "name": "Code valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-code-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n208-salon-info",
+      "name": "Salon info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        -60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/showroom_info",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_code: $json.code }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n209-salon-found-",
+      "name": "Salon found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-salon-found-",
+              "leftValue": "={{ !!$json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n210-info-response",
+      "name": "Info response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -140
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { name: $json.name } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "n211-info-not-found",
+      "name": "Info not found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        60
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'UNKNOWN_SHOWROOM' } }}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "n212-order-webhook",
+      "name": "Order webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        360
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "showroom-order",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "showroom-order-0001"
+    },
+    {
+      "id": "n213-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        360
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-tokenSet",
+              "name": "tokenSet",
+              "value": "={{ !!$env.INTAKE_TOKEN }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n214-create-order",
+      "name": "Create order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/showroom_order",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: $('Order webhook').first().json.body || {} }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n215-order-error-",
+      "name": "Order error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-order-error-",
+              "leftValue": "={{ !!$json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n216-order-rejected",
+      "name": "Order rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        460
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: $json.error } }}",
+        "options": {
+          "responseCode": 422,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "n217-order-accepted",
+      "name": "Order accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: $json.created ? 'received' : 'duplicate' } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "n218-created-",
+      "name": "Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        260
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-created-",
+              "leftValue": "={{ $json.created }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n219-context",
+      "name": "Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/notification_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $('Create order').first().json.order_id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n220-compose-emails",
+      "name": "Compose emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        260
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Składa maile ze stanu zamówienia w bazie (wynik notification_context). Ten sam kod obsługuje\n// przepływ normalny i naprawę po awarii (sweeper), więc brakujące maile da się zawsze odtworzyć.\n// Zwraca elementy {order_id, kind, to, subject, body}; kolejne węzły dopisują je do email_outbox\n// (unikalnie po zamówieniu i rodzaju), a rodzaje już istniejące pomijamy tutaj.\n// Treść jest zwykłym tekstem. Przy wysyłce w HTML trzeba ją escape'ować (zawiera tekst od klienta).\nconst cfg = $('Config').first().json;\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst mails = [];\n\nfor (const item of $input.all()) {\n  const c = item.json;\n  if (!c || !c.order_id) continue; // brak zamówienia o takim id\n\n  const has = new Set(c.existing_kinds || []);\n  const add = (kind, to, subject, body) => {\n    if (!has.has(kind)) mails.push({ json: { order_id: c.order_id, kind, to, subject, body } });\n  };\n  const email = c.customer_email;\n  // notatka z salonu może mieć do 1000 znaków i handlowiec ma ją zobaczyć w całości\n  const excerpt = String(c.raw_text || '').slice(0, c.source === 'showroom' ? 1200 : 300);\n\n  // zamówienia z salonu: handlowiec dostaje mail showroom_lead zamiast alertu dla właściciela (imię klienta tylko w treści)\n  const isShowroom = c.source === 'showroom';\n  const clean = (v) => String(v || '').replace(/[\\u0000-\\u001f\\u007f]+/g, ' ').trim().slice(0, 120);\n  const salon = clean(c.showroom_name) || 'salon';\n  const who = clean(c.customer_name) || email;\n\n  if (c.status === 'quoted' && c.quote && c.quote.total !== undefined) {\n    const lines = (c.quote.lines || []).map((l) => `- ${l.label} × ${l.qty}`).join('\\n');\n    add('customer_quote', email, 'Wstępna wycena Twojego zamówienia',\n      `Dzień dobry,\\n\\ndziękujemy za zapytanie. Pozycje w wycenie:\\n${lines}\\n\\n` +\n      `Wstępna wycena: ${pln(c.quote.total)}\\n\\n` +\n      'To wycena wstępna, wyliczona automatycznie. Ostateczną cenę i termin potwierdzimy po weryfikacji zamówienia.\\n\\n' +\n      'Pozdrawiamy,\\nStolarnia');\n    if (isShowroom) {\n      if (c.salesperson_email) {\n        add('showroom_lead', c.salesperson_email, `Nowe zamówienie z salonu ${salon}: wycena ${pln(c.quote.total)}`,\n          `Klient: ${who} (${email})\\nSalon: ${salon}\\nWycena wstępna: ${pln(c.quote.total)}\\n${lines}\\n\\n` +\n          `Notatka:\\n${excerpt}\\n\\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);\n      }\n    } else {\n      add('owner_alert', cfg.ownerEmail, `Nowe zamówienie do zatwierdzenia: ${email} (${pln(c.quote.total)})`,\n        `Klient: ${email}\\nŹródło: ${c.source}\\nWycena wstępna: ${pln(c.quote.total)}\\n\\n` +\n        `Wiadomość klienta:\\n${excerpt}\\n\\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);\n    }\n  } else if (c.status === 'needs_info') {\n    const list = (c.missing || []).map((m) => `- ${m}`).join('\\n');\n    add('needs_info', email, 'Potrzebujemy kilku informacji do wyceny',\n      `Dzień dobry,\\n\\ndziękujemy za wiadomość. Żeby przygotować wycenę, prosimy jeszcze o:\\n${list}\\n\\n` +\n      'Wystarczy odpowiedzieć na tego maila.\\n\\nPozdrawiamy,\\nStolarnia');\n  } else if (c.status === 'needs_review' && isShowroom) {\n    if (c.salesperson_email) {\n      const why = c.reason === 'lead_without_items' ? 'klient zostawił kontakt bez pozycji, wymaga rozmowy z handlowcem'\n        : `automat nie wycenił zamówienia (${c.reason || c.status})`;\n      add('showroom_lead', c.salesperson_email, `Lead z salonu ${salon} do kontaktu`,\n        `Klient: ${who} (${email})\\nSalon: ${salon}\\nPowód: ${why}\\n\\nNotatka:\\n${excerpt}`);\n    }\n  } else if (c.status === 'needs_review') {\n    add('owner_alert', cfg.ownerEmail, `Zamówienie do sprawdzenia: ${email}`,\n      `Automat nie wycenił tego zamówienia. Powód: ${c.reason || c.status}\\n\\nKlient: ${email}\\nŹródło: ${c.source}\\n\\n` +\n      `Wiadomość klienta:\\n${excerpt}`);\n  }\n}\n\nreturn mails;\n"
+      }
+    },
+    {
+      "id": "n221-queue-email",
+      "name": "Queue email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/enqueue_email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.order_id, p_kind: $json.kind, p_to: $json.to, p_subject: $json.subject, p_body: $json.body }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Info webhook": {
+      "main": [
+        [
+          {
+            "node": "Info prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Info prep": {
+      "main": [
+        [
+          {
+            "node": "Code valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code valid?": {
+      "main": [
+        [
+          {
+            "node": "Salon info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Info not found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salon info": {
+      "main": [
+        [
+          {
+            "node": "Salon found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salon found?": {
+      "main": [
+        [
+          {
+            "node": "Info response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Info not found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Create order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create order": {
+      "main": [
+        [
+          {
+            "node": "Order error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order error?": {
+      "main": [
+        [
+          {
+            "node": "Order rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Order accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order accepted": {
+      "main": [
+        [
+          {
+            "node": "Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Created?": {
+      "main": [
+        [
+          {
+            "node": "Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context": {
+      "main": [
+        [
+          {
+            "node": "Compose emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose emails": {
+      "main": [
+        [
+          {
+            "node": "Queue email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false
+  },
+  "versionId": "showroom0000001-v1"
+}

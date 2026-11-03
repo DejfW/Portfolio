@@ -69,3 +69,16 @@ test('triage: sekret intake przekazywany wyrażeniem, a nie wartością, a przek
   assert.match(hdr['X-Intake-Token'], /\$env\.INTAKE_TOKEN/);
   assert.equal(fwd.onError, 'continueRegularOutput');
 });
+
+test('workflow salonowy nie zapisuje danych wykonań (żądanie niesie token salonu)', () => {
+  const s = wf['13-showroom.json'].settings;
+  assert.equal(s.saveDataSuccessExecution, 'none');
+  assert.equal(s.saveDataErrorExecution, 'none');
+  assert.equal(s.saveManualExecutions, false);
+  assert.equal(s.saveExecutionProgress, false);
+});
+
+test('publiczne webhooki salonowe i kalkulatora nie przekazują sekretów dalej do odpowiedzi', () => {
+  const text = JSON.stringify(wf['13-showroom.json'].nodes.filter((n) => n.type.endsWith('respondToWebhook')));
+  assert.ok(!/access_token|salesperson_email/.test(text), 'odpowiedzi nie zawierają tokenu ani adresu handlowca');
+});
