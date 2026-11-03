@@ -17,5 +17,7 @@ return [{
     b64,
     mock,
     projectDir: i.projectDir,
+    // opcjonalny znacznik wywołującego; wraca w wyniku, żeby wyniki dało się dopasować bez polegania na kolejności
+    ref: typeof i.ref === 'string' ? i.ref.slice(0, 100) : null,
   },
 }];

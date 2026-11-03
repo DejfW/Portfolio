@@ -49,6 +49,7 @@ Właściciel małej pracowni traci czas na pracę, którą da się zautomatyzowa
 | `06-calculator` | `GET /catalog`, `POST /quote-preview`, `POST /calculator-order` | Publiczne API kalkulatora |
 | `07-weekly-report` | poniedziałek 8:00 | Bestsellery z 7 i 30 dni + podsumowanie AI na Slacku |
 | `08-purchase-orders` | 7:15 codziennie, `GET/POST /webhook/po-approve`, `/po-received` | Szkice zamówień do hurtowni z materiałów poniżej minimum, zatwierdzenie linkiem (mail do hurtowni), przyjęcie dostawy zwiększa stan |
+| `09-quote-followup` | 9:00 codziennie, `GET/POST /webhook/lost-reason` | Przypomnienia o wycenie po 3 i 7 dniach (wstęp pisze AI z walidacją i szablonem awaryjnym), po 14 dniach status `lost` i mail z ankietą powodu rezygnacji |
 
 Pliki `n8n/workflows/*.json` są **generowane** przez `n8n/build.mjs` z `n8n/code/*.js` i `n8n/prompts/*.md`. Edytuje się źródła, nie JSON.
 
@@ -85,6 +86,8 @@ Handlowiec w salonie wypełnia formularz na tablecie (`web/showroom.html`, w prz
 
 ## Ograniczenia, które znam
 
+- **Przypomnienia o wycenach:** wstęp maila pisze model, ale trafia do klienta tylko po przejściu walidacji (dokładnie 3 zdania, bez linków, adresów i znaków formatowania, bez fraz odmowy). To filtr heurystyczny, nie gwarancja treści; przy awarii lub podejrzanej odpowiedzi idzie stały szablon. Wyniki AI są dopasowywane do wycen po identyfikatorze, a nie po kolejności. Strony ankiety rezygnacji są publiczne i chronione tylko nieodgadnialnym tokenem zamówienia; pierwsza odpowiedź wygrywa.
+
 - **Zamówienia do hurtowni:** szkic zachowuje ceny z chwili utworzenia, a materiał z otwartego szkicu lub wysłanego zamówienia nie trafia do kolejnego (nieprzyjęte lub niezatwierdzone zamówienie go blokuje). Ilość to uzupełnienie do dwukrotności minimum, bez uwzględnienia dostaw w drodze poza otwartymi zamówieniami.
 - **Ochrona formularzy operatora (CSRF):** strony n8n są serwowane w piaskownicy CSP, więc formularz wysyła `Origin: null` i nie da się polegać na `Sec-Fetch-Site`. Odrzucamy POST z `Origin` innej witryny; dalszą ochroną są logowanie Basic i nieodgadnialny UUID w treści formularza. Dla wdrożenia produkcyjnego lepszy byłby podpisany token formularza.
 
@@ -109,7 +112,7 @@ Zaplanowane, jeszcze niewdrożone: automatyczne zamówienia do hurtowni, follow-
 ## Struktura repozytorium
 
 ```
-supabase/migrations   schemat i funkcje SQL (001–017)
+supabase/migrations   schemat i funkcje SQL (001–018)
 supabase/tests        testy SQL (DO + assert, w transakcji z rollbackiem)
 supabase/seed.sql     dane demo
 n8n/code, prompts     źródła węzłów Code i promptów

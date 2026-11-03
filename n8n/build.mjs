@@ -22,6 +22,7 @@ const DELIVER_WORKFLOW_ID = 'deliver00000001';
 const CALC_WORKFLOW_ID = 'calc00000000001';
 const REPORT_WORKFLOW_ID = 'report000000001';
 const PO_WORKFLOW_ID = 'po0000000000001';
+const FOLLOWUP_WORKFLOW_ID = 'followup0000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
 
@@ -620,6 +621,99 @@ function buildPurchasing() {
   ]);
 }
 
+
+// --- 09-quote-followup -------------------------------------------------------------------------
+// Codziennie o 9:00: wyceny bez odpowiedzi starsze niż 14 dni stają się lost (mail z ankietą), a młodsze dostają
+// przypomnienie po 3 i po 7 dniach. Wstęp maila pisze AI (z walidacją i stałym szablonem awaryjnym). Publiczne
+// strony ankiety (/lost-reason) są chronione tokenem zamówienia, nie logowaniem. Webhook /followup-run działa tylko
+// w trybie testowym.
+
+function buildFollowup() {
+  const promptTemplate = JSON.stringify(prompt('followup'));
+  const respond = node('Respond page', 'n8n-nodes-base.respondToWebhook', 1.1, [1760, 700], {
+    respondWith: 'text',
+    responseBody: '={{ $json.html }}',
+    options: {
+      responseCode: '={{ $json.code }}',
+      responseHeaders: { entries: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }] },
+    },
+  });
+  const publicHook = (name, method, y, id) =>
+    node(name, 'n8n-nodes-base.webhook', 2.1, [0, y],
+      { httpMethod: method, path: 'lost-reason', responseMode: 'responseNode', options: {} }, { webhookId: id });
+
+  const nodes = [
+    node('Schedule 9:00', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], {
+      rule: { interval: [{ field: 'cronExpression', expression: '0 9 * * *' }] },
+    }),
+    node('Webhook run', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'POST', path: 'followup-run', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'followup-run-0001' }),
+    configNode([220, 100]),
+    codeNode('Followup params', [440, 100], code('followup-params')),
+    boolIf('Allowed?', [660, 100], '$json.allowed'),
+    node('Forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Via webhook?', [880, 20], '$json.viaWebhook'),
+    node('Started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -60], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    // Najpierw zamykamy stare wyceny (mogą nie zwrócić żadnego wiersza, ale przepływ ma iść dalej)
+    rpc('Mark lost', [1320, 20], 'mark_lost_quotes', `{ p_days: 14, p_public_url: $('Config').first().json.publicUrl }`,
+      { onError: 'continueRegularOutput', alwaysOutputData: true }),
+    codeNode('Once', [1540, 20], code('once')),
+    rpc('Due follow-ups', [1760, 20], 'quotes_due_followup', '{}'),
+    codeNode('Followup prompt', [1980, 20], code('followup-prompt').replace('__PROMPT_TEMPLATE__', promptTemplate)),
+    node('Ask LLM', 'n8n-nodes-base.executeWorkflow', 1.2, [2200, 20], {
+      source: 'database',
+      workflowId: { __rl: true, value: LLM_WORKFLOW_ID, mode: 'id' },
+      mode: 'each',
+      options: { waitForSubWorkflow: true },
+      // awaria modelu nie może zatrzymać przypomnień: Compose użyje stałego szablonu
+    }, { onError: 'continueRegularOutput' }),
+    codeNode('Compose follow-up', [2420, 20], code('followup-compose')),
+    rpc('Record follow-up', [2640, 20], 'record_followup',
+      `{ p_order_id: $json.order_id, p_no: $json.followup_no, p_subject: $json.subject, p_body: $json.body }`,
+      { onError: 'continueRegularOutput' }, { response: { response: { responseFormat: 'text' } } }),
+
+    // GET /lost-reason?token=... -> strona ankiety (publiczna, token zamówienia)
+    publicHook('GET lost-reason', 'GET', 520, 'lost-reason-get'),
+    codeNode('Lost prep', [440, 520], code('lost-prep')),
+    boolIf('Lost link valid?', [660, 520], '$json.valid'),
+    rpc('Lost context', [880, 460], 'lost_reason_context', `{ p_token: $json.token }`),
+    codeNode('Lost page', [1100, 460], code('lost-page')),
+
+    // POST /lost-reason -> zapis powodu
+    publicHook('POST lost-reason', 'POST', 740, 'lost-reason-post'),
+    codeNode('Lost prep POST', [440, 740], code('lost-prep')),
+    boolIf('Lost form valid?', [660, 740], '$json.valid'),
+    rpc('Record reason', [880, 680], 'record_lost_reason', `{ p_token: $json.token, p_reason: $json.reason }`),
+    codeNode('Lost result', [1100, 680], code('lost-result')),
+
+    codeNode('Bad link', [880, 860], code('bad-link')),
+    respond,
+  ];
+
+  return workflow(FOLLOWUP_WORKFLOW_ID, '09 Quote follow-up', nodes, [
+    ['Schedule 9:00', 'Config'], ['Webhook run', 'Config'], ['Config', 'Followup params'], ['Followup params', 'Allowed?'],
+    ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
+    ['Via webhook?', 'Started', 0], ['Via webhook?', 'Mark lost', 1], ['Started', 'Mark lost'],
+    ['Mark lost', 'Once'], ['Once', 'Due follow-ups'], ['Due follow-ups', 'Followup prompt'],
+    ['Followup prompt', 'Ask LLM'], ['Ask LLM', 'Compose follow-up'], ['Compose follow-up', 'Record follow-up'],
+
+    ['GET lost-reason', 'Lost prep'], ['Lost prep', 'Lost link valid?'],
+    ['Lost link valid?', 'Lost context', 0], ['Lost link valid?', 'Bad link', 1],
+    ['Lost context', 'Lost page'], ['Lost page', 'Respond page'],
+
+    ['POST lost-reason', 'Lost prep POST'], ['Lost prep POST', 'Lost form valid?'],
+    ['Lost form valid?', 'Record reason', 0], ['Lost form valid?', 'Bad link', 1],
+    ['Record reason', 'Lost result'], ['Lost result', 'Respond page'],
+
+    ['Bad link', 'Respond page'],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -634,6 +728,7 @@ for (const [file, wf] of [
   ['06-calculator.json', buildCalculator()],
   ['07-weekly-report.json', buildReport()],
   ['08-purchase-orders.json', buildPurchasing()],
+  ['09-quote-followup.json', buildFollowup()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);
