@@ -3,7 +3,7 @@
   "name": "13 Showroom",
   "nodes": [
     {
-      "id": "n178-info-webhook",
+      "id": "n205-info-webhook",
       "name": "Info webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -22,7 +22,7 @@
       "webhookId": "showroom-info-0001"
     },
     {
-      "id": "n179-info-prep",
+      "id": "n206-info-prep",
       "name": "Info prep",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -37,7 +37,7 @@
       }
     },
     {
-      "id": "n180-code-valid-",
+      "id": "n207-code-valid-",
       "name": "Code valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -71,7 +71,7 @@
       }
     },
     {
-      "id": "n181-salon-info",
+      "id": "n208-salon-info",
       "name": "Salon info",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -107,7 +107,7 @@
       }
     },
     {
-      "id": "n182-salon-found-",
+      "id": "n209-salon-found-",
       "name": "Salon found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -141,7 +141,7 @@
       }
     },
     {
-      "id": "n183-info-response",
+      "id": "n210-info-response",
       "name": "Info response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -166,7 +166,7 @@
       }
     },
     {
-      "id": "n184-info-not-found",
+      "id": "n211-info-not-found",
       "name": "Info not found",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -191,7 +191,7 @@
       }
     },
     {
-      "id": "n185-order-webhook",
+      "id": "n212-order-webhook",
       "name": "Order webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -210,7 +210,7 @@
       "webhookId": "showroom-order-0001"
     },
     {
-      "id": "n186-config",
+      "id": "n213-config",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -277,6 +277,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-tokenSet",
+              "name": "tokenSet",
+              "value": "={{ !!$env.INTAKE_TOKEN }}",
+              "type": "boolean"
+            },
+            {
               "id": "cfg-authorized",
               "name": "authorized",
               "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
@@ -289,7 +295,7 @@
       }
     },
     {
-      "id": "n187-create-order",
+      "id": "n214-create-order",
       "name": "Create order",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -325,7 +331,7 @@
       }
     },
     {
-      "id": "n188-order-error-",
+      "id": "n215-order-error-",
       "name": "Order error?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -359,7 +365,7 @@
       }
     },
     {
-      "id": "n189-order-rejected",
+      "id": "n216-order-rejected",
       "name": "Order rejected",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -384,7 +390,7 @@
       }
     },
     {
-      "id": "n190-order-accepted",
+      "id": "n217-order-accepted",
       "name": "Order accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -409,7 +415,7 @@
       }
     },
     {
-      "id": "n191-created-",
+      "id": "n218-created-",
       "name": "Created?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -443,7 +449,7 @@
       }
     },
     {
-      "id": "n192-context",
+      "id": "n219-context",
       "name": "Context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -479,7 +485,7 @@
       }
     },
     {
-      "id": "n193-compose-emails",
+      "id": "n220-compose-emails",
       "name": "Compose emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -494,7 +500,7 @@
       }
     },
     {
-      "id": "n194-queue-email",
+      "id": "n221-queue-email",
       "name": "Queue email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,

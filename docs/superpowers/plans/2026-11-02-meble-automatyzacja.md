@@ -183,6 +183,8 @@ Social media są poza zakresem (pomysł na v2, opisany w README w sekcji „co d
 
 ### Task 9: Triage skrzynki AI (weekend / pon. 9.11)
 
+**Zmiany względem pierwotnego planu (wykonanie):** brak łącznika Gmail OAuth ani IMAP w projekcie, więc workflow `11-inbox-triage` przyjmuje wiadomości przez `POST /webhook/triage` (punkt integracji z łącznikiem poczty), szkic odpowiedzi trafia do właściciela na Slacka (`slack_outbox`, rodzaje `inbox_question` i `inbox_complaint`) zamiast do szkiców Gmaila, a etykieta spamu to kolumna `inbox_messages.route`. Do intake wiadomość trafia przez `POST /webhook/order` z tym samym `external_id`, więc workflow 01 nie zmienił się. Migracja ma numer 019, test SQL `017_inbox_test.sql`.
+
 **Files:**
 - Create: `supabase/migrations/010_inbox.sql`
 - Create: `n8n/workflows/10-inbox-triage.json`, `n8n/prompts/triage.md`, `data/faq.md`

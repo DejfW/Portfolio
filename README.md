@@ -50,6 +50,7 @@ Właściciel małej pracowni traci czas na pracę, którą da się zautomatyzowa
 | `07-weekly-report` | poniedziałek 8:00 | Bestsellery z 7 i 30 dni + podsumowanie AI na Slacku |
 | `08-purchase-orders` | 7:15 codziennie, `GET/POST /webhook/po-approve`, `/po-received` | Szkice zamówień do hurtowni z materiałów poniżej minimum, zatwierdzenie linkiem (mail do hurtowni), przyjęcie dostawy zwiększa stan |
 | `09-quote-followup` | 9:00 codziennie, `GET/POST /webhook/lost-reason` | Przypomnienia o wycenie po 3 i 7 dniach (wstęp pisze AI z walidacją i szablonem awaryjnym), po 14 dniach status `lost` i mail z ankietą powodu rezygnacji |
+| `11-inbox-triage` | `POST /webhook/triage`, co 5 min naprawa | Klasyfikacja poczty przez AI (zamówienie, pytanie, reklamacja, spam): zamówienia i niepewne przypadki idą do intake, pytania i reklamacje do właściciela na Slacku, spam jest tylko oznaczany |
 | `13-showroom` | `GET /webhook/showroom-info`, `POST /webhook/showroom-order` | API tabletu w salonie stacjonarnym: wycena dla klienta i mail do handlowca (lub sam lead z notatką) |
 
 Pliki `n8n/workflows/*.json` są **generowane** przez `n8n/build.mjs` z `n8n/code/*.js` i `n8n/prompts/*.md`. Edytuje się źródła, nie JSON.
@@ -87,15 +88,16 @@ Handlowiec w salonie otwiera na tablecie `http://localhost:8080/showroom.html?sa
 
 Token po otwarciu linku znika z paska adresu i zostaje w `sessionStorage` karty (do zamknięcia karty), a identyfikator zamówienia jest ograniczony do przestrzeni `showroom:<kod>:`, więc nie może przejąć zamówienia z innego kanału. Workflow 13 nie zapisuje danych wykonań, bo żądanie niesie token.
 
+## Triage skrzynki
+
+Łącznik poczty (np. IMAP albo reguła w skrzynce) wysyła każdą wiadomość na `POST /webhook/triage` (`external_id` = Message-ID, `from_email`, `subject`, `message`). Model klasyfikuje ją, ale **o trasie decyduje baza** (`triage_complete`): zamówienie, niska pewność, śmieci i awaria modelu trafiają do intake, więc żadne zamówienie nie ginie przez pomyłkę klasyfikatora. Pytanie dostaje szkic odpowiedzi opartej na `data/faq.md` i powiadomienie dla właściciela na Slacku (system nigdy sam nie wysyła odpowiedzi do klienta), reklamacja powiadomienie, a spam jest tylko oznaczany i zostaje w tabeli `inbox_messages`. Druga ścieżka co 5 minut przekazuje do intake wiadomości, które utknęły po awarii (z dzierżawą, odstępami między próbami i limitem 20 prób).
+
 ## Ograniczenia, które znam
-
+- **Triage:** endpoint `/triage` uruchamia model, więc bez ustawionego `INTAKE_TOKEN` odrzuca żądania (poza trybem testowym); limit ruchu i kolejka AI należą do warstwy przed n8n. Spam to jedyna trasa bez dalszych skutków, więc oprócz pewności modelu (>= 0,9) wymagamy braku śladów zapytania o meble w treści, a odrzucony spam można przejrzeć (`select * from inbox_messages where route = 'spam'`). Heurystyka słów kluczowych nie zastępuje przeglądu; podatność modelu na prompt injection jest ograniczona, nie wyeliminowana. Szkice i treść dla właściciela mają rozbrojone adresy URL.
 - **Salony:** token salonu wyciekający z tabletu pozwala kolejkować wyceny na dowolne adresy (do czasu rotacji tokenu, np. `update showrooms set access_token = ...`); przed publicznym wdrożeniem potrzebny jest limit żądań i antybot (reverse proxy). Sweeper naprawia brakujące maile salonu tylko dla zamówień w statusie `quoted` i `needs_review`, tak jak dla pozostałych kanałów.
-
 - **Przypomnienia o wycenach:** wstęp maila pisze model, ale trafia do klienta tylko po przejściu walidacji (dokładnie 3 zdania, bez linków, adresów i znaków formatowania, bez fraz odmowy). To filtr heurystyczny, nie gwarancja treści; przy awarii lub podejrzanej odpowiedzi idzie stały szablon. Wyniki AI są dopasowywane do wycen po identyfikatorze, a nie po kolejności. Strony ankiety rezygnacji są publiczne i chronione tylko nieodgadnialnym tokenem zamówienia; pierwsza odpowiedź wygrywa.
-
 - **Zamówienia do hurtowni:** szkic zachowuje ceny z chwili utworzenia, a materiał z otwartego szkicu lub wysłanego zamówienia nie trafia do kolejnego (nieprzyjęte lub niezatwierdzone zamówienie go blokuje). Ilość to uzupełnienie do dwukrotności minimum, bez uwzględnienia dostaw w drodze poza otwartymi zamówieniami.
 - **Ochrona formularzy operatora (CSRF):** strony n8n są serwowane w piaskownicy CSP, więc formularz wysyła `Origin: null` i nie da się polegać na `Sec-Fetch-Site`. Odrzucamy POST z `Origin` innej witryny; dalszą ochroną są logowanie Basic i nieodgadnialny UUID w treści formularza. Dla wdrożenia produkcyjnego lepszy byłby podpisany token formularza.
-
 - **Brak limitu żądań i antybota** na publicznych endpointach. n8n nie ma go wbudowanego, więc przed publicznym wdrożeniem potrzebny jest reverse proxy (np. Caddy lub Cloudflare).
 - **Raport używa okna kroczącego** (7 i 30 dni od `created_at`) i wycenia sprzedaż po aktualnym cenniku, więc kwoty są przybliżone. Gdy pozycji nie da się wycenić, raport pokazuje „brak wyceny”, a nie 0 zł.
 - **Prompt injection** w nazwach produktów jest tylko ograniczone (skracanie i oczyszczanie nazw, maksymalnie 10 wierszy w prompcie). Wynik AI w raporcie trafia wyłącznie na prywatny kanał Slacka.
@@ -117,7 +119,7 @@ Zaplanowane, jeszcze niewdrożone: automatyczne zamówienia do hurtowni, follow-
 ## Struktura repozytorium
 
 ```
-supabase/migrations   schemat i funkcje SQL (001–018)
+supabase/migrations   schemat i funkcje SQL (001–019)
 supabase/tests        testy SQL (DO + assert, w transakcji z rollbackiem)
 supabase/seed.sql     dane demo
 n8n/code, prompts     źródła węzłów Code i promptów
