@@ -19,6 +19,8 @@ const SWEEPER_WORKFLOW_ID = 'sweeper00000001';
 const TEAM_WORKFLOW_ID = 'team00000000001';
 const STOCK_WORKFLOW_ID = 'stock0000000001';
 const DELIVER_WORKFLOW_ID = 'deliver00000001';
+const CALC_WORKFLOW_ID = 'calc00000000001';
+const REPORT_WORKFLOW_ID = 'report000000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
 
@@ -420,6 +422,107 @@ function buildDeliver() {
   ]);
 }
 
+
+// --- 06-calculator ---------------------------------------------------------------------------
+// API publicznego kalkulatora (strona: web/index.html, serwowana przez scripts/serve-web.mjs albo dowolny hosting statyczny).
+// GET /catalog daje listę produktów i materiałów bez cen, POST /quote-preview liczy wycenę na żywo bez zapisu
+// (tylko ceny sprzedaży), a POST /calculator-order zapisuje zamówienie z gotowych pozycji i wysyła maile (bez parsera AI).
+// CORS jest otwarty, bo dane są publiczne i nie ma ciasteczek. Ograniczanie liczby żądań (rate limit, antybot) należy
+// do warstwy przed n8n (reverse proxy), bo n8n nie ma wbudowanego limitu.
+
+function buildCalculator() {
+  const cors = { allowedOrigins: '*' };
+  const json = (name, position, code) => node(name, 'n8n-nodes-base.respondToWebhook', 1.1, position, {
+    respondWith: 'json', responseBody: `={{ $json }}`,
+    options: { responseCode: code, responseHeaders: { entries: [{ name: 'Cache-Control', value: 'no-store' }] } },
+  });
+  const nodes = [
+    node('Catalog webhook', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'GET', path: 'catalog', responseMode: 'responseNode', options: cors,
+    }, { webhookId: 'calculator-catalog-0001' }),
+    rpc('Read catalog', [260, 220], 'catalog_for_calculator', '{}'),
+    json('Catalog response', [520, 220], 200),
+    node('Order webhook', 'n8n-nodes-base.webhook', 2.1, [0, 660], {
+      httpMethod: 'POST', path: 'calculator-order', responseMode: 'responseNode', options: cors,
+    }, { webhookId: 'calculator-order-0001' }),
+    configNode([260, 660]),
+    rpc('Create order', [480, 660], 'calculator_order', `{ p: $('Order webhook').first().json.body }`),
+    boolIf('Order error?', [700, 660], '!!$json.error'),
+    node('Order rejected', 'n8n-nodes-base.respondToWebhook', 1.1, [920, 760], {
+      respondWith: 'json', responseBody: `={{ { error: $json.error } }}`, options: { responseCode: 422 },
+    }),
+    node('Order accepted', 'n8n-nodes-base.respondToWebhook', 1.1, [920, 560], {
+      respondWith: 'json', responseBody: `={{ { status: $json.created ? 'received' : 'duplicate' } }}`, options: { responseCode: 200 },
+    }),
+    boolIf('Created?', [1140, 560], '$json.created'),
+    rpc('Context', [1360, 560], 'notification_context', `{ p_order_id: $('Create order').first().json.order_id }`),
+    codeNode('Compose emails', [1580, 560], code('compose-emails')),
+    queueEmailNode([1800, 560]),
+    node('Preview webhook', 'n8n-nodes-base.webhook', 2.1, [0, 440], {
+      httpMethod: 'POST', path: 'quote-preview', responseMode: 'responseNode', options: cors,
+    }, { webhookId: 'calculator-preview-0001' }),
+    rpc('Preview', [260, 440], 'quote_preview', `{ p: $json.body }`),
+    node('Preview response', 'n8n-nodes-base.respondToWebhook', 1.1, [520, 440], {
+      respondWith: 'json', responseBody: `={{ $json }}`,
+      options: {
+        responseCode: `={{ $json.error ? 422 : 200 }}`,
+        responseHeaders: { entries: [{ name: 'Cache-Control', value: 'no-store' }] },
+      },
+    }),
+  ];
+  return workflow(CALC_WORKFLOW_ID, '06 Customer calculator', nodes, [
+    ['Catalog webhook', 'Read catalog'], ['Read catalog', 'Catalog response'],
+    ['Preview webhook', 'Preview'], ['Preview', 'Preview response'],
+    ['Order webhook', 'Config'], ['Config', 'Create order'], ['Create order', 'Order error?'],
+    ['Order error?', 'Order rejected', 0], ['Order error?', 'Order accepted', 1],
+    ['Order accepted', 'Created?'], ['Created?', 'Context', 0], ['Context', 'Compose emails'],
+    ['Compose emails', 'Queue email'],
+  ]);
+}
+
+// --- 07-weekly-report ------------------------------------------------------------------------
+// W poniedziałek o 8:00: bestsellery z 7 i 30 dni liczy baza, AI pisze 5-zdaniowe podsumowanie z rekomendacją,
+// a całość trafia do kolejki Slack (klucz deduplikacji = tydzień). Webhook /weekly-report działa tylko w trybie testowym.
+
+function buildReport() {
+  const promptTemplate = JSON.stringify(prompt('weekly-report'));
+  const nodes = [
+    node('Schedule Monday 8:00', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], {
+      rule: { interval: [{ field: 'cronExpression', expression: '0 8 * * 1' }] },
+    }),
+    node('Webhook', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'POST', path: 'weekly-report', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'weekly-report-0001' }),
+    configNode([220, 100]),
+    codeNode('Report params', [440, 100], code('report-params')),
+    boolIf('Allowed?', [660, 100], '$json.allowed'),
+    node('Forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Via webhook?', [880, 20], '$json.viaWebhook'),
+    node('Started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -60], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    rpc('Report data', [1320, 20], 'weekly_report', '{}'),
+    codeNode('Report prompt', [1540, 20], code('report-prompt').replace('__PROMPT_TEMPLATE__', promptTemplate)),
+    node('Ask LLM', 'n8n-nodes-base.executeWorkflow', 1.2, [1760, 20], {
+      source: 'database',
+      workflowId: { __rl: true, value: LLM_WORKFLOW_ID, mode: 'id' },
+      options: { waitForSubWorkflow: true },
+      // błąd podworkflow (np. zbyt duży prompt) nie może zgubić raportu liczbowego: Compose pokaże wersję bez AI
+    }, { onError: 'continueRegularOutput' }),
+    codeNode('Compose report', [1980, 20], code('report-compose')),
+    rpc('Queue notifications', [2200, 20], 'enqueue_notifications', `{ p: $json.p }`, { onError: 'continueRegularOutput' }),
+  ];
+  return workflow(REPORT_WORKFLOW_ID, '07 Weekly report', nodes, [
+    ['Schedule Monday 8:00', 'Config'], ['Webhook', 'Config'], ['Config', 'Report params'], ['Report params', 'Allowed?'],
+    ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
+    ['Via webhook?', 'Started', 0], ['Via webhook?', 'Report data', 1], ['Started', 'Report data'],
+    ['Report data', 'Report prompt'], ['Report prompt', 'Ask LLM'], ['Ask LLM', 'Compose report'],
+    ['Compose report', 'Queue notifications'],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -431,6 +534,8 @@ for (const [file, wf] of [
   ['03-team-tasks.json', buildTeamTasks()],
   ['04-stock-prices.json', buildStock()],
   ['05-deliver.json', buildDeliver()],
+  ['06-calculator.json', buildCalculator()],
+  ['07-weekly-report.json', buildReport()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);

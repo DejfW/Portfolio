@@ -25,6 +25,8 @@ insert into materials (name, unit, stock, min_stock) values
   ('Lakier wodny bezbarwny',      'l',     6,   5),
   ('Olej do drewna',              'l',     2,   3),
   ('Konfirmat 7x50 (op. 100 szt)', 'op',  10,   4);
+-- Na wymiar wolno wycenić tylko materiały płytowe (kalkulator dla klienta).
+update materials set custom_ok = true where unit = 'm2';
 
 -- Ceny hurtowni. Dąb w Lasku jest najtańszy, ale cena ma 40 dni, więc po Task 2 przestaje się liczyć.
 insert into supplier_prices (supplier_id, material_id, price, updated_at)

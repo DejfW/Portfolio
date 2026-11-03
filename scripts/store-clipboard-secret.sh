@@ -15,7 +15,7 @@ case "$key" in
       echo "Schowek nie zawiera adresu Incoming Webhook Slacka." >&2; exit 1; } ;;
   GMAIL_APP_PASSWORD)
     value="${value// /}"
-    [[ "$value" =~ ^[a-z]{16}$ ]] || { echo "Hasło aplikacji Google ma 16 małych liter." >&2; exit 1; } ;;
+    [[ "$value" =~ ^[a-z]{16}$ ]] || { echo "BŁĄD: w schowku nie ma hasła aplikacji (wymagane dokładnie 16 małych liter, spacje są usuwane). Nic nie zapisano." >&2; exit 1; } ;;
   SUPABASE_DB_PASSWORD)
     [ -n "$value" ] || { echo "Schowek jest pusty." >&2; exit 1; } ;;
   *)
