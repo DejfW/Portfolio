@@ -4,9 +4,11 @@
 
 ```bash
 supabase start
-ALLOW_LLM_MOCK=1 scripts/n8n.sh start   # tryb testowy odblokowuje ręczne uruchamianie cronów; bez nagłówka X-LLM-Mock model nadal jest prawdziwy
+ALLOW_LLM_MOCK=1 scripts/n8n.sh start   # tryb testowy: ręczne uruchamianie cronów i atrapy modelu, ale BEZ prawdziwej wysyłki
 node scripts/serve-web.mjs              # kalkulator, tablet salonowy i strona statusu na http://localhost:8080
 ```
+
+Tryb testowy nie dostarcza wiadomości na Slacka ani mailem (to zabezpieczenie testów). Jeśli chcesz pokazać prawdziwe powiadomienia, uruchom n8n bez `ALLOW_LLM_MOCK` i `EMAIL_DELIVERY=on` w `.env.local` (maile wychodzą tylko na `EMAIL_ALLOWLIST`), a crony uruchamiaj funkcjami SQL (np. `select create_purchase_orders('http://localhost:5678')`) zamiast webhooków testowych. **Prawdziwy model trwa:** klasyfikacja ok. 50 s i parsowanie zamówienia kolejne ok. 50 s, więc wyślij `/triage` na początku i opowiadaj problem w tym czasie, albo użyj atrap (`X-LLM-Mock`, `X-Intake-Mock`) dla tempa nagrania.
 
 Otwórz Slack `#zamowienia-demo` i podgląd kolejki maili (`select kind, to_email, subject from email_outbox order by created_at desc`). Token salonu: `select access_token from showrooms where code = 'warszawa-mokotow'`. Hasło operatora do linków zatwierdzeń leży w `.env.local` (`OPERATOR_PASSWORD`).
 
