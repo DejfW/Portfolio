@@ -88,6 +88,8 @@ declare
   v_id     uuid;
   v_new    boolean;
   v_items  jsonb;
+  v_status text;
+  v_src    text;
 begin
   if p is null or jsonb_typeof(p) <> 'object' then
     return jsonb_build_object('error', 'INVALID_INPUT');
@@ -102,12 +104,24 @@ begin
   if p->'consent' is distinct from 'true'::jsonb then
     return jsonb_build_object('error', 'NO_CONSENT');
   end if;
+  -- identyfikatory salonu mają własną przestrzeń: nie mogą trafić w zamówienie z kalkulatora, maila ani innego salonu
+  if coalesce(p->>'external_id', '') not like 'showroom:' || v_s.code || ':%' then
+    return jsonb_build_object('error', 'INVALID_EXTERNAL_ID');
+  end if;
   v_name := left(btrim(regexp_replace(coalesce(p->>'customer_name', ''), '[[:cntrl:]]', ' ', 'g')), 120);
   if v_name = '' then
     return jsonb_build_object('error', 'INVALID_NAME');
   end if;
   v_notes := left(btrim(coalesce(p->>'notes', '')), 1000);
   v_items := p->'items';
+
+  -- ponowienie już zapisanego zamówienia potwierdzamy bez wyceny: utrata odpowiedzi nie może zamienić się w błąd,
+  -- gdy w międzyczasie zmienił się katalog lub cennik
+  select id, status into v_id, v_status from orders
+    where external_id = p->>'external_id' and source = 'showroom' and showroom_name is not null;
+  if found then
+    return jsonb_build_object('order_id', v_id, 'created', false, 'status', v_status);
+  end if;
 
   if v_items is null or v_items = '[]'::jsonb or v_items = 'null'::jsonb then
     v_err := _order_input_error(p);
@@ -132,7 +146,11 @@ begin
   end if;
 
   -- pierwszy wywołujący (pod blokadą wiersza) uzupełnia dane salonu; ponowienie widzi je i zwraca created = false
-  select showroom_name is null into v_new from orders where id = v_id for update;
+  select showroom_name is null, source into v_new, v_src from orders where id = v_id for update;
+  if v_src <> 'showroom' then
+    -- identyfikator należy do zamówienia z innego kanału: niczego mu nie dopisujemy
+    return jsonb_build_object('error', 'EXTERNAL_ID_CONFLICT');
+  end if;
   if v_new then
     update orders set showroom_name = v_s.name, salesperson_email = v_s.salesperson_email,
                       customer_name = v_name, consent_at = now()

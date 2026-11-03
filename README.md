@@ -50,6 +50,7 @@ Właściciel małej pracowni traci czas na pracę, którą da się zautomatyzowa
 | `07-weekly-report` | poniedziałek 8:00 | Bestsellery z 7 i 30 dni + podsumowanie AI na Slacku |
 | `08-purchase-orders` | 7:15 codziennie, `GET/POST /webhook/po-approve`, `/po-received` | Szkice zamówień do hurtowni z materiałów poniżej minimum, zatwierdzenie linkiem (mail do hurtowni), przyjęcie dostawy zwiększa stan |
 | `09-quote-followup` | 9:00 codziennie, `GET/POST /webhook/lost-reason` | Przypomnienia o wycenie po 3 i 7 dniach (wstęp pisze AI z walidacją i szablonem awaryjnym), po 14 dniach status `lost` i mail z ankietą powodu rezygnacji |
+| `13-showroom` | `GET /webhook/showroom-info`, `POST /webhook/showroom-order` | API tabletu w salonie stacjonarnym: wycena dla klienta i mail do handlowca (lub sam lead z notatką) |
 
 Pliki `n8n/workflows/*.json` są **generowane** przez `n8n/build.mjs` z `n8n/code/*.js` i `n8n/prompts/*.md`. Edytuje się źródła, nie JSON.
 
@@ -82,9 +83,13 @@ Hasło operatora do linków zatwierdzania generuje `scripts/n8n.sh` i zapisuje w
 
 ## Salony stacjonarne
 
-Handlowiec w salonie wypełnia formularz na tablecie (`web/showroom.html`, w przygotowaniu). Zamówienie trafia do funkcji `showroom_order`: salon jest identyfikowany kodem i tokenem z tabeli `showrooms`, a nazwa salonu i e-mail handlowca pochodzą z bazy, nigdy od tabletu. Klient musi wyrazić zgodę na kontakt. Z pozycjami zamówienie jest wyceniane jak w kalkulatorze; bez pozycji powstaje lead do oceny przez handlowca (`needs_review`).
+Handlowiec w salonie otwiera na tablecie `http://localhost:8080/showroom.html?salon=<kod>#<token>` (serwuje go `node scripts/serve-web.mjs`; kod i token salonu są w tabeli `showrooms`). Wpisuje imię i e-mail klienta, zaznacza zgodę na kontakt i dodaje pozycje z katalogu (wycena na żywo) albo zostawia sam kontakt z notatką. Zamówienie trafia do funkcji `showroom_order`: salon jest identyfikowany kodem i tokenem, a nazwa salonu i e-mail handlowca pochodzą z bazy, nigdy od tabletu. Z pozycjami klient dostaje wycenę, a handlowiec mail z linkiem zatwierdzenia; bez pozycji powstaje lead (`needs_review`) z samym mailem do handlowca.
+
+Token po otwarciu linku znika z paska adresu i zostaje w `sessionStorage` karty (do zamknięcia karty), a identyfikator zamówienia jest ograniczony do przestrzeni `showroom:<kod>:`, więc nie może przejąć zamówienia z innego kanału. Workflow 13 nie zapisuje danych wykonań, bo żądanie niesie token.
 
 ## Ograniczenia, które znam
+
+- **Salony:** token salonu wyciekający z tabletu pozwala kolejkować wyceny na dowolne adresy (do czasu rotacji tokenu, np. `update showrooms set access_token = ...`); przed publicznym wdrożeniem potrzebny jest limit żądań i antybot (reverse proxy). Sweeper naprawia brakujące maile salonu tylko dla zamówień w statusie `quoted` i `needs_review`, tak jak dla pozostałych kanałów.
 
 - **Przypomnienia o wycenach:** wstęp maila pisze model, ale trafia do klienta tylko po przejściu walidacji (dokładnie 3 zdania, bez linków, adresów i znaków formatowania, bez fraz odmowy). To filtr heurystyczny, nie gwarancja treści; przy awarii lub podejrzanej odpowiedzi idzie stały szablon. Wyniki AI są dopasowywane do wycen po identyfikatorze, a nie po kolejności. Strony ankiety rezygnacji są publiczne i chronione tylko nieodgadnialnym tokenem zamówienia; pierwsza odpowiedź wygrywa.
 
