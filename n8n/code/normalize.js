@@ -4,19 +4,20 @@ const body = req.body && typeof req.body === 'object' ? req.body : {};
 const headers = req.headers || {};
 const errors = [];
 
+// Opcjonalny wspólny sekret (INTAKE_TOKEN): węzeł Config porównuje go z nagłówkiem X-Intake-Token
+// i przekazuje tylko wynik, więc sam sekret nie trafia do danych wykonania.
+if (req.authorized !== true) errors.push('unauthorized');
+
 const email = typeof body.customer_email === 'string' ? body.customer_email.trim() : '';
 if (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('customer_email');
 
 const message = typeof body.message === 'string' ? body.message.trim() : '';
 if (!message || message.length > 5000) errors.push('message');
 
-// external_id to klucz idempotencji: Message-ID maila albo identyfikator z formularza
-let externalId = body.external_id;
-if (externalId === undefined || externalId === null || externalId === '') {
-  externalId = `web-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-} else if (typeof externalId !== 'string' || !/^[A-Za-z0-9._:@<>+=\/-]{1,200}$/.test(externalId)) {
-  errors.push('external_id');
-}
+// external_id to klucz idempotencji (Message-ID maila albo UUID z formularza) i jest wymagany:
+// bez stabilnego klucza ponowione żądanie utworzyłoby drugie zamówienie.
+const externalId = body.external_id;
+if (typeof externalId !== 'string' || !/^[A-Za-z0-9._:@<>+=\/-]{1,200}$/.test(externalId)) errors.push('external_id');
 
 let source = 'form';
 if (body.source !== undefined && body.source !== null && body.source !== '') {

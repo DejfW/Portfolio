@@ -7,9 +7,14 @@ if (typeof i.prompt !== 'string' || !i.prompt) throw new Error('EMPTY_PROMPT');
 if (typeof i.projectDir !== 'string' || !i.projectDir || /["`$\\]/.test(i.projectDir)) {
   throw new Error('INVALID_PROJECT_DIR');
 }
+const b64 = Buffer.from(i.prompt, 'utf8').toString('base64');
+// Prompt idzie w argumencie polecenia, a system ogranicza jego długość (ARG_MAX ok. 1 MB).
+// Zbyt duży prompt (np. ogromny katalog) kończy wykonanie błędem, a zgłoszenie trafia
+// do ręcznego sprawdzenia przez mark_stuck_intakes.
+if (b64.length > 500000) throw new Error('PROMPT_TOO_LARGE');
 return [{
   json: {
-    b64: Buffer.from(i.prompt, 'utf8').toString('base64'),
+    b64,
     mock,
     projectDir: i.projectDir,
   },

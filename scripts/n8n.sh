@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Uruchamia n8n lokalnie (przez npx, bez instalacji) z konfiguracją potrzebną workflowom.
 # Użycie:
-#   scripts/n8n.sh start     uruchamia n8n na http://localhost:5678
+#   scripts/n8n.sh start     uruchamia n8n na http://localhost:5678 (tryb testowy: ALLOW_LLM_MOCK=1)
 #   scripts/n8n.sh sync      buduje workflowy z n8n/code, importuje je i publikuje (n8n musi być zatrzymane)
 #   scripts/n8n.sh <polecenie n8n>   np. list:workflow
 # Stan n8n (baza, klucz szyfrowania) leży w tmp/n8n, poza gitem.
@@ -20,7 +20,10 @@ fi
 export SUPABASE_URL="$api_url"
 export SUPABASE_SERVICE_KEY="$service_key"
 export PROJECT_DIR="$PWD"
-export ALLOW_LLM_MOCK="${ALLOW_LLM_MOCK:-1}"
+# Tryb testowy (nagłówek X-LLM-Mock, webhook /sweep z krótszymi czasami) jest domyślnie WYŁĄCZONY.
+# Do testów: ALLOW_LLM_MOCK=1 scripts/n8n.sh start
+export ALLOW_LLM_MOCK="${ALLOW_LLM_MOCK:-0}"
+# Opcjonalny wspólny sekret dla webhooka /order (nagłówek X-Intake-Token), np. INTAKE_TOKEN=... scripts/n8n.sh start
 export OWNER_EMAIL="${OWNER_EMAIL:-owner@example.com}"
 export N8N_USER_FOLDER="$PWD/tmp/n8n"
 # Workflowy czytają konfigurację przez $env, a węzeł Execute Command woła scripts/llm.sh.

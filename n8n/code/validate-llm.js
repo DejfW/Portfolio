@@ -1,13 +1,43 @@
-// Waliduje odpowiedź AI i przygotowuje ładunek dla intake_order.
-// Nic, co zwróci model, nie trafia do bazy bez sprawdzenia; wątpliwy wynik to route "needs_review".
+// Waliduje odpowiedź AI i przygotowuje ładunek dla intake_complete.
+// Nic, co zwróci model, nie trafia do bazy bez sprawdzenia: każdy nieoczekiwany kształt danych
+// to route "needs_review", a rzeczywiste braki po stronie klienta to "needs_info".
 const n = $('Normalize').first().json;
 const catalog = $('Catalog').first().json;
 const text = String($input.first().json.text || '');
 
-const norm = (s) => String(s || '').normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
-const index = (arr) => new Map((arr || []).map((x) => [norm(x.name), x.id]));
+const AMBIGUOUS = '__ambiguous__';
+const norm = (s) => s.normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+
+// Indeks nazwa -> id. Dwa różne id pod jedną znormalizowaną nazwą (np. "Stół" i "STÓŁ")
+// oznaczamy jako niejednoznaczne, żeby model nie wybrał cicho złego produktu.
+function index(arr) {
+  const m = new Map();
+  for (const x of Array.isArray(arr) ? arr : []) {
+    const k = norm(String(x.name));
+    m.set(k, m.has(k) && m.get(k) !== x.id ? AMBIGUOUS : x.id);
+  }
+  return m;
+}
 const products = index(catalog.products);
 const materials = index(catalog.materials);
+
+// Bezpieczny podgląd dowolnej wartości do komunikatu (obiekty z nadpisanym toString nie przewracają kodu).
+function short(v) {
+  try {
+    const s = typeof v === 'string' ? v : JSON.stringify(v);
+    return String(s === undefined ? typeof v : s).slice(0, 100);
+  } catch (e) {
+    return typeof v;
+  }
+}
+
+function lookup(map, name, what) {
+  if (typeof name !== 'string' || !name.trim()) return { error: `INVALID_${what}_NAME: ${short(name)}` };
+  const id = map.get(norm(name));
+  if (id === undefined) return { error: `UNKNOWN_${what}: ${short(name)}` };
+  if (id === AMBIGUOUS) return { error: `AMBIGUOUS_${what}: ${short(name)}` };
+  return { id };
+}
 
 function extractJson(t) {
   const fenced = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -22,22 +52,14 @@ function extractJson(t) {
   }
 }
 
-function out(route, kind, items, parsedExtra) {
+function out(route, kind, items, parsed) {
   return [{
     json: {
       route,
-      reason: parsedExtra.reason || null,
-      missing: parsedExtra.missing || [],
-      payload: {
-        external_id: n.external_id,
-        source: n.source,
-        customer_email: n.customer_email,
-        kind,
-        raw_text: n.message,
-        parsed: parsedExtra,
-        route,
-        items,
-      },
+      reason: parsed.reason || null,
+      missing: parsed.missing || [],
+      // tylko to, czego potrzebuje intake_complete; dane zgłoszenia są już w bazie od intake_receive
+      payload: { kind, route, items, parsed },
     },
   }];
 }
@@ -51,34 +73,54 @@ if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
 if (parsed.kind !== 'catalog' && parsed.kind !== 'custom') return review('INVALID_KIND', { llm: parsed });
 const kind = parsed.kind;
 
-if (parsed.missing !== undefined && !Array.isArray(parsed.missing)) return review('INVALID_MISSING', { llm: parsed });
-const missing = (parsed.missing || []).filter((m) => typeof m === 'string' && m.trim()).map((m) => m.trim().slice(0, 200)).slice(0, 10);
+// braki zgłoszone przez model: tablica niepustych tekstów albo błąd schematu
+let missing = [];
+if (parsed.missing !== undefined) {
+  if (!Array.isArray(parsed.missing) || parsed.missing.some((m) => typeof m !== 'string' || !m.trim())) {
+    return review('INVALID_MISSING', { llm: parsed });
+  }
+  missing = parsed.missing.map((m) => m.trim().slice(0, 200)).slice(0, 10);
+}
 if (missing.length > 0) return out('needs_info', kind, [], { missing, llm: parsed });
 
 if (!Array.isArray(parsed.items) || parsed.items.length === 0) return review('NO_ITEMS', { llm: parsed });
 if (parsed.items.length > 20) return review('TOO_MANY_ITEMS', { llm: parsed });
 
 const items = [];
+const missingQty = [];
 for (const it of parsed.items) {
-  if (!it || typeof it !== 'object') return review('INVALID_ITEM', { llm: parsed });
-  const qty = it.qty === undefined ? 1 : it.qty;
-  if (!Number.isInteger(qty) || qty < 1 || qty > 1000) return review('INVALID_QTY', { llm: parsed });
+  if (!it || typeof it !== 'object' || Array.isArray(it)) return review('INVALID_ITEM', { llm: parsed });
+
+  let name;
+  let found;
+  if (kind === 'catalog') {
+    name = it.product;
+    found = lookup(products, name, 'PRODUCT');
+  } else {
+    if (!it.custom || typeof it.custom !== 'object' || Array.isArray(it.custom)) return review('INVALID_ITEM', { llm: parsed });
+    name = it.custom.material;
+    found = lookup(materials, name, 'MATERIAL');
+  }
+  if (found.error) return review(found.error, { llm: parsed });
+
+  // ilość jest wymagana: jej brak to pytanie do klienta, a nie domyślna jedynka
+  if (it.qty === undefined) {
+    missingQty.push(`Ilość: ${name.trim().slice(0, 100)}`);
+    continue;
+  }
+  if (!Number.isInteger(it.qty) || it.qty < 1 || it.qty > 1000) return review('INVALID_QTY', { llm: parsed });
 
   if (kind === 'catalog') {
-    const id = typeof it.product === 'string' ? products.get(norm(it.product)) : undefined;
-    if (!id) return review(`UNKNOWN_PRODUCT: ${String(it.product).slice(0, 100)}`, { llm: parsed });
-    items.push({ product_id: id, qty });
+    items.push({ product_id: found.id, qty: it.qty });
   } else {
     const c = it.custom;
-    if (!c || typeof c !== 'object') return review('INVALID_ITEM', { llm: parsed });
-    const materialId = typeof c.material === 'string' ? materials.get(norm(c.material)) : undefined;
-    if (!materialId) return review(`UNKNOWN_MATERIAL: ${String(c.material).slice(0, 100)}`, { llm: parsed });
-    // zakres wymiarów sprawdza baza (INVALID_SPEC), tu tylko przekazujemy liczby
+    // zakres wymiarów sprawdza baza (INVALID_SPEC), tu tylko przekazujemy wartości
     items.push({
-      custom_spec: { width_cm: c.width_cm, height_cm: c.height_cm, depth_cm: c.depth_cm, material_id: materialId },
-      qty,
+      custom_spec: { width_cm: c.width_cm, height_cm: c.height_cm, depth_cm: c.depth_cm, material_id: found.id },
+      qty: it.qty,
     });
   }
 }
+if (missingQty.length > 0) return out('needs_info', kind, [], { missing: missingQty.slice(0, 10), llm: parsed });
 
 return out('ok', kind, items, { llm: parsed });

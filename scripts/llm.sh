@@ -23,4 +23,6 @@ if [ -n "${LLM_MOCK:-}" ]; then
 fi
 
 prompt="$(cat)"
-exec agy --model "${LLM_MODEL:-gemini-3.8-flash-medium}" --print-timeout "${LLM_TIMEOUT:-90s}" --print "$prompt"
+# Model dostaje minimalne środowisko: n8n ma w swoim kluczu service_role, którego model nie może zobaczyć.
+exec env -i HOME="$HOME" PATH="$PATH" USER="${USER:-}" LANG="${LANG:-en_US.UTF-8}" TMPDIR="${TMPDIR:-/tmp}" \
+  agy --model "${LLM_MODEL:-gemini-3.8-flash-medium}" --print-timeout "${LLM_TIMEOUT:-90s}" --print "$prompt"

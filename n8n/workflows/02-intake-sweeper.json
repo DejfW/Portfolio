@@ -1,0 +1,518 @@
+{
+  "id": "sweeper00000001",
+  "name": "02 Intake sweeper",
+  "nodes": [
+    {
+      "id": "n021-schedule",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n022-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sweep",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "intake-sweep-0001"
+    },
+    {
+      "id": "n023-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n024-params",
+      "name": "Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Parametry sweepera: domyślnie zgłoszenia niedomknięte po 10 min uznajemy za utknięte,\n// a brakujące maile uzupełniamy po 2 min. Wywołanie przez webhook (/sweep) działa tylko w trybie\n// testowym (ALLOW_LLM_MOCK=1) i może skrócić te czasy; z harmonogramu nie ma żadnego wejścia z zewnątrz.\nconst i = $input.first().json;\nconst viaWebhook = i.headers !== undefined;\nconst testMode = i.allowMock === '1';\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\nconst secs = (v, d) => (testMode && Number.isInteger(v) && v >= 0 && v <= 86400 ? v : d);\nreturn [{\n  json: {\n    viaWebhook,\n    allowed: !viaWebhook || testMode,\n    stuckAfter: secs(body.stuck_after_seconds, 600),\n    notifyAfter: secs(body.notify_after_seconds, 120),\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "n025-allowed-",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-allowed-",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n026-forbidden",
+      "name": "Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'FORBIDDEN' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "n027-via-webhook-",
+      "name": "Via webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-via-webhook-",
+              "leftValue": "={{ $json.viaWebhook }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n028-started",
+      "name": "Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'started' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n029-mark-stuck",
+      "name": "Mark stuck",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/mark_stuck_intakes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_older_than_seconds: $('Params').first().json.stuckAfter }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n030-missing-notifications",
+      "name": "Missing notifications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/orders_missing_notifications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_older_than_seconds: $('Params').first().json.notifyAfter }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n031-context",
+      "name": "Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/notification_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.order_id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n032-compose-emails",
+      "name": "Compose emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Składa maile ze stanu zamówienia w bazie (wynik notification_context). Ten sam kod obsługuje\n// przepływ normalny i naprawę po awarii (sweeper), więc brakujące maile da się zawsze odtworzyć.\n// Zwraca elementy {order_id, kind, to, subject, body}; kolejne węzły dopisują je do email_outbox\n// (unikalnie po zamówieniu i rodzaju), a rodzaje już istniejące pomijamy tutaj.\n// Treść jest zwykłym tekstem. Przy wysyłce w HTML trzeba ją escape'ować (zawiera tekst od klienta).\nconst cfg = $('Config').first().json;\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst mails = [];\n\nfor (const item of $input.all()) {\n  const c = item.json;\n  if (!c || !c.order_id) continue; // brak zamówienia o takim id\n\n  const has = new Set(c.existing_kinds || []);\n  const add = (kind, to, subject, body) => {\n    if (!has.has(kind)) mails.push({ json: { order_id: c.order_id, kind, to, subject, body } });\n  };\n  const email = c.customer_email;\n  const excerpt = String(c.raw_text || '').slice(0, 300);\n\n  if (c.status === 'quoted' && c.quote && c.quote.total !== undefined) {\n    const lines = (c.quote.lines || []).map((l) => `- ${l.label} × ${l.qty}`).join('\\n');\n    add('customer_quote', email, 'Wstępna wycena Twojego zamówienia',\n      `Dzień dobry,\\n\\ndziękujemy za zapytanie. Pozycje w wycenie:\\n${lines}\\n\\n` +\n      `Wstępna wycena: ${pln(c.quote.total)}\\n\\n` +\n      'To wycena wstępna, wyliczona automatycznie. Ostateczną cenę i termin potwierdzimy po weryfikacji zamówienia.\\n\\n' +\n      'Pozdrawiamy,\\nStolarnia');\n    add('owner_alert', cfg.ownerEmail, `Nowe zamówienie do zatwierdzenia: ${email} (${pln(c.quote.total)})`,\n      `Klient: ${email}\\nŹródło: ${c.source}\\nWycena wstępna: ${pln(c.quote.total)}\\n\\n` +\n      `Wiadomość klienta:\\n${excerpt}\\n\\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);\n  } else if (c.status === 'needs_info') {\n    const list = (c.missing || []).map((m) => `- ${m}`).join('\\n');\n    add('needs_info', email, 'Potrzebujemy kilku informacji do wyceny',\n      `Dzień dobry,\\n\\ndziękujemy za wiadomość. Żeby przygotować wycenę, prosimy jeszcze o:\\n${list}\\n\\n` +\n      'Wystarczy odpowiedzieć na tego maila.\\n\\nPozdrawiamy,\\nStolarnia');\n  } else if (c.status === 'needs_review') {\n    add('owner_alert', cfg.ownerEmail, `Zamówienie do sprawdzenia: ${email}`,\n      `Automat nie wycenił tego zamówienia. Powód: ${c.reason || c.status}\\n\\nKlient: ${email}\\nŹródło: ${c.source}\\n\\n` +\n      `Wiadomość klienta:\\n${excerpt}`);\n  }\n}\n\nreturn mails;\n"
+      }
+    },
+    {
+      "id": "n033-queue-email",
+      "name": "Queue email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/enqueue_email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.order_id, p_kind: $json.kind, p_to: $json.to, p_subject: $json.subject, p_body: $json.body }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Params": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Via webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Via webhook?": {
+      "main": [
+        [
+          {
+            "node": "Started",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark stuck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Started": {
+      "main": [
+        [
+          {
+            "node": "Mark stuck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark stuck": {
+      "main": [
+        [
+          {
+            "node": "Missing notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missing notifications": {
+      "main": [
+        [
+          {
+            "node": "Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context": {
+      "main": [
+        [
+          {
+            "node": "Compose emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose emails": {
+      "main": [
+        [
+          {
+            "node": "Queue email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "sweeper00000001-v1"
+}
