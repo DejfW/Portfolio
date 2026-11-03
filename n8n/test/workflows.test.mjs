@@ -57,3 +57,16 @@ test('stan odbioru wiadomości: claim_deliveries dostaje flagi kanałów i list�
   const claim = wf['05-deliver.json'].nodes.find((n) => n.name === 'Claim');
   for (const arg of ['p_limit', 'p_only_test', 'p_slack', 'p_email', 'p_allowlist']) assert.match(claim.parameters.jsonBody, new RegExp(arg));
 });
+
+test('workflow salonowy nie zapisuje danych wykonań (żądanie niesie token salonu)', () => {
+  const s = wf['13-showroom.json'].settings;
+  assert.equal(s.saveDataSuccessExecution, 'none');
+  assert.equal(s.saveDataErrorExecution, 'none');
+  assert.equal(s.saveManualExecutions, false);
+  assert.equal(s.saveExecutionProgress, false);
+});
+
+test('publiczne webhooki salonowe i kalkulatora nie przekazują sekretów dalej do odpowiedzi', () => {
+  const text = JSON.stringify(wf['13-showroom.json'].nodes.filter((n) => n.type.endsWith('respondToWebhook')));
+  assert.ok(!/access_token|salesperson_email/.test(text), 'odpowiedzi nie zawierają tokenu ani adresu handlowca');
+});

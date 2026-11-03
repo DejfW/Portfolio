@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Zamówienie w salonie</title>
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --ink: #2b2118; --muted: #6f6256; --line: #e4dccf;
+    --accent: #8a5a2b; --accent-ink: #ffffff; --err: #a32020; --ok: #1f6b3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1612; --card: #251e18; --ink: #f1e9df; --muted: #b5a798; --line: #3a3027;
+            --accent: #d49a5a; --accent-ink: #1b1612; --err: #ff8a8a; --ok: #7fd49c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 18px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  h2 { margin: 0 0 12px; font-size: 1.2rem; }
+  .salon { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .item { display: grid; gap: 12px; grid-template-columns: 1fr 140px auto; align-items: end;
+          border-bottom: 1px dashed var(--line); padding-bottom: 16px; margin-bottom: 16px; }
+  .item:last-of-type { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+  @media (max-width: 560px) { .item { grid-template-columns: 1fr 100px; } .item .remove { grid-column: 1 / -1; } }
+  label { display: block; font-size: .9rem; color: var(--muted); margin-bottom: 4px; }
+  input[type=text], input[type=email], input[type=number], select, textarea {
+    width: 100%; padding: 12px; min-height: 52px; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; padding: 12px 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+           color: var(--ink); cursor: pointer; min-height: 52px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 12px; }
+  .remove { color: var(--err); }
+  .consent { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0; }
+  .consent input { width: 28px; height: 28px; flex: none; margin-top: 2px; }
+  .consent label { font-size: .95rem; margin: 0; color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .total { font-size: 1.5rem; font-weight: 700; }
+  .muted { color: var(--muted); }
+  .err { color: var(--err); }
+  .ok { color: var(--ok); }
+  .hint { font-size: .9rem; color: var(--muted); }
+  .skeleton { opacity: .5; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Zamówienie w salonie</h1>
+  <p class="salon" id="salon" aria-live="polite">Wczytuję salon…</p>
+  <p id="fatal" class="err" role="alert" hidden></p>
+
+  <section id="done" class="card" hidden aria-live="polite">
+    <h2 id="done-h" tabindex="-1" class="ok">Dziękujemy!</h2>
+    <p id="done-text"></p>
+    <p class="hint">Formularz wyczyści się automatycznie za kilka sekund.</p>
+    <button type="button" id="new-client" class="primary">Nowy klient</button>
+  </section>
+
+  <div id="form-area" hidden>
+    <form class="card" id="customer-form" novalidate aria-labelledby="client-h">
+      <h2 id="client-h">Klient</h2>
+      <div class="grid2">
+        <div><label for="name">Imię i nazwisko</label>
+          <input id="name" type="text" autocomplete="off" maxlength="120" required></div>
+        <div><label for="email">Adres e-mail</label>
+          <input id="email" type="email" autocomplete="off" inputmode="email" maxlength="200" required></div>
+      </div>
+      <div><label for="notes">Notatka (opcjonalna, np. czego szuka klient)</label>
+        <textarea id="notes" rows="3" maxlength="1000"></textarea></div>
+      <div class="consent">
+        <input id="consent" type="checkbox">
+        <label for="consent">Klient wyraża zgodę na kontakt w sprawie wyceny i zamówienia pod podanym adresem e-mail.</label>
+      </div>
+    </form>
+
+    <section class="card" aria-labelledby="items-h">
+      <h2 id="items-h">Pozycje (opcjonalnie)</h2>
+      <div id="items"></div>
+      <div class="row" style="margin-top:16px">
+        <button type="button" id="add-item">+ Produkt z katalogu</button>
+      </div>
+      <p id="catalog-error" class="err" role="alert" hidden></p>
+    </section>
+
+    <section class="card" aria-labelledby="quote-h" aria-live="polite">
+      <h2 id="quote-h">Wycena</h2>
+      <p id="quote-status" class="muted">Dodaj pozycję, aby zobaczyć cenę, albo zostaw sam kontakt z notatką.</p>
+      <div id="quote-body" hidden>
+        <table>
+          <thead><tr><th>Pozycja</th><th class="num">Ilość</th><th class="num">Cena</th></tr></thead>
+          <tbody id="quote-lines"></tbody>
+        </table>
+        <p class="total">Razem: <span id="quote-total">—</span></p>
+        <p class="hint">Cena orientacyjna, bez podatku VAT. Ostateczną wycenę potwierdzamy mailem.</p>
+      </div>
+    </section>
+
+    <div class="row">
+      <button type="button" class="primary" id="send" disabled>Wyślij</button>
+      <span id="send-status" role="status"></span>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // Adres API n8n (webhooki). Przy hostingu publicznym ustaw tu adres produkcyjny.
+  var API = 'http://localhost:5678/webhook';
+  var MAX_ITEMS = 20, MAX_QTY = 1000, RESET_MS = 10000;
+  var ERRORS = {
+    UNKNOWN_SHOWROOM: 'Nieprawidłowy link salonu.', UNAUTHORIZED: 'Nieprawidłowy link salonu.',
+    NO_CONSENT: 'Potrzebna jest zgoda klienta na kontakt.', INVALID_NAME: 'Podaj imię i nazwisko klienta.',
+    INVALID_EMAIL: 'Podaj poprawny adres e-mail.', EMPTY_LEAD: 'Dodaj pozycję albo wpisz notatkę.',
+    NO_ITEMS: 'Dodaj pozycję albo wpisz notatkę.', INVALID_QTY: 'Ilość musi być liczbą całkowitą od 1 do 1000.',
+    UNKNOWN_PRODUCT: 'Nieznany produkt.', INVALID_ITEM: 'Uzupełnij wszystkie pozycje.',
+    NO_PRICE: 'Tej pozycji nie da się teraz wycenić. Zapisz kontakt z notatką, a wycenimy ręcznie.',
+    INCOMPLETE_PRODUCT: 'Tej pozycji nie da się teraz wycenić.', TOO_MANY_ITEMS: 'Maksymalnie 20 pozycji.'
+  };
+
+  // Kod salonu w parametrze ?salon=, token w fragmencie #token (fragment nie trafia do logów serwera ani do referrera).
+  // Po przejęciu usuwamy go z adresu (historia, kopiowanie linku) i trzymamy w sessionStorage tej karty, żeby odświeżenie
+  // strony na tablecie działało; sessionStorage znika po zamknięciu karty i nigdy nie trafia do localStorage.
+  function store(key, value) {
+    try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, value); } catch (e) { /* tryb prywatny */ }
+  }
+  function recall(key) { try { return sessionStorage.getItem(key) || ''; } catch (e) { return ''; } }
+  var params = new URLSearchParams(location.search);
+  var CODE = params.get('salon') || '';
+  var TOKEN = location.hash.replace(/^#/, '');
+  if (TOKEN) { store('showroom-token:' + CODE, TOKEN); history.replaceState(null, '', location.pathname + location.search); }
+  else TOKEN = recall('showroom-token:' + CODE);
+  var catalog = [];
+  var items = [];          // {product_id, qty}
+  var lastQuote = null;
+  var timer = null, seq = 0, resetTimer = null, sending = false;
+  // Nowy klient = nowa sesja. Podwójne dotknięcie, ponowienie po błędzie sieci i odświeżenie strony zachowują klucz
+  // (sam identyfikator sesji, bez danych klienta, leży w sessionStorage), więc to samo zgłoszenie nie powstaje dwa razy.
+  var session = recall('showroom-session') || randomId();
+  store('showroom-session', session);
+
+  var $ = function (id) { return document.getElementById(id); };
+  function randomId() {
+    var a = new Uint8Array(12); crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  function el(tag, props, children) {
+    var n = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      if (k === 'text') n.textContent = props[k]; else n.setAttribute(k, props[k]);
+    });
+    (children || []).forEach(function (c) { n.appendChild(c); });
+    return n;
+  }
+  function pln(v) { return Number(v).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' }); }
+  function fatal(text) {
+    var f = $('fatal'); f.hidden = false; f.textContent = text;
+    $('form-area').hidden = true;
+  }
+
+  function render() {
+    var box = $('items');
+    box.textContent = '';
+    items.forEach(function (it, idx) {
+      var n = idx + 1, row = el('div', { 'class': 'item' });
+      var sel = el('select', { id: 'p' + n });
+      sel.appendChild(el('option', { value: '', text: 'Wybierz produkt' }));
+      catalog.forEach(function (p) {
+        var op = el('option', { value: p.id, text: p.name });
+        if (p.id === it.product_id) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function () { it.product_id = sel.value; changed(); });
+      var qty = el('input', { id: 'q' + n, type: 'number', inputmode: 'numeric', min: 1, max: MAX_QTY, step: 1 });
+      qty.value = it.qty === null ? '' : it.qty;
+      qty.addEventListener('input', function () { it.qty = qty.value === '' ? null : Number(qty.value); changed(); });
+      row.appendChild(el('div', {}, [el('label', { 'for': 'p' + n, text: 'Produkt' }), sel]));
+      row.appendChild(el('div', {}, [el('label', { 'for': 'q' + n, text: 'Ilość' }), qty]));
+      var rm = el('button', { type: 'button', 'class': 'remove', text: 'Usuń', 'aria-label': 'Usuń pozycję ' + n });
+      rm.addEventListener('click', function () { items.splice(idx, 1); render(); changed(); $('add-item').focus(); });
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+    $('add-item').disabled = items.length >= MAX_ITEMS || !catalog.length;
+  }
+
+  // null = pozycje niekompletne; [] = brak pozycji (sam lead); lista = gotowe do wyceny
+  function payload() {
+    var out = [];
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it.product_id || !Number.isInteger(it.qty) || it.qty < 1 || it.qty > MAX_QTY) return null;
+      out.push({ product_id: it.product_id, qty: it.qty });
+    }
+    return out;
+  }
+
+  function setStatus(text, cls) {
+    var s = $('quote-status'); s.textContent = text; s.className = cls || 'muted'; s.hidden = !text;
+  }
+
+  function formValid() {
+    var email = $('email').value.trim();
+    return $('name').value.trim() !== '' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && $('consent').checked;
+  }
+
+  // Przycisk jest aktywny, gdy dane klienta i zgoda są poprawne, a pozycje są wycenione albo ich nie ma, ale jest notatka.
+  function refreshSend() {
+    var p = payload();
+    var hasNote = $('notes').value.trim() !== '';
+    var ready = formValid() && !sending && ((p && p.length && lastQuote) || (p && !p.length && hasNote));
+    $('send').disabled = !ready;
+    $('send').textContent = p && p.length ? 'Wyślij wycenę klientowi' : 'Zapisz kontakt (bez wyceny)';
+  }
+
+  function changed() {
+    clearTimeout(timer);
+    var mine = ++seq;       // każda zmiana unieważnia odpowiedzi na wcześniejsze zapytania
+    lastQuote = null;
+    $('send-status').textContent = '';
+    var p = payload();
+    if (!p || !p.length) {
+      $('quote-body').hidden = true;
+      setStatus(p ? 'Dodaj pozycję, aby zobaczyć cenę, albo zostaw sam kontakt z notatką.' : 'Uzupełnij pozycje (produkt i ilość), aby zobaczyć cenę.');
+      refreshSend();
+      return;
+    }
+    setStatus('Liczę…');
+    $('quote-body').classList.add('skeleton');
+    refreshSend();
+    timer = setTimeout(function () { fetchQuote(p, mine); }, 350);
+  }
+
+  function fetchQuote(p, mine) {
+    fetch(API + '/quote-preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: p })
+    }).then(function (r) { return r.json().catch(function () { return { error: 'NETWORK' }; }); })
+      .catch(function () { return { error: 'NETWORK' }; })
+      .then(function (q) {
+        if (mine !== seq) return;
+        $('quote-body').classList.remove('skeleton');
+        if (!q || q.error || !Array.isArray(q.lines)) {
+          $('quote-body').hidden = true;
+          setStatus(ERRORS[q && q.error] || 'Nie udało się policzyć wyceny. Spróbuj ponownie za chwilę.', 'err');
+          refreshSend();
+          return;
+        }
+        lastQuote = q;
+        var tb = $('quote-lines'); tb.textContent = '';
+        q.lines.forEach(function (l) {
+          tb.appendChild(el('tr', {}, [el('td', { text: l.label }), el('td', { 'class': 'num', text: String(l.qty) }),
+            el('td', { 'class': 'num', text: pln(l.price) })]));
+        });
+        $('quote-total').textContent = pln(q.total);
+        $('quote-body').hidden = false;
+        setStatus('');
+        refreshSend();
+      });
+  }
+
+  // Klucz idempotencji: skrót treści zamówienia i identyfikatora sesji formularza. Podwójne dotknięcie albo ponowienie po
+  // awarii sieci trafia w to samo zamówienie; kolejny klient (nowa sesja) zawsze dostaje nowe.
+  function digest(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('').slice(0, 32);
+    });
+  }
+
+  function lockForm(locked) {
+    document.querySelectorAll('#customer-form input, #customer-form textarea, #items input, #items select, #items button, #add-item')
+      .forEach(function (n) { n.disabled = locked; });
+  }
+
+  function resetForm() {
+    clearTimeout(resetTimer);
+    items = []; lastQuote = null; session = randomId(); store('showroom-session', session); sending = false;
+    ['name', 'email', 'notes'].forEach(function (id) { $(id).value = ''; });
+    $('consent').checked = false;
+    $('done').hidden = true; $('form-area').hidden = false;
+    lockForm(false); render(); changed();
+    $('name').focus();
+  }
+
+  $('send').addEventListener('click', function () {
+    var p = payload(), st = $('send-status');
+    if (sending || !formValid() || !p) return;
+    var body = {
+      showroom_code: CODE, access_token: TOKEN, consent: $('consent').checked,
+      customer_name: $('name').value.trim(), customer_email: $('email').value.trim(),
+      notes: $('notes').value.trim(), items: p
+    };
+    sending = true; lockForm(true); $('send').disabled = true; st.className = 'muted'; st.textContent = 'Wysyłam…';
+    digest(session + JSON.stringify([body.customer_name, body.customer_email, body.notes, body.items])).then(function (key) {
+      body.external_id = 'showroom:' + CODE + ':' + key;
+      // bez odpowiedzi w 20 s wynik jest nieznany: dane i klucz zostają, ponowienie nie zdubluje zamówienia
+      var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, 20000);
+      return fetch(API + '/showroom-order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal
+      }).then(function (r) { clearTimeout(t); return r; }, function (e) { clearTimeout(t); throw e; });
+    }).then(function (r) {
+      return r.json().catch(function () { return null; }).then(function (j) {
+        if (!r.ok) { var err = new Error('HTTP ' + r.status); err.code = j && j.error; throw err; }
+        // sukces tylko z jawnym potwierdzeniem; pusta lub obca odpowiedź (np. strona proxy) nie czyści formularza
+        if (!j || (j.status !== 'received' && j.status !== 'duplicate')) throw new Error('UNCONFIRMED');
+      });
+    }).then(function () {
+      var withQuote = p.length > 0;
+      $('done-text').textContent = withQuote
+        ? 'Wycenę wysłaliśmy na ' + body.customer_email + ', a handlowiec dostał powiadomienie.'
+        : 'Kontakt zapisany. Handlowiec odezwie się do klienta.';
+      $('form-area').hidden = true; $('done').hidden = false; $('done-h').focus();
+      resetTimer = setTimeout(resetForm, RESET_MS);
+    }).catch(function (err) {
+      sending = false; lockForm(false); render(); refreshSend();
+      st.className = 'err';
+      st.textContent = err && err.code && ERRORS[err.code] ? ERRORS[err.code]
+        : 'Nie mamy potwierdzenia, że zamówienie dotarło. Naciśnij „Wyślij” ponownie: dane zostały zachowane, a zamówienie nie zostanie zdublowane.';
+    });
+  });
+
+  $('new-client').addEventListener('click', resetForm);
+  ['name', 'email', 'notes', 'consent'].forEach(function (id) {
+    $(id).addEventListener('input', refreshSend);
+    $(id).addEventListener('change', refreshSend);
+  });
+  $('add-item').addEventListener('click', function () {
+    items.push({ product_id: '', qty: 1 }); render(); changed();
+    var f = $('p' + items.length); if (f) f.focus();
+  });
+
+  if (!/^[a-z0-9-]{3,40}$/.test(CODE) || !/^[A-Za-z0-9]{16,128}$/.test(TOKEN)) {
+    $('salon').textContent = '';
+    fatal('Nieprawidłowy link salonu. Otwórz stronę z linku przygotowanego dla tego salonu.');
+    return;
+  }
+  fetch(API + '/showroom-info?code=' + encodeURIComponent(CODE)).then(function (r) {
+    if (!r.ok) throw new Error('info');
+    return r.json();
+  }).then(function (info) {
+    $('salon').textContent = info.name; $('salon').dataset.ready = '1';
+    $('form-area').hidden = false;   // formularz pokazujemy dopiero po potwierdzeniu salonu
+    return fetch(API + '/catalog').then(function (r) { return r.json(); });
+  }).then(function (c) {
+    catalog = c.products || [];
+    if (!catalog.length) throw new Error('empty');
+    render(); changed();
+  }).catch(function (e) {
+    if (e && e.message === 'info') { $('salon').textContent = ''; fatal('Nieprawidłowy link salonu.'); return; }
+    if (!$('salon').dataset.ready && $('form-area').hidden) {
+      // brak sieci przy pierwszym kroku: komunikat poza formularzem
+      $('salon').textContent = ''; fatal('Nie udało się połączyć z serwerem. Odśwież stronę.'); return;
+    }
+    $('salon').textContent = $('salon').textContent === 'Wczytuję salon…' ? '' : $('salon').textContent;
+    var er = $('catalog-error'); er.hidden = false;
+    er.textContent = 'Nie udało się wczytać katalogu. Odśwież stronę. Kontakt z notatką nadal można zapisać.';
+    render(); changed();
+  });
+})();
+</script>
+</body>
+</html>

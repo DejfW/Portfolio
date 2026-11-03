@@ -16,7 +16,14 @@ for (const item of $input.all()) {
     if (!has.has(kind)) mails.push({ json: { order_id: c.order_id, kind, to, subject, body } });
   };
   const email = c.customer_email;
-  const excerpt = String(c.raw_text || '').slice(0, 300);
+  // notatka z salonu może mieć do 1000 znaków i handlowiec ma ją zobaczyć w całości
+  const excerpt = String(c.raw_text || '').slice(0, c.source === 'showroom' ? 1200 : 300);
+
+  // zamówienia z salonu: handlowiec dostaje mail showroom_lead zamiast alertu dla właściciela (imię klienta tylko w treści)
+  const isShowroom = c.source === 'showroom';
+  const clean = (v) => String(v || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 120);
+  const salon = clean(c.showroom_name) || 'salon';
+  const who = clean(c.customer_name) || email;
 
   if (c.status === 'quoted' && c.quote && c.quote.total !== undefined) {
     const lines = (c.quote.lines || []).map((l) => `- ${l.label} × ${l.qty}`).join('\n');
@@ -25,14 +32,29 @@ for (const item of $input.all()) {
       `Wstępna wycena: ${pln(c.quote.total)}\n\n` +
       'To wycena wstępna, wyliczona automatycznie. Ostateczną cenę i termin potwierdzimy po weryfikacji zamówienia.\n\n' +
       'Pozdrawiamy,\nStolarnia');
-    add('owner_alert', cfg.ownerEmail, `Nowe zamówienie do zatwierdzenia: ${email} (${pln(c.quote.total)})`,
-      `Klient: ${email}\nŹródło: ${c.source}\nWycena wstępna: ${pln(c.quote.total)}\n\n` +
-      `Wiadomość klienta:\n${excerpt}\n\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);
+    if (isShowroom) {
+      if (c.salesperson_email) {
+        add('showroom_lead', c.salesperson_email, `Nowe zamówienie z salonu ${salon}: wycena ${pln(c.quote.total)}`,
+          `Klient: ${who} (${email})\nSalon: ${salon}\nWycena wstępna: ${pln(c.quote.total)}\n${lines}\n\n` +
+          `Notatka:\n${excerpt}\n\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);
+      }
+    } else {
+      add('owner_alert', cfg.ownerEmail, `Nowe zamówienie do zatwierdzenia: ${email} (${pln(c.quote.total)})`,
+        `Klient: ${email}\nŹródło: ${c.source}\nWycena wstępna: ${pln(c.quote.total)}\n\n` +
+        `Wiadomość klienta:\n${excerpt}\n\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);
+    }
   } else if (c.status === 'needs_info') {
     const list = (c.missing || []).map((m) => `- ${m}`).join('\n');
     add('needs_info', email, 'Potrzebujemy kilku informacji do wyceny',
       `Dzień dobry,\n\ndziękujemy za wiadomość. Żeby przygotować wycenę, prosimy jeszcze o:\n${list}\n\n` +
       'Wystarczy odpowiedzieć na tego maila.\n\nPozdrawiamy,\nStolarnia');
+  } else if (c.status === 'needs_review' && isShowroom) {
+    if (c.salesperson_email) {
+      const why = c.reason === 'lead_without_items' ? 'klient zostawił kontakt bez pozycji, wymaga rozmowy z handlowcem'
+        : `automat nie wycenił zamówienia (${c.reason || c.status})`;
+      add('showroom_lead', c.salesperson_email, `Lead z salonu ${salon} do kontaktu`,
+        `Klient: ${who} (${email})\nSalon: ${salon}\nPowód: ${why}\n\nNotatka:\n${excerpt}`);
+    }
   } else if (c.status === 'needs_review') {
     add('owner_alert', cfg.ownerEmail, `Zamówienie do sprawdzenia: ${email}`,
       `Automat nie wycenił tego zamówienia. Powód: ${c.reason || c.status}\n\nKlient: ${email}\nŹródło: ${c.source}\n\n` +

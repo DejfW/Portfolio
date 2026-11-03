@@ -23,6 +23,7 @@ const CALC_WORKFLOW_ID = 'calc00000000001';
 const REPORT_WORKFLOW_ID = 'report000000001';
 const PO_WORKFLOW_ID = 'po0000000000001';
 const FOLLOWUP_WORKFLOW_ID = 'followup0000001';
+const SHOWROOM_WORKFLOW_ID = 'showroom0000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
 
@@ -714,6 +715,66 @@ function buildFollowup() {
   ]);
 }
 
+
+// --- 13-showroom -------------------------------------------------------------------------------
+// API tabletu w salonie stacjonarnym (strona: web/showroom.html). GET /showroom-info?code= zwraca tylko nazwę salonu,
+// POST /showroom-order przyjmuje zamówienie albo lead (kod i token salonu są sprawdzane w bazie), a mail z wyceną dla klienta
+// i mail do handlowca trafiają do kolejki tą samą ścieżką co zamówienia z kalkulatora. CORS jest otwarty, bo dostęp chroni
+// token salonu w treści żądania. Limit żądań i antybot należą do warstwy przed n8n (reverse proxy).
+
+function buildShowroom() {
+  const cors = { allowedOrigins: '*' };
+  const noStore = [{ name: 'Cache-Control', value: 'no-store' }];
+  const nodes = [
+    node('Info webhook', 'n8n-nodes-base.webhook', 2.1, [0, 0], {
+      httpMethod: 'GET', path: 'showroom-info', responseMode: 'responseNode', options: cors,
+    }, { webhookId: 'showroom-info-0001' }),
+    codeNode('Info prep', [220, 0], code('showroom-info-prep')),
+    boolIf('Code valid?', [440, 0], '$json.valid'),
+    rpc('Salon info', [660, -60], 'showroom_info', `{ p_code: $json.code }`),
+    boolIf('Salon found?', [880, -60], '!!$json.name'),
+    node('Info response', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -140], {
+      respondWith: 'json', responseBody: `={{ { name: $json.name } }}`,
+      options: { responseCode: 200, responseHeaders: { entries: noStore } },
+    }),
+    node('Info not found', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, 60], {
+      respondWith: 'json', responseBody: `={{ { error: 'UNKNOWN_SHOWROOM' } }}`,
+      options: { responseCode: 404, responseHeaders: { entries: noStore } },
+    }),
+
+    node('Order webhook', 'n8n-nodes-base.webhook', 2.1, [0, 360], {
+      httpMethod: 'POST', path: 'showroom-order', responseMode: 'responseNode', options: cors,
+    }, { webhookId: 'showroom-order-0001' }),
+    configNode([220, 360]),
+    rpc('Create order', [440, 360], 'showroom_order', `{ p: $('Order webhook').first().json.body || {} }`),
+    boolIf('Order error?', [660, 360], '!!$json.error'),
+    node('Order rejected', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 460], {
+      respondWith: 'json', responseBody: `={{ { error: $json.error } }}`,
+      options: { responseCode: 422, responseHeaders: { entries: noStore } },
+    }),
+    node('Order accepted', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { status: $json.created ? 'received' : 'duplicate' } }}`,
+      options: { responseCode: 200, responseHeaders: { entries: noStore } },
+    }),
+    boolIf('Created?', [1100, 260], '$json.created'),
+    rpc('Context', [1320, 260], 'notification_context', `{ p_order_id: $('Create order').first().json.order_id }`),
+    codeNode('Compose emails', [1540, 260], code('compose-emails')),
+    queueEmailNode([1760, 260]),
+  ];
+  const wf = workflow(SHOWROOM_WORKFLOW_ID, '13 Showroom', nodes, [
+    ['Info webhook', 'Info prep'], ['Info prep', 'Code valid?'],
+    ['Code valid?', 'Salon info', 0], ['Code valid?', 'Info not found', 1],
+    ['Salon info', 'Salon found?'], ['Salon found?', 'Info response', 0], ['Salon found?', 'Info not found', 1],
+    ['Order webhook', 'Config'], ['Config', 'Create order'], ['Create order', 'Order error?'],
+    ['Order error?', 'Order rejected', 0], ['Order error?', 'Order accepted', 1],
+    ['Order accepted', 'Created?'], ['Created?', 'Context', 0], ['Context', 'Compose emails'],
+    ['Compose emails', 'Queue email'],
+  ]);
+  // Żądanie niesie token salonu (treść POST), więc nie zapisujemy danych wykonań ani udanych, ani ręcznych, ani w trakcie.
+  Object.assign(wf.settings, { saveDataSuccessExecution: 'none', saveManualExecutions: false, saveExecutionProgress: false });
+  return wf;
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -729,6 +790,7 @@ for (const [file, wf] of [
   ['07-weekly-report.json', buildReport()],
   ['08-purchase-orders.json', buildPurchasing()],
   ['09-quote-followup.json', buildFollowup()],
+  ['13-showroom.json', buildShowroom()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);

@@ -74,3 +74,57 @@ test('brak zamówienia, quoted bez wyceny i wiele zamówień naraz nie przewraca
   assert.deepEqual(compose([{ ...base, status: 'quoted', quote: null }]), []);
   assert.equal(compose([{ ...base, status: 'needs_info', order_id: 'a' }, { ...base, status: 'needs_info', order_id: 'b' }]).length, 2);
 });
+
+const showroom = { ...base, source: 'showroom', showroom_name: 'Salon Warszawa Mokotów', salesperson_email: 'handlowiec@example.com',
+  customer_name: 'Jan Kowalski', raw_text: 'Zamówienie z salonu\nUwagi klienta: oddzwonić po 16' };
+
+test('showroom quoted: wycena dla klienta i mail do handlowca z linkiem, bez alertu dla właściciela', () => {
+  const m = compose([{ ...showroom, status: 'quoted', quote: { total: 2400, lines: [{ label: 'Komoda', qty: 1 }] } }]);
+  assert.deepEqual(m.map((x) => x.kind).sort(), ['customer_quote', 'showroom_lead']);
+  const lead = m.find((x) => x.kind === 'showroom_lead');
+  assert.equal(lead.to, 'handlowiec@example.com');
+  assert.match(lead.subject, /Salon Warszawa Mokotów/);
+  assert.ok(!lead.subject.includes('Kowalski'), 'imię klienta nigdy w temacie');
+  assert.match(lead.body, /Jan Kowalski/);
+  assert.match(lead.body, /2400,00 zł/);
+  assert.match(lead.body, /oddzwonić po 16/);
+  assert.match(lead.body, /\/webhook\/approve\?order_id=o-1/);
+  assert.equal(m.find((x) => x.kind === 'customer_quote').to, 'k@example.com');
+});
+
+test('showroom lead bez pozycji: tylko mail do handlowca z powodem, bez wyceny', () => {
+  const m = compose([{ ...showroom, status: 'needs_review', reason: 'lead_without_items', quote: null }]);
+  assert.deepEqual(m.map((x) => x.kind), ['showroom_lead']);
+  assert.match(m[0].body, /bez pozycji/);
+  assert.ok(!m[0].body.includes('webhook/approve'), 'nie ma czego zatwierdzać');
+});
+
+test('showroom: istniejące maile są pomijane, a brak adresu handlowca nie wywraca składania', () => {
+  const quoted = { ...showroom, status: 'quoted', quote: { total: 1, lines: [] } };
+  assert.deepEqual(compose([{ ...quoted, existing_kinds: ['customer_quote', 'showroom_lead'] }]), []);
+  assert.deepEqual(compose([{ ...quoted, salesperson_email: null }]).map((x) => x.kind), ['customer_quote']);
+});
+
+test('showroom: znaki nowej linii w imieniu klienta nie przechodzą do nagłówków ani nie łamią linii klienta', () => {
+  const m = compose([{ ...showroom, customer_name: 'Jan\r\nBcc: x@y.z', status: 'needs_review', reason: 'lead_without_items' }]);
+  assert.equal(m[0].body.split('\n')[0], 'Klient: Jan Bcc: x@y.z (k@example.com)');
+  assert.ok(!/[\r\n]/.test(m[0].subject) && !m[0].subject.includes('Bcc'));
+  assert.ok(!m[0].body.includes('\r'));
+});
+
+test('showroom: notatka do 1000 znaków trafia do handlowca w całości, w zwykłych zamówieniach nadal skrót', () => {
+  const long = 'N'.repeat(1000);
+  const lead = compose([{ ...showroom, status: 'needs_review', reason: 'lead_without_items', raw_text: `Lead\nUwagi klienta: ${long}` }]);
+  assert.ok(lead[0].body.includes(long));
+  const other = compose([{ ...base, status: 'needs_review', reason: 'x', raw_text: long }]);
+  assert.ok(!other[0].body.includes(long) && other[0].body.includes('N'.repeat(300)));
+});
+
+test('showroom-info-prep przepuszcza tylko poprawny kod salonu', () => {
+  const run = (query) => runCode('showroom-info-prep', { input: [{ query }] })[0];
+  assert.deepEqual(run({ code: 'warszawa-mokotow' }), { valid: true, code: 'warszawa-mokotow' });
+  for (const bad of [undefined, '', 'ab', 'Warszawa', '../x', "a'; drop", 'x'.repeat(41), ['a-b-c'], { a: 1 }]) {
+    assert.equal(run({ code: bad }).valid, false, JSON.stringify(bad));
+  }
+  assert.equal(runCode('showroom-info-prep', { input: [{}] })[0].valid, false);
+});

@@ -39,13 +39,13 @@ end $$;
 do $$
 declare r jsonb;
 begin
-  r := showroom_order('{"external_id":"showroom:x:1","showroom_code":"nie-ma","access_token":"tok-test","consent":true,
+  r := showroom_order('{"external_id":"showroom:test-salon:x1","showroom_code":"nie-ma","access_token":"tok-test","consent":true,
           "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
   assert r->>'error' = 'UNKNOWN_SHOWROOM', r::text;
-  r := showroom_order('{"external_id":"showroom:x:2","showroom_code":"test-off","access_token":"tok-off","consent":true,
+  r := showroom_order('{"external_id":"showroom:test-salon:x2","showroom_code":"test-off","access_token":"tok-off","consent":true,
           "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
   assert r->>'error' = 'UNKNOWN_SHOWROOM', r::text;
-  assert not exists (select 1 from orders where external_id like 'showroom:x:%'), 'no order created';
+  assert not exists (select 1 from orders where external_id like 'showroom:test-salon:x%'), 'no order created';
   raise notice 'PASS test_showroom_unknown_code';
 end $$;
 
@@ -53,13 +53,13 @@ end $$;
 do $$
 declare r jsonb;
 begin
-  r := showroom_order('{"external_id":"showroom:x:3","showroom_code":"test-salon","access_token":"zly","consent":true,
+  r := showroom_order('{"external_id":"showroom:test-salon:x3","showroom_code":"test-salon","access_token":"zly","consent":true,
           "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
   assert r->>'error' = 'UNAUTHORIZED', r::text;
-  r := showroom_order('{"external_id":"showroom:x:4","showroom_code":"test-salon","consent":true,
+  r := showroom_order('{"external_id":"showroom:test-salon:x4","showroom_code":"test-salon","consent":true,
           "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
   assert r->>'error' = 'UNAUTHORIZED', 'missing token: ' || r::text;
-  assert not exists (select 1 from orders where external_id in ('showroom:x:3', 'showroom:x:4')), 'no order created';
+  assert not exists (select 1 from orders where external_id in ('showroom:test-salon:x3', 'showroom:test-salon:x4')), 'no order created';
   raise notice 'PASS test_showroom_wrong_token_rejected';
 end $$;
 
@@ -67,13 +67,13 @@ end $$;
 do $$
 declare r jsonb;
 begin
-  r := showroom_order('{"external_id":"showroom:x:5","showroom_code":"test-salon","access_token":"tok-test",
+  r := showroom_order('{"external_id":"showroom:test-salon:x5","showroom_code":"test-salon","access_token":"tok-test",
           "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
   assert r->>'error' = 'NO_CONSENT', r::text;
-  r := showroom_order('{"external_id":"showroom:x:5","showroom_code":"test-salon","access_token":"tok-test","consent":"true",
+  r := showroom_order('{"external_id":"showroom:test-salon:x5","showroom_code":"test-salon","access_token":"tok-test","consent":"true",
           "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
   assert r->>'error' = 'NO_CONSENT', 'string "true" is not consent: ' || r::text;
-  assert not exists (select 1 from orders where external_id = 'showroom:x:5'), 'no order created';
+  assert not exists (select 1 from orders where external_id = 'showroom:test-salon:x5'), 'no order created';
   raise notice 'PASS test_showroom_requires_consent';
 end $$;
 
@@ -180,6 +180,42 @@ begin
   assert (notification_context(v_l)->>'salesperson_email') = 'handlowiec.test@example.com', 'context has salesperson';
   assert (notification_context(v_l)->>'customer_name') = 'Anna', 'context has customer name';
   raise notice 'PASS test_showroom_recovered_by_sweeper';
+end $$;
+
+-- test_showroom_external_id_namespace: identyfikator musi należeć do salonu i nie może przejąć cudzego zamówienia
+do $$
+declare r jsonb; v_calc jsonb;
+begin
+  v_calc := calculator_order('{"external_id":"showroom:test-salon:cross","customer_email":"calc@example.com",
+        "items":[{"product_id":"00000000-0000-0000-0000-0000000000c1","qty":1}]}');
+  assert (select source from orders where id = (v_calc->>'order_id')::uuid) = 'form', 'calculator order exists with that id';
+  r := showroom_order('{"external_id":"showroom:test-salon:cross","showroom_code":"test-salon","access_token":"tok-test","consent":true,
+          "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
+  assert r->>'error' = 'EXTERNAL_ID_CONFLICT', r::text;
+  assert (select customer_email from orders where external_id = 'showroom:test-salon:cross') = 'calc@example.com', 'foreign order untouched';
+  assert (select showroom_name from orders where external_id = 'showroom:test-salon:cross') is null, 'no salon data written';
+  r := showroom_order('{"external_id":"calc-123","showroom_code":"test-salon","access_token":"tok-test","consent":true,
+          "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
+  assert r->>'error' = 'INVALID_EXTERNAL_ID', 'no salon prefix: ' || r::text;
+  r := showroom_order('{"external_id":"showroom:inny-salon:1","showroom_code":"test-salon","access_token":"tok-test","consent":true,
+          "customer_name":"Jan","customer_email":"jan@example.com","notes":"x"}');
+  assert r->>'error' = 'INVALID_EXTERNAL_ID', 'other salon prefix: ' || r::text;
+  raise notice 'PASS test_showroom_external_id_namespace';
+end $$;
+
+-- test_showroom_retry_survives_catalog_change: ponowienie zapisanego zamówienia nie zależy od aktualnego cennika
+do $$
+declare p jsonb; r1 jsonb; r2 jsonb;
+begin
+  p := '{"external_id":"showroom:test-salon:retry","showroom_code":"test-salon","access_token":"tok-test","consent":true,
+          "customer_name":"Jan","customer_email":"jan@example.com",
+          "items":[{"product_id":"00000000-0000-0000-0000-0000000000c1","qty":1}]}';
+  r1 := showroom_order(p);
+  assert (r1->>'created')::boolean, r1::text;
+  delete from supplier_prices where material_id = '00000000-0000-0000-0000-0000000000b1';
+  r2 := showroom_order(p);
+  assert not (r2 ? 'error') and not (r2->>'created')::boolean and r2->>'order_id' = r1->>'order_id', 'retry confirmed: ' || r2::text;
+  raise notice 'PASS test_showroom_retry_survives_catalog_change';
 end $$;
 
 rollback;
