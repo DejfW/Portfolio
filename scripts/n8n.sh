@@ -18,11 +18,26 @@ if [ -f .env.local ]; then
 fi
 N8N_VERSION="${N8N_VERSION:-2.45.7}"
 
-service_key="$(supabase status -o env 2>/dev/null | sed -n 's/^SERVICE_ROLE_KEY="\(.*\)"$/\1/p')"
-api_url="$(supabase status -o env 2>/dev/null | sed -n 's/^API_URL="\(.*\)"$/\1/p')"
-if [ -z "$service_key" ] || [ -z "$api_url" ]; then
-  echo "Supabase nie działa. Uruchom: supabase start" >&2
-  exit 1
+# Domyślnie n8n działa na lokalnej bazie (supabase start). N8N_TARGET=cloud kieruje go na projekt Portfolio w chmurze;
+# wymaga SUPABASE_CLOUD_REF i SUPABASE_CLOUD_SERVICE_KEY w .env.local (klucz zapisz: scripts/store-clipboard-secret.sh
+# SUPABASE_CLOUD_SERVICE_KEY). Tryb testowy jest tam zabroniony: testy e2e działają wyłącznie na lokalnej bazie.
+if [ "${N8N_TARGET:-local}" = "cloud" ]; then
+  ref="${SUPABASE_CLOUD_REF:-}"; service_key="${SUPABASE_CLOUD_SERVICE_KEY:-}"
+  case " oboijsuuncwzgthsxgdg " in *" $ref "*) echo "Odmowa: $ref to projekt BazAPP, a nie Portfolio." >&2; exit 1;; esac
+  if [ -z "$ref" ] || [ -z "$service_key" ]; then
+    echo "N8N_TARGET=cloud wymaga SUPABASE_CLOUD_REF i SUPABASE_CLOUD_SERVICE_KEY w .env.local." >&2; exit 1
+  fi
+  if [ "${ALLOW_LLM_MOCK:-0}" = "1" ]; then
+    echo "Odmowa: tryb testowy (ALLOW_LLM_MOCK=1) nie jest dozwolony na bazie w chmurze." >&2; exit 1
+  fi
+  api_url="https://$ref.supabase.co"
+else
+  service_key="$(supabase status -o env 2>/dev/null | sed -n 's/^SERVICE_ROLE_KEY="\(.*\)"$/\1/p')"
+  api_url="$(supabase status -o env 2>/dev/null | sed -n 's/^API_URL="\(.*\)"$/\1/p')"
+  if [ -z "$service_key" ] || [ -z "$api_url" ]; then
+    echo "Supabase nie działa. Uruchom: supabase start" >&2
+    exit 1
+  fi
 fi
 
 export SUPABASE_URL="$api_url"

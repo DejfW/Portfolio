@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Zapisuje wartość ze schowka (macOS) do .env.local jako podany klucz, bez wypisywania jej,
 # a potem czyści schowek. Przydatne, gdy sekret da się skopiować przyciskiem "Copy" na stronie.
-# Użycie: scripts/store-clipboard-secret.sh SLACK_WEBHOOK_URL | GMAIL_APP_PASSWORD | SUPABASE_DB_PASSWORD
+# Użycie: scripts/store-clipboard-secret.sh SLACK_WEBHOOK_URL | GMAIL_APP_PASSWORD | SUPABASE_DB_PASSWORD | SUPABASE_CLOUD_SERVICE_KEY
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -18,8 +18,13 @@ case "$key" in
     [[ "$value" =~ ^[a-z]{16}$ ]] || { echo "BŁĄD: w schowku nie ma hasła aplikacji (wymagane dokładnie 16 małych liter, spacje są usuwane). Nic nie zapisano." >&2; exit 1; } ;;
   SUPABASE_DB_PASSWORD)
     [ -n "$value" ] || { echo "Schowek jest pusty." >&2; exit 1; } ;;
+  SUPABASE_CLOUD_SERVICE_KEY)
+    # klucz service_role (JWT) albo nowy sekretny sb_secret_...; klucz publiczny (anon, sb_publishable_) tu nie wystarczy
+    value="${value//[[:space:]]/}"
+    [[ "$value" =~ ^sb_secret_[A-Za-z0-9_-]+$ || "$value" =~ ^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] || {
+      echo "BŁĄD: w schowku nie ma klucza service_role ani sb_secret_. Nic nie zapisano." >&2; exit 1; } ;;
   *)
-    echo "Użycie: $0 SLACK_WEBHOOK_URL | GMAIL_APP_PASSWORD | SUPABASE_DB_PASSWORD" >&2; exit 1 ;;
+    echo "Użycie: $0 SLACK_WEBHOOK_URL | GMAIL_APP_PASSWORD | SUPABASE_DB_PASSWORD | SUPABASE_CLOUD_SERVICE_KEY" >&2; exit 1 ;;
 esac
 
 touch "$ENV_FILE"; chmod 600 "$ENV_FILE"
