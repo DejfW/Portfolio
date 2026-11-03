@@ -1,0 +1,104 @@
+{
+  "id": "llm0000000000001",
+  "name": "00 LLM",
+  "nodes": [
+    {
+      "id": "n001-trigger",
+      "name": "Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "n002-prepare",
+      "name": "Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Sub-workflow 00-llm: koduje prompt w base64, więc do powłoki trafiają wyłącznie znaki [A-Za-z0-9+/=].\nconst i = $input.first().json;\nconst mock = i.mock || '';\nif (!/^[a-z0-9-]*$/.test(mock)) throw new Error('INVALID_MOCK_NAME');\nif (typeof i.prompt !== 'string' || !i.prompt) throw new Error('EMPTY_PROMPT');\n// Ścieżka projektu pochodzi z konfiguracji n8n, ale i tak odrzucamy znaki specjalne powłoki w cudzysłowie.\nif (typeof i.projectDir !== 'string' || !i.projectDir || /[\"`$\\\\]/.test(i.projectDir)) {\n  throw new Error('INVALID_PROJECT_DIR');\n}\nreturn [{\n  json: {\n    b64: Buffer.from(i.prompt, 'utf8').toString('base64'),\n    mock,\n    projectDir: i.projectDir,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "n003-run-llm-sh",
+      "name": "Run llm.sh",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "command": "=printf %s '{{ $json.b64 }}' | base64 -d | LLM_MOCK='{{ $json.mock }}' \"{{ $json.projectDir }}/scripts/llm.sh\""
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n004-result",
+      "name": "Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Sub-workflow 00-llm: niepowodzenie modelu (timeout, błąd agy) daje pusty tekst,\n// a nie przerwanie całego przepływu; walidacja po stronie wywołującego zrobi z tego needs_review.\nconst r = $input.first().json;\nconst failed = !!r.error || (r.exitCode !== undefined && r.exitCode !== 0);\nconst text = !failed && typeof r.stdout === 'string' ? r.stdout : '';\nreturn [{\n  json: {\n    text,\n    ok: text !== '',\n    error: failed ? String(r.error || r.stderr || `exit ${r.exitCode}`).slice(0, 300) : null,\n  },\n}];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare": {
+      "main": [
+        [
+          {
+            "node": "Run llm.sh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run llm.sh": {
+      "main": [
+        [
+          {
+            "node": "Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "llm0000000000001-v1"
+}
