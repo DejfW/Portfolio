@@ -4,9 +4,49 @@
   "status": "shipped",
   "tagline": "Orders, quotes, stock and purchasing for a made-to-order furniture workshop, automated end to end.",
   "summary": "An automation system built on n8n and Supabase (Postgres) that turns emails, forms and showroom tablets into priced orders.",
-  "tags": ["n8n", "Supabase", "PostgreSQL", "AI"],
-  "links": [{ "label": "Source on GitHub", "url": "https://github.com/DejfW/Portfolio" }],
+  "tags": [
+    "n8n",
+    "Supabase",
+    "PostgreSQL",
+    "AI"
+  ],
+  "links": [
+    {
+      "label": "Source on GitHub",
+      "url": "https://github.com/DejfW/Portfolio"
+    }
+  ],
   "sections": [
-    { "type": "prose", "title": "The problem", "paragraphs": ["Full case study coming in Task 7."] }
+    {
+      "type": "prose",
+      "title": "The problem",
+      "paragraphs": [
+        "Full case study coming in Task 7."
+      ]
+    },
+    {
+      "type": "diagram",
+      "title": "Architecture",
+      "src": "media/architecture.svg",
+      "alt": "Input channels feed n8n workflows, which call SQL functions in Supabase; notifications leave through outbox queues to Slack and Gmail.",
+      "caption": "Click to enlarge."
+    },
+    {
+      "type": "gallery",
+      "title": "Screenshots (temporary)",
+      "items": [
+        {
+          "type": "image",
+          "src": "media/architecture.svg",
+          "alt": "Architecture diagram",
+          "caption": "Temporary item"
+        }
+      ]
+    },
+    {
+      "type": "gallery",
+      "title": "Recordings and screenshots",
+      "items": []
+    }
   ]
 }
