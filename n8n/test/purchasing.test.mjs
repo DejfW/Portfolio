@@ -53,3 +53,14 @@ test('strona i wynik przyjęcia dostawy', () => {
   assert.equal(runCode('po-receive-result', { input: [{ ok: true }] })[0].code, 200);
   assert.equal(runCode('po-receive-result', { input: [{ ok: false, error: 'PO_NOT_SENT' }] })[0].code, 409);
 });
+
+test('cron-params: harmonogram zawsze, webhook tylko w trybie testowym, adres opinii z webhooka tylko w trybie testowym', () => {
+  const run = (i) => runCode('cron-params', { input: [i] })[0];
+  assert.deepEqual([run({ allowMock: '0' }).allowed, run({ headers: {}, allowMock: '0' }).allowed, run({ headers: {}, allowMock: '1' }).allowed], [true, false, true]);
+  assert.equal(run({ headers: {}, allowMock: '1', body: { review_url: 'https://g.page/r/x' } }).reviewUrl, 'https://g.page/r/x');
+  assert.equal(run({ headers: {}, allowMock: '1', body: { review_url: 5 } }).allowed, false);
+  assert.equal(run({ headers: {}, allowMock: '0', body: { review_url: 'https://g.page/r/x' } }).allowed, false);
+  assert.equal(run({ reviewUrl: '' }).reviewUrl, null, 'pusty adres opinii = null (wyłączone)');
+  assert.equal(run({ reviewUrl: 'https://g.page/r/cfg', allowMock: '0' }).reviewUrl, 'https://g.page/r/cfg');
+  assert.equal(run({ statusUrl: 'http://localhost:8080' }).statusUrl, 'http://localhost:8080');
+});

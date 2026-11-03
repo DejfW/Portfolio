@@ -3,7 +3,7 @@
   "name": "13 Showroom",
   "nodes": [
     {
-      "id": "n205-info-webhook",
+      "id": "n223-info-webhook",
       "name": "Info webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -22,7 +22,7 @@
       "webhookId": "showroom-info-0001"
     },
     {
-      "id": "n206-info-prep",
+      "id": "n224-info-prep",
       "name": "Info prep",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -37,7 +37,7 @@
       }
     },
     {
-      "id": "n207-code-valid-",
+      "id": "n225-code-valid-",
       "name": "Code valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -71,7 +71,7 @@
       }
     },
     {
-      "id": "n208-salon-info",
+      "id": "n226-salon-info",
       "name": "Salon info",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -107,7 +107,7 @@
       }
     },
     {
-      "id": "n209-salon-found-",
+      "id": "n227-salon-found-",
       "name": "Salon found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -141,7 +141,7 @@
       }
     },
     {
-      "id": "n210-info-response",
+      "id": "n228-info-response",
       "name": "Info response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -166,7 +166,7 @@
       }
     },
     {
-      "id": "n211-info-not-found",
+      "id": "n229-info-not-found",
       "name": "Info not found",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -191,7 +191,7 @@
       }
     },
     {
-      "id": "n212-order-webhook",
+      "id": "n230-order-webhook",
       "name": "Order webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -210,7 +210,7 @@
       "webhookId": "showroom-order-0001"
     },
     {
-      "id": "n213-config",
+      "id": "n231-config",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -250,6 +250,18 @@
               "id": "cfg-team",
               "name": "team",
               "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-statusUrl",
+              "name": "statusUrl",
+              "value": "={{ $env.STATUS_URL || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-reviewUrl",
+              "name": "reviewUrl",
+              "value": "={{ $env.GOOGLE_REVIEW_URL || '' }}",
               "type": "string"
             },
             {
@@ -295,7 +307,7 @@
       }
     },
     {
-      "id": "n214-create-order",
+      "id": "n232-create-order",
       "name": "Create order",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -331,7 +343,7 @@
       }
     },
     {
-      "id": "n215-order-error-",
+      "id": "n233-order-error-",
       "name": "Order error?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -365,7 +377,7 @@
       }
     },
     {
-      "id": "n216-order-rejected",
+      "id": "n234-order-rejected",
       "name": "Order rejected",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -390,7 +402,7 @@
       }
     },
     {
-      "id": "n217-order-accepted",
+      "id": "n235-order-accepted",
       "name": "Order accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -415,7 +427,7 @@
       }
     },
     {
-      "id": "n218-created-",
+      "id": "n236-created-",
       "name": "Created?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -449,7 +461,7 @@
       }
     },
     {
-      "id": "n219-context",
+      "id": "n237-context",
       "name": "Context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -485,7 +497,7 @@
       }
     },
     {
-      "id": "n220-compose-emails",
+      "id": "n238-compose-emails",
       "name": "Compose emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -500,7 +512,7 @@
       }
     },
     {
-      "id": "n221-queue-email",
+      "id": "n239-queue-email",
       "name": "Queue email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,

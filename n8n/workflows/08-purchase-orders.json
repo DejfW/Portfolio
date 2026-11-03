@@ -83,6 +83,18 @@
               "type": "string"
             },
             {
+              "id": "cfg-statusUrl",
+              "name": "statusUrl",
+              "value": "={{ $env.STATUS_URL || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-reviewUrl",
+              "name": "reviewUrl",
+              "value": "={{ $env.GOOGLE_REVIEW_URL || '' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-testSinkPort",
               "name": "testSinkPort",
               "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
@@ -466,6 +478,18 @@
               "id": "cfg-team",
               "name": "team",
               "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-statusUrl",
+              "name": "statusUrl",
+              "value": "={{ $env.STATUS_URL || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-reviewUrl",
+              "name": "reviewUrl",
+              "value": "={{ $env.GOOGLE_REVIEW_URL || '' }}",
               "type": "string"
             },
             {

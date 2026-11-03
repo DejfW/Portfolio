@@ -30,6 +30,8 @@ begin
   where n.nspname = 'public'
     and p.prokind = 'f'
     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+    -- jedyny świadomy wyjątek: strona statusu zamówienia (token zamówienia, odpowiedź bez danych osobowych i cen)
+    and p.oid::regprocedure::text <> 'order_status_public(uuid)'
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
   assert v_bad is null, 'funkcje dostępne publicznie: ' || v_bad;
   raise notice 'PASS test_no_public_execute';

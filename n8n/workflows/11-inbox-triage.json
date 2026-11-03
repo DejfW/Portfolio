@@ -3,7 +3,7 @@
   "name": "11 Inbox triage",
   "nodes": [
     {
-      "id": "n178-webhook",
+      "id": "n187-webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -20,7 +20,7 @@
       "webhookId": "inbox-triage-0001"
     },
     {
-      "id": "n179-config",
+      "id": "n188-config",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -63,6 +63,18 @@
               "type": "string"
             },
             {
+              "id": "cfg-statusUrl",
+              "name": "statusUrl",
+              "value": "={{ $env.STATUS_URL || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-reviewUrl",
+              "name": "reviewUrl",
+              "value": "={{ $env.GOOGLE_REVIEW_URL || '' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-testSinkPort",
               "name": "testSinkPort",
               "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
@@ -105,7 +117,7 @@
       }
     },
     {
-      "id": "n180-triage-normalize",
+      "id": "n189-triage-normalize",
       "name": "Triage normalize",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -120,7 +132,7 @@
       }
     },
     {
-      "id": "n181-valid-input-",
+      "id": "n190-valid-input-",
       "name": "Valid input?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -154,7 +166,7 @@
       }
     },
     {
-      "id": "n182-receive",
+      "id": "n191-receive",
       "name": "Receive",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -190,7 +202,7 @@
       }
     },
     {
-      "id": "n183-accepted",
+      "id": "n192-accepted",
       "name": "Accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -207,7 +219,7 @@
       }
     },
     {
-      "id": "n184-rejected",
+      "id": "n193-rejected",
       "name": "Rejected",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -224,7 +236,7 @@
       }
     },
     {
-      "id": "n185-first-delivery-",
+      "id": "n194-first-delivery-",
       "name": "First delivery?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -258,7 +270,7 @@
       }
     },
     {
-      "id": "n186-triage-prompt",
+      "id": "n195-triage-prompt",
       "name": "Triage prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -273,7 +285,7 @@
       }
     },
     {
-      "id": "n187-ask-llm",
+      "id": "n196-ask-llm",
       "name": "Ask LLM",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -295,7 +307,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n188-triage-validate",
+      "id": "n197-triage-validate",
       "name": "Triage validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -310,7 +322,7 @@
       }
     },
     {
-      "id": "n189-complete",
+      "id": "n198-complete",
       "name": "Complete",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -346,7 +358,7 @@
       }
     },
     {
-      "id": "n190-to-intake-",
+      "id": "n199-to-intake-",
       "name": "To intake?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -380,7 +392,7 @@
       }
     },
     {
-      "id": "n191-forward-data",
+      "id": "n200-forward-data",
       "name": "Forward data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -416,7 +428,7 @@
       }
     },
     {
-      "id": "n192-schedule-5-min",
+      "id": "n201-schedule-5-min",
       "name": "Schedule 5 min",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -436,7 +448,7 @@
       }
     },
     {
-      "id": "n193-webhook-sweep",
+      "id": "n202-webhook-sweep",
       "name": "Webhook sweep",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -453,7 +465,7 @@
       "webhookId": "inbox-triage-sweep-0001"
     },
     {
-      "id": "n194-config-sweep",
+      "id": "n203-config-sweep",
       "name": "Config sweep",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -496,6 +508,18 @@
               "type": "string"
             },
             {
+              "id": "cfg-statusUrl",
+              "name": "statusUrl",
+              "value": "={{ $env.STATUS_URL || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-reviewUrl",
+              "name": "reviewUrl",
+              "value": "={{ $env.GOOGLE_REVIEW_URL || '' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-testSinkPort",
               "name": "testSinkPort",
               "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
@@ -538,7 +562,7 @@
       }
     },
     {
-      "id": "n195-sweep-params",
+      "id": "n204-sweep-params",
       "name": "Sweep params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -553,7 +577,7 @@
       }
     },
     {
-      "id": "n196-sweep-allowed-",
+      "id": "n205-sweep-allowed-",
       "name": "Sweep allowed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -587,7 +611,7 @@
       }
     },
     {
-      "id": "n197-sweep-forbidden",
+      "id": "n206-sweep-forbidden",
       "name": "Sweep forbidden",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -604,7 +628,7 @@
       }
     },
     {
-      "id": "n198-sweep-via-webhook-",
+      "id": "n207-sweep-via-webhook-",
       "name": "Sweep via webhook?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -638,7 +662,7 @@
       }
     },
     {
-      "id": "n199-sweep-started",
+      "id": "n208-sweep-started",
       "name": "Sweep started",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -655,7 +679,7 @@
       }
     },
     {
-      "id": "n200-unforwarded",
+      "id": "n209-unforwarded",
       "name": "Unforwarded",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -691,7 +715,7 @@
       }
     },
     {
-      "id": "n201-forward-prep",
+      "id": "n210-forward-prep",
       "name": "Forward prep",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -706,7 +730,7 @@
       }
     },
     {
-      "id": "n202-forward-to-intake",
+      "id": "n211-forward-to-intake",
       "name": "Forward to intake",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -745,7 +769,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n203-forwarded-",
+      "id": "n212-forwarded-",
       "name": "Forwarded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -779,7 +803,7 @@
       }
     },
     {
-      "id": "n204-mark-forwarded",
+      "id": "n213-mark-forwarded",
       "name": "Mark forwarded",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,

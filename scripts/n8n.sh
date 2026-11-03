@@ -45,6 +45,8 @@ fi
 export OPERATOR_USER="${OPERATOR_USER:-operator}"
 export OPERATOR_PASSWORD
 export OWNER_EMAIL="${OWNER_EMAIL:-owner@example.com}"
+# Adres strony statusu zamówień (scripts/serve-web.mjs) dla linków w mailach; na produkcji ustaw własny, bez niego maile idą bez linku
+export STATUS_URL="${STATUS_URL:-http://localhost:8080}"
 export N8N_USER_FOLDER="$PWD/tmp/n8n"
 # Workflowy czytają konfigurację przez $env, a węzeł Execute Command woła scripts/llm.sh.
 # Oba są domyślnie wyłączone w n8n 2.x; to środowisko deweloperskie na localhost.

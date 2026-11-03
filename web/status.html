@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Status zamówienia</title>
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --ink: #2b2118; --muted: #6f6256; --line: #e4dccf;
+    --accent: #8a5a2b; --accent-ink: #ffffff; --err: #a32020; --ok: #1f6b3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1612; --card: #251e18; --ink: #f1e9df; --muted: #b5a798; --line: #3a3027;
+            --accent: #d49a5a; --accent-ink: #1b1612; --err: #ff8a8a; --ok: #7fd49c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .current { font-size: 1.4rem; font-weight: 700; margin: 0; }
+  ol.timeline { list-style: none; margin: 0; padding: 0; }
+  ol.timeline li { position: relative; padding: 0 0 20px 28px; }
+  ol.timeline li:last-child { padding-bottom: 0; }
+  ol.timeline li::before { content: ""; position: absolute; left: 4px; top: 7px; width: 12px; height: 12px; border-radius: 50%;
+                           background: var(--line); border: 2px solid var(--accent); }
+  ol.timeline li.last::before { background: var(--accent); }
+  ol.timeline li::after { content: ""; position: absolute; left: 9px; top: 21px; bottom: 0; width: 2px; background: var(--line); }
+  ol.timeline li:last-child::after { display: none; }
+  .label { font-weight: 600; }
+  .when { color: var(--muted); font-size: .9rem; }
+  button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+           color: var(--ink); cursor: pointer; min-height: 44px; }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .err { color: var(--err); }
+  .muted { color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Status zamówienia</h1>
+  <p class="lead">Tu sprawdzisz, na jakim etapie jest Twoje zamówienie.</p>
+  <p id="msg" class="muted" role="status">Wczytuję…</p>
+  <section id="result" class="card" hidden aria-live="polite">
+    <p class="muted" style="margin:0 0 4px">Aktualny etap</p>
+    <p class="current" id="current"></p>
+  </section>
+  <section id="history" class="card" hidden aria-labelledby="history-h">
+    <h2 id="history-h" style="margin:0 0 16px;font-size:1.1rem">Historia</h2>
+    <ol class="timeline" id="timeline"></ol>
+  </section>
+  <button type="button" id="refresh" hidden>Odśwież</button>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // Adres API Supabase i klucz publiczny (publishable/anon) wstawia scripts/serve-web.mjs albo hosting statyczny.
+  // Klucz publiczny nie daje nic poza tym, co wolno roli anon: wywołaniem funkcji order_status_public z tokenem zamówienia.
+  var API = __SUPABASE_URL__, KEY = __SUPABASE_KEY__;
+  var token = new URLSearchParams(location.search).get('token') || '';
+  var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function show(text, cls) { var m = $('msg'); m.textContent = text; m.className = cls || 'muted'; m.hidden = !text; }
+  function when(iso) {
+    var d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleString('pl-PL', { dateStyle: 'long', timeStyle: 'short' });
+  }
+
+  function render(r) {
+    if (!r || !r.status || !Array.isArray(r.timeline)) {
+      $('result').hidden = $('history').hidden = true;
+      show('Nie znaleziono zamówienia. Sprawdź, czy link jest kompletny.', 'err');
+      return;
+    }
+    show('');
+    $('current').textContent = r.label_pl;
+    $('result').hidden = $('history').hidden = false;
+    var ol = $('timeline'); ol.textContent = '';
+    r.timeline.forEach(function (t, i) {
+      var li = document.createElement('li');
+      if (i === r.timeline.length - 1) li.className = 'last';
+      var l = document.createElement('div'); l.className = 'label'; l.textContent = t.label_pl;
+      var w = document.createElement('div'); w.className = 'when'; w.textContent = when(t.at);
+      li.appendChild(l); li.appendChild(w); ol.appendChild(li);
+    });
+  }
+
+  function load() {
+    $('refresh').hidden = false;
+    if (!UUID.test(token)) { show('Nieprawidłowy link do zamówienia.', 'err'); $('refresh').hidden = true; return; }
+    show('Wczytuję…');
+    fetch(API + '/rest/v1/rpc/order_status_public', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: KEY, Authorization: 'Bearer ' + KEY },
+      body: JSON.stringify({ p_token: token })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(render).catch(function () {
+      $('result').hidden = $('history').hidden = true;
+      show('Nie udało się pobrać statusu. Spróbuj ponownie za chwilę.', 'err');
+    });
+  }
+  $('refresh').addEventListener('click', load);
+  load();
+})();
+</script>
+</body>
+</html>

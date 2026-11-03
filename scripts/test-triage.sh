@@ -103,6 +103,8 @@ code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/triage-sweep" -H '
 [ "$code" = "200" ] && ok "sweep: uruchomiony" || fail "sweep" "HTTP $code"
 for n in stuck lost; do
   wait_for "select count(*) = 1 from orders where external_id = '$(ext $n)'" 60 && ok "sweep: $n przekazane do intake (powstało zamówienie)" || fail "sweep $n" "brak zamówienia"
+  # znacznik przekazania ustawiany jest po odpowiedzi intake, więc chwilę po utworzeniu zamówienia
+  wait_for "select (forwarded_at is not null) from inbox_messages where external_id = '$(ext $n)'" 20 || true
   expect "sweep: $n oznaczone jako przekazane" "select (forwarded_at is not null)::text from inbox_messages where external_id = '$(ext $n)'" "true"
 done
 expect "sweep: zawieszona wiadomość dostała trasę intake" "select route || '/' || category from inbox_messages where external_id = '$(ext stuck)'" "intake/unknown"

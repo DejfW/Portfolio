@@ -24,6 +24,8 @@ const REPORT_WORKFLOW_ID = 'report000000001';
 const PO_WORKFLOW_ID = 'po0000000000001';
 const FOLLOWUP_WORKFLOW_ID = 'followup0000001';
 const TRIAGE_WORKFLOW_ID = 'triage000000001';
+const STATUS_WORKFLOW_ID = 'statusnotify0001';
+const REVIEW_WORKFLOW_ID = 'review0000000001';
 const SHOWROOM_WORKFLOW_ID = 'showroom0000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
@@ -93,6 +95,10 @@ const configNode = (position, name = 'Config') => {
         set('ownerEmail', env('OWNER_EMAIL', 'owner@example.com')),
         set('publicUrl', env('PUBLIC_URL', 'http://localhost:5678')),
         set('team', env('TEAM', 'Jan,Anna,Piotr')),
+        // adres strony statusu dla klientów (web/status.html) i link do opinii Google (puste = prośby o opinię wyłączone)
+        // puste = maile bez linku (adres lokalny ustawia dopiero scripts/n8n.sh dla środowiska deweloperskiego)
+        set('statusUrl', env('STATUS_URL', '')),
+        set('reviewUrl', `={{ $env.GOOGLE_REVIEW_URL || '' }}`),
         // tylko wartości niebędące sekretami: adres webhooka Slacka i hasło Gmaila czytamy bezpośrednio z $env w węzłach
         set('testSinkPort', env('TEST_SINK_PORT', '18765')),
         set('slackConfigured', '={{ !!$env.SLACK_WEBHOOK_URL }}', 'boolean'),
@@ -876,6 +882,54 @@ function buildShowroom() {
   return wf;
 }
 
+
+// --- 10-status-notify i 12-review-request -------------------------------------------------------
+// Dwa cykliczne zadania, które tylko wołają funkcje SQL (maile powstają w bazie, w tej samej transakcji co oznaczenie zdarzeń):
+// co 2 minuty notify_status_events (mail o rozpoczęciu realizacji z linkiem do strony statusu) i raz dziennie o 10:00
+// send_review_requests (prośba o opinię 7 dni po zakończeniu). Webhooki /status-run i /review-run działają tylko w trybie testowym.
+
+function buildCronRpc({ id, name, schedule, webhookPath, webhookId, rpcName, rpcBody }) {
+  const nodes = [
+    node('Schedule', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], { rule: { interval: [schedule] } }),
+    node('Webhook', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'POST', path: webhookPath, responseMode: 'responseNode', options: {},
+    }, { webhookId }),
+    configNode([220, 100]),
+    codeNode('Cron params', [440, 100], code('cron-params')),
+    boolIf('Allowed?', [660, 100], '$json.allowed'),
+    node('Forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Via webhook?', [880, 20], '$json.viaWebhook'),
+    node('Started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -60], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    // błąd RPC ma zatrzymać wykonanie (widoczne jako nieudane), a nie kończyć się pozornym sukcesem
+    rpc('Run', [1320, 20], rpcName, rpcBody, {}, { response: { response: { responseFormat: 'text' } } }),
+  ];
+  return workflow(id, name, nodes, [
+    ['Schedule', 'Config'], ['Webhook', 'Config'], ['Config', 'Cron params'], ['Cron params', 'Allowed?'],
+    ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
+    ['Via webhook?', 'Started', 0], ['Via webhook?', 'Run', 1], ['Started', 'Run'],
+  ]);
+}
+
+function buildStatusNotify() {
+  return buildCronRpc({
+    id: STATUS_WORKFLOW_ID, name: '10 Status notify', schedule: { field: 'minutes', minutesInterval: 2 },
+    webhookPath: 'status-run', webhookId: 'status-run-0001', rpcName: 'notify_status_events',
+    rpcBody: `{ p_status_url: $('Cron params').first().json.statusUrl }`,
+  });
+}
+
+function buildReviewRequest() {
+  return buildCronRpc({
+    id: REVIEW_WORKFLOW_ID, name: '12 Review request', schedule: { field: 'cronExpression', expression: '0 10 * * *' },
+    webhookPath: 'review-run', webhookId: 'review-run-0001', rpcName: 'send_review_requests',
+    rpcBody: `{ p_review_url: $('Cron params').first().json.reviewUrl }`,
+  });
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -891,7 +945,9 @@ for (const [file, wf] of [
   ['07-weekly-report.json', buildReport()],
   ['08-purchase-orders.json', buildPurchasing()],
   ['09-quote-followup.json', buildFollowup()],
+  ['10-status-notify.json', buildStatusNotify()],
   ['11-inbox-triage.json', buildTriage()],
+  ['12-review-request.json', buildReviewRequest()],
   ['13-showroom.json', buildShowroom()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
