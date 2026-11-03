@@ -32,6 +32,18 @@ export PROJECT_DIR="$PWD"
 # Do testów: ALLOW_LLM_MOCK=1 scripts/n8n.sh start
 export ALLOW_LLM_MOCK="${ALLOW_LLM_MOCK:-0}"
 # Opcjonalny wspólny sekret dla webhooka /order (nagłówek X-Intake-Token), np. INTAKE_TOKEN=... scripts/n8n.sh start
+export TEST_SINK_PORT="${TEST_SINK_PORT:-18765}"
+# Hasło operatora (logowanie Basic do linków zatwierdzania i zamykania zadań). Jeśli go nie ma, generujemy je
+# i zapisujemy w .env.local (uprawnienia 600); nigdy nie jest wypisywane.
+if [ -z "${OPERATOR_PASSWORD:-}" ]; then
+  # openssl zamiast potoku tr|head: przy pipefail SIGPIPE po cichu przerywał skrypt
+  OPERATOR_PASSWORD="$(openssl rand -hex 16)"
+  touch .env.local; chmod 600 .env.local
+  printf "OPERATOR_PASSWORD='%s'\n" "$OPERATOR_PASSWORD" >> .env.local
+  echo "Wygenerowano hasło operatora i zapisano w .env.local (OPERATOR_PASSWORD)." >&2
+fi
+export OPERATOR_USER="${OPERATOR_USER:-operator}"
+export OPERATOR_PASSWORD
 export OWNER_EMAIL="${OWNER_EMAIL:-owner@example.com}"
 export N8N_USER_FOLDER="$PWD/tmp/n8n"
 # Workflowy czytają konfigurację przez $env, a węzeł Execute Command woła scripts/llm.sh.
@@ -71,6 +83,17 @@ case "${1:-}" in
     else
       echo "Pominięto poświadczenia SMTP (brak GMAIL_USER lub GMAIL_APP_PASSWORD w .env.local)"
     fi
+    # Poświadczenie Basic dla linków operatora (z .env.local, plik tymczasowy usuwany po imporcie)
+    op_file="$(mktemp)"
+    node -e '
+      const fs = require("fs");
+      fs.writeFileSync(process.argv[1], JSON.stringify([{
+        id: "operatorauth0001", name: "Operator", type: "httpBasicAuth",
+        data: { user: process.env.OPERATOR_USER, password: process.env.OPERATOR_PASSWORD },
+      }]), { mode: 0o600 });
+    ' "$op_file"
+    n8n import:credentials --input="$op_file" || echo "Import poświadczenia operatora nie powiódł się" >&2
+    rm -f "$op_file"
     for f in n8n/workflows/*.json; do
       n8n import:workflow --input="$f"
     done

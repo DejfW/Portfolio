@@ -2,28 +2,36 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runCode } from './harness.mjs';
 
-const params = (i) => runCode('deliver-params', { input: [{ projectDir: '/p', ...i }] })[0];
+const params = (i) => runCode('deliver-params', { input: [{ projectDir: '/p', testSinkPort: '18765', ...i }] })[0];
+const SINK = 'http://127.0.0.1:18765/hook';
 
-test('deliver-params: harmonogram jest dozwolony, a webhook tylko w trybie testowym', () => {
+test('deliver-params: harmonogram jest dozwolony, a webhook tylko w trybie testowym z odbiornikiem', () => {
   assert.equal(params({}).allowed, true);
-  assert.equal(params({ headers: {}, allowMock: '0' }).allowed, false);
-  assert.equal(params({ headers: {}, allowMock: '1' }).allowed, true);
+  assert.equal(params({ headers: {}, allowMock: '0', body: { slack_url: SINK } }).allowed, false);
+  assert.equal(params({ headers: {}, allowMock: '1', body: { slack_url: SINK } }).allowed, true);
+});
+
+test('deliver-params: pusty webhook w trybie testowym nie uruchamia prawdziwej wysyłki (zarzut 6)', () => {
+  for (const body of [{}, undefined, null, { slack_url: '' }, { x: 1 }]) {
+    const p = params({ headers: {}, allowMock: '1', body, slackConfigured: true, emailDelivery: 'on' });
+    assert.deepEqual([p.allowed, p.run], [false, false], `body: ${JSON.stringify(body)}`);
+  }
+});
+
+test('deliver-params: odbiornik tylko dokładnie ten jeden adres, wtedy tylko wiadomości testowe (zarzut 7)', () => {
+  const ok = params({ headers: {}, allowMock: '1', body: { slack_url: SINK }, emailDelivery: 'on' });
+  assert.deepEqual([ok.allowed, ok.slackUrl, ok.onlyTest, ok.slackReady, ok.emailOn], [true, SINK, true, true, false]);
+  for (const bad of ['http://127.0.0.1:8080/admin/reload', 'http://127.0.0.1:18765/inna', 'http://127.0.0.1:18765/hook/', 'http://127.0.0.1:18765/hook?x=1',
+                     'http://evil.example/x', 'https://hooks.slack.com/services/T/B/x', 'http://localhost:18765/hook', 'http://127.0.0.1.evil.com:18765/hook', 5]) {
+    assert.equal(params({ headers: {}, allowMock: '1', body: { slack_url: bad } }).allowed, false, `url: ${bad}`);
+  }
 });
 
 test('deliver-params: w trybie testowym harmonogram nie dostarcza nic na prawdziwy kanał', () => {
-  assert.equal(params({ allowMock: '0' }).run, true);                       // produkcja: harmonogram działa
-  assert.equal(params({ allowMock: '1' }).run, false);                      // tryb testowy: harmonogram wyłączony
-  assert.equal(params({ headers: {}, allowMock: '1' }).run, true);          // na żądanie działa
-  assert.equal(params({ headers: {}, allowMock: '0' }).run, false);         // webhook poza trybem testowym zablokowany
-});
-
-test('deliver-params: odbiornik testowy tylko na 127.0.0.1, a wtedy tylko wiadomości testowe', () => {
-  const ok = params({ headers: {}, allowMock: '1', body: { slack_url: 'http://127.0.0.1:18765/hook' }, emailDelivery: 'on' });
-  assert.deepEqual([ok.allowed, ok.slackUrl, ok.onlyTest, ok.slackReady, ok.emailOn], [true, 'http://127.0.0.1:18765/hook', true, true, false]);
-  for (const bad of ['http://evil.example/x', 'https://hooks.slack.com/services/T/B/x', 'http://127.0.0.1.evil.com:80/x', 'http://localhost:80/x', 'http://127.0.0.1:80/../x', 5]) {
-    assert.equal(params({ headers: {}, allowMock: '1', body: { slack_url: bad } }).allowed, false, `url: ${bad}`);
-  }
-  assert.equal(params({ headers: {}, allowMock: '0', body: { slack_url: 'http://127.0.0.1:80/x' } }).allowed, false);
+  assert.equal(params({ allowMock: '0' }).run, true);
+  assert.equal(params({ allowMock: '1' }).run, false);
+  assert.equal(params({ headers: {}, allowMock: '1', body: { slack_url: SINK } }).run, true);
+  assert.equal(params({ headers: {}, allowMock: '0', body: { slack_url: SINK } }).run, false);
 });
 
 test('deliver-params: bez konfiguracji nic nie jest gotowe, a maile są wyłączone', () => {
@@ -32,32 +40,21 @@ test('deliver-params: bez konfiguracji nic nie jest gotowe, a maile są wyłącz
   assert.equal(params({ slackConfigured: true }).slackReady, true);
   assert.equal(params({ emailDelivery: 'on' }).emailOn, true);
   assert.equal(params({ emailDelivery: 'yes' }).emailOn, false);
+  assert.equal(params({ emailAllowlist: 'a@b.pl' }).allowlist, 'a@b.pl');
 });
 
-const plan = (p, msgs) => runCode('deliver-plan', { nodes: { 'Deliver params': { allowlist: '', ...p } }, input: msgs });
-const email = (to) => ({ channel: 'email', id: '1', to });
-const slack = { channel: 'slack', id: '2', text: 'x' };
-
-test('deliver-plan: Slack wysyłamy tylko gdy jest adres', () => {
-  assert.equal(plan({ slackReady: true }, [slack])[0].route, 'slack:send');
-  const no = plan({ slackReady: false }, [slack])[0];
-  assert.deepEqual([no.route, no.reason], ['skip', 'NO_SLACK_URL']);
+test('deliver-plan: trasa wynika z kanału, a nieznany kanał jest pomijany', () => {
+  const r = runCode('deliver-plan', { input: [{ channel: 'slack', id: '1' }, { channel: 'email', id: '2' }, { channel: 'sms', id: '3' }] });
+  assert.deepEqual(r.map((x) => x.route), ['slack:send', 'email:send', 'skip']);
+  assert.deepEqual(r.map((x) => x.id), ['1', '2', '3']);
 });
 
-test('deliver-plan: maile tylko na adresy z listy dozwolonych, domyślnie nic', () => {
-  assert.equal(plan({ emailOn: false, allowlist: 'a@b.pl' }, [email('a@b.pl')])[0].reason, 'EMAIL_DELIVERY_OFF');
-  const on = { emailOn: true, allowlist: ' Portfolio@Gmail.com , @firma.pl ' };
-  assert.equal(plan(on, [email('portfolio@gmail.com')])[0].route, 'email:send');
-  assert.equal(plan(on, [email('Jan@Firma.pl')])[0].route, 'email:send');
-  for (const to of ['obcy@example.com', 'x@evilfirma.pl', 'x@firma.pl.evil.com', 'zly adres', '', undefined, 'a@b.pl, c@d.pl']) {
-    const r = plan(on, [email(to)])[0];
-    assert.equal(r.route, 'skip', `to: ${to}`);
-  }
-  assert.equal(plan({ emailOn: true, allowlist: '' }, [email('a@b.pl')])[0].route, 'skip');
-});
-
-test('deliver-plan: nieznany kanał jest pomijany, a wiele wiadomości zachowuje kolejność', () => {
-  const r = plan({ slackReady: true, emailOn: false }, [slack, { channel: 'sms', id: '3' }, email('a@b.pl')]);
-  assert.deepEqual(r.map((x) => x.route), ['slack:send', 'skip', 'skip']);
-  assert.deepEqual(r.map((x) => x.id), ['2', '3', '1']);
+test('deliver-error: adresy URL (w tym sekretny webhook Slacka) nie trafiają do zapisanego błędu', () => {
+  const run = (error) => runCode('deliver-error', { input: [{ error }] })[0].text;
+  const t = run({ message: 'Request to https://hooks.slack.com/services/T0/B0/SECRET failed with 404' });
+  assert.ok(!t.includes('SECRET') && !t.includes('hooks.slack.com'));
+  assert.match(t, /<url>/);
+  assert.equal(run(undefined), 'unknown');
+  assert.equal(run('prosty tekst'), 'prosty tekst');
+  assert.ok(run({ message: 'x'.repeat(500) }).length <= 200);
 });

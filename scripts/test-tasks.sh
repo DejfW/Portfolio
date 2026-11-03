@@ -5,6 +5,9 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+[ -f .env.local ] && { set -a; . ./.env.local; set +a; }
+: "${OPERATOR_PASSWORD:?Brak OPERATOR_PASSWORD w .env.local (uruchom scripts/n8n.sh start, który go wygeneruje)}"
+OPERATOR_USER="${OPERATOR_USER:-operator}"
 DB_CONTAINER="supabase_db_meble-automatyzacja"
 BASE="${N8N_URL:-http://localhost:5678}/webhook"
 RUN="$(date +%s)"
@@ -34,7 +37,7 @@ expect() { local got; got=$(q "$2"); if [ "$got" = "$3" ]; then ok "$1"; else fa
 
 # http <GET|POST> <ścieżka> [dane formularza] -> kod HTTP, treść w $BODYF
 http() {
-  local args=(-s -o "$BODYF" -w '%{http_code}' -X "$1" "$BASE/$2")
+  local args=(-s -o "$BODYF" -w '%{http_code}' -X "$1" "$BASE/$2" -u "$OPERATOR_USER:$OPERATOR_PASSWORD")
   [ "$1" = "POST" ] && args+=(-H 'Content-Type: application/x-www-form-urlencoded' --data "${3:-}")
   curl "${args[@]}" || true
 }
@@ -49,6 +52,27 @@ new_order() {
 }
 
 PRODUCT="Szafka nocna MDF biała"
+
+# --- uwierzytelnienie: bez logowania operatora nic nie działa ----------------------------------------------
+OA=$(new_order auth "$PRODUCT")
+TA=$(q "select '00000000-0000-0000-0000-000000000000'")
+for who in "bez logowania:" "złe hasło:-u operator:zle-haslo" "zły użytkownik:-u intruz:$OPERATOR_PASSWORD"; do
+  label="${who%%:*}"; cred="${who#*:}"
+  args=(-s -o /dev/null -w '%{http_code}')
+  [ -n "$cred" ] && args+=($cred)
+  c1=$(curl "${args[@]}" "$BASE/approve?order_id=$OA" || true)
+  c2=$(curl "${args[@]}" -X POST "$BASE/approve" --data "order_id=$OA&assignee=Intruz" || true)
+  c3=$(curl "${args[@]}" -X POST "$BASE/task-done" --data "task_id=$TA" || true)
+  case "$c1$c2$c3" in
+    *200*|*409*|*400*|*404*) fail "auth ($label)" "kody: $c1 $c2 $c3" ;;
+    *) ok "auth ($label): GET i oba POST odrzucone ($c1 $c2 $c3)" ;;
+  esac
+done
+expect "auth: żądania bez uprawnień niczego nie zmieniły" "select status || '/' || (select count(*) from tasks where order_id='$OA') from orders where id='$OA'" "quoted/0"
+args=(-s -o /dev/null -w '%{http_code}' -u "$OPERATOR_USER:$OPERATOR_PASSWORD" -H 'Sec-Fetch-Site: cross-site')
+c=$(curl "${args[@]}" -X POST "$BASE/approve" --data "order_id=$OA&assignee=Jan" || true)
+[ "$c" = "400" ] && ok "csrf: formularz z innej witryny -> 400" || fail "csrf" "HTTP $c"
+expect "csrf: nic się nie zmieniło" "select status from orders where id='$OA'" "quoted"
 
 # --- strona zatwierdzenia: GET niczego nie zmienia ---------------------------------------------------
 O1=$(new_order a "$PRODUCT")

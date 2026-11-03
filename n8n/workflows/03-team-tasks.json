@@ -14,10 +14,17 @@
       "parameters": {
         "httpMethod": "GET",
         "path": "approve",
+        "authentication": "basicAuth",
         "responseMode": "responseNode",
         "options": {}
       },
-      "webhookId": "team-approve-get"
+      "webhookId": "team-approve-get",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
     },
     {
       "id": "n035-config-page",
@@ -63,6 +70,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-slackConfigured",
               "name": "slackConfigured",
               "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
@@ -104,7 +117,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nreturn [{ json: { valid: isUuid(id), id: isUuid(id) ? id.toLowerCase() : null, assignee } }];\n"
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\n// Przeglądarka oznacza żądania z innych witryn nagłówkiem Sec-Fetch-Site: cross-site; formularz z naszej strony to same-origin.\nconst crossSite = !!(i.body && typeof i.body === 'object' && Object.keys(i.body).length)\n  && String((i.headers || {})['sec-fetch-site'] || '').toLowerCase() === 'cross-site';\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nconst valid = isUuid(id) && !crossSite;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
       }
     },
     {
@@ -204,10 +217,17 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "approve",
+        "authentication": "basicAuth",
         "responseMode": "responseNode",
         "options": {}
       },
-      "webhookId": "team-approve-post"
+      "webhookId": "team-approve-post",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
     },
     {
       "id": "n041-config-post",
@@ -253,6 +273,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-slackConfigured",
               "name": "slackConfigured",
               "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
@@ -294,7 +320,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nreturn [{ json: { valid: isUuid(id), id: isUuid(id) ? id.toLowerCase() : null, assignee } }];\n"
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\n// Przeglądarka oznacza żądania z innych witryn nagłówkiem Sec-Fetch-Site: cross-site; formularz z naszej strony to same-origin.\nconst crossSite = !!(i.body && typeof i.body === 'object' && Object.keys(i.body).length)\n  && String((i.headers || {})['sec-fetch-site'] || '').toLowerCase() === 'cross-site';\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nconst valid = isUuid(id) && !crossSite;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
       }
     },
     {
@@ -363,7 +389,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.id, p_assignee: $json.assignee }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.id, p_assignee: $json.assignee, p_public_url: $('Config POST').first().json.publicUrl }) }}",
         "options": {}
       }
     },
@@ -379,7 +405,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Wynik approve_order -> strona dla właściciela i powiadomienia Slack.\n// Zwraca jeden element {html, code, notifications:[...]}.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst cfg = $('Config POST').first().json;\nconst prep = $('Parse approve').first().json;\nconst r = $input.first().json;\nconst day = new Date().toISOString().slice(0, 10);\n\nif (r.ok) {\n  const doneLink = `${cfg.publicUrl}/webhook/task-done?task_id=${r.task_id}`;\n  const p = page('Zlecono',\n    `<h1 class=\"ok\">Zlecono zadanie</h1><p>Wykonuje: <b>${esc(r.assignee)}</b><br>Klient: ${esc(r.customer_email)}</p>` +\n    `<p>Po wykonaniu zamknij zadanie: <a href=\"${esc(doneLink)}\">${esc(doneLink)}</a></p>`);\n  return [{ json: { ...p, notifications: [{ channel: 'slack', kind: 'task_assigned', dedupe_key: `task:${r.task_id}`,\n    text: `🛠️ Nowe zadanie dla *${slackEsc(r.assignee)}*\\nKlient: ${slackEsc(r.customer_email)}\\nWycena: ${pln(r.total)}\\nPo wykonaniu zamknij zadanie: ${doneLink}` }] } }];\n}\n\nif (r.error === 'INSUFFICIENT_STOCK') {\n  const rows = (r.shortages || []).map((s) => {\n    const where = s.best_supplier ? `najtaniej: ${s.best_supplier} po ${pln(s.best_price)}` : 'brak aktualnej ceny w hurtowniach';\n    return { text: `• ${s.name}: brakuje ${Number(s.missing)} ${s.unit} (potrzeba ${Number(s.needed)}, dostępne ${Number(s.available)}), ${where}`,\n      html: `<li>${esc(s.name)}: brakuje <b>${esc(Number(s.missing))} ${esc(s.unit)}</b> (potrzeba ${esc(Number(s.needed))}, dostępne ${esc(Number(s.available))}), ${esc(where)}</li>` };\n  });\n  const p = page('Brak materiałów', `<h1 class=\"err\">Nie można zlecić: brakuje materiałów</h1><ul>${rows.map((x) => x.html).join('')}</ul><p>Zamówienie czeka na uzupełnienie magazynu.</p>`, 409);\n  return [{ json: { ...p, notifications: [{ channel: 'slack', kind: 'stock_shortage', dedupe_key: `shortage:${prep.id}:${day}`,\n    text: `⚠️ Brakuje materiałów dla zamówienia ${prep.id}:\\n${rows.map((x) => x.text).join('\\n')}` }] } }];\n}\n\nconst labels = { MISSING_ASSIGNEE: 'Wybierz osobę wykonującą zadanie.', INVALID_ASSIGNEE: 'Nieprawidłowa nazwa osoby.',\n  ORDER_NOT_FOUND: 'Nie znaleziono zamówienia.', ORDER_NOT_QUOTED: 'Zamówienie nie ma poprawnej wyceny.',\n  EMPTY_ORDER: 'Zamówienie nie ma pozycji.' };\nconst msg = labels[r.error] || (String(r.error || '').startsWith('ORDER_NOT_READY') ? 'To zamówienie nie czeka już na zatwierdzenie (jest w realizacji lub zakończone).' : 'Nie udało się zlecić zadania.');\nreturn [{ json: { ...page('Błąd', `<h1 class=\"err\">${esc(msg)}</h1>`, 409), notifications: [] } }];\n"
+        "jsCode": "// Wynik approve_order -> strona dla właściciela. Powiadomienia Slack (przydział albo braki materiałów)\n// powstają już w bazie, w tej samej transakcji co zmiana stanu.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst cfg = $('Config POST').first().json;\nconst r = $input.first().json;\n\nif (r.ok) {\n  const doneLink = `${cfg.publicUrl}/webhook/task-done?task_id=${r.task_id}`;\n  return [{ json: page('Zlecono',\n    `<h1 class=\"ok\">Zlecono zadanie</h1><p>Wykonuje: <b>${esc(r.assignee)}</b><br>Klient: ${esc(r.customer_email)}</p>` +\n    `<p>Po wykonaniu zamknij zadanie: <a href=\"${esc(doneLink)}\">${esc(doneLink)}</a></p>`) }];\n}\n\nif (r.error === 'INSUFFICIENT_STOCK') {\n  const rows = (r.shortages || []).map((s) => {\n    const where = s.best_supplier ? `najtaniej: ${s.best_supplier} po ${pln(s.best_price)}` : 'brak aktualnej ceny w hurtowniach';\n    return `<li>${esc(s.name)}: brakuje <b>${esc(Number(s.missing))} ${esc(s.unit)}</b> (potrzeba ${esc(Number(s.needed))}, dostępne ${esc(Number(s.available))}), ${esc(where)}</li>`;\n  });\n  return [{ json: page('Brak materiałów',\n    `<h1 class=\"err\">Nie można zlecić: brakuje materiałów</h1><ul>${rows.join('')}</ul><p>Zamówienie czeka na uzupełnienie magazynu.</p>`, 409) }];\n}\n\nconst labels = { MISSING_ASSIGNEE: 'Wybierz osobę wykonującą zadanie.', INVALID_ASSIGNEE: 'Nieprawidłowa nazwa osoby.',\n  ORDER_NOT_FOUND: 'Nie znaleziono zamówienia.', ORDER_NOT_QUOTED: 'Zamówienie nie ma poprawnej wyceny.',\n  EMPTY_ORDER: 'Zamówienie nie ma pozycji.' };\nconst msg = labels[r.error] || (String(r.error || '').startsWith('ORDER_NOT_READY')\n  ? 'To zamówienie nie czeka już na zatwierdzenie (jest w realizacji lub zakończone).' : 'Nie udało się zlecić zadania.');\nreturn [{ json: page('Błąd', `<h1 class=\"err\">${esc(msg)}</h1>`, 409) }];\n"
       }
     },
     {
@@ -394,10 +420,17 @@
       "parameters": {
         "httpMethod": "GET",
         "path": "task-done",
+        "authentication": "basicAuth",
         "responseMode": "responseNode",
         "options": {}
       },
-      "webhookId": "team-done-get"
+      "webhookId": "team-done-get",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
     },
     {
       "id": "n047-parse-done-page",
@@ -411,7 +444,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nreturn [{ json: { valid: isUuid(id), id: isUuid(id) ? id.toLowerCase() : null, assignee } }];\n"
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\n// Przeglądarka oznacza żądania z innych witryn nagłówkiem Sec-Fetch-Site: cross-site; formularz z naszej strony to same-origin.\nconst crossSite = !!(i.body && typeof i.body === 'object' && Object.keys(i.body).length)\n  && String((i.headers || {})['sec-fetch-site'] || '').toLowerCase() === 'cross-site';\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nconst valid = isUuid(id) && !crossSite;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
       }
     },
     {
@@ -441,10 +474,17 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "task-done",
+        "authentication": "basicAuth",
         "responseMode": "responseNode",
         "options": {}
       },
-      "webhookId": "team-done-post"
+      "webhookId": "team-done-post",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
     },
     {
       "id": "n050-parse-done",
@@ -458,7 +498,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nreturn [{ json: { valid: isUuid(id), id: isUuid(id) ? id.toLowerCase() : null, assignee } }];\n"
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=... albo ?task_id=...) lub z formularza.\n// Zwraca {valid, id, assignee}. Nic poza poprawnym UUID nie przechodzi dalej.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst src = Object.assign({}, i.query || {}, i.body && typeof i.body === 'object' ? i.body : {});\n// Przeglądarka oznacza żądania z innych witryn nagłówkiem Sec-Fetch-Site: cross-site; formularz z naszej strony to same-origin.\nconst crossSite = !!(i.body && typeof i.body === 'object' && Object.keys(i.body).length)\n  && String((i.headers || {})['sec-fetch-site'] || '').toLowerCase() === 'cross-site';\nconst id = src.order_id !== undefined ? src.order_id : src.task_id;\nconst assignee = typeof src.assignee === 'string' ? src.assignee : '';\nconst valid = isUuid(id) && !crossSite;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
       }
     },
     {
@@ -543,69 +583,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Wynik task_done -> strona oraz powiadomienia (mail do klienta i wiadomość Slack).\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst prep = $('Parse done').first().json;\nconst r = $input.first().json;\n\nif (r.ok) {\n  const p = page('Zakończono', `<h1 class=\"ok\">Zadanie zakończone</h1><p>Klient dostanie informację, że zamówienie jest gotowe.</p>`);\n  return [{ json: { ...p, notifications: [\n    { channel: 'email', order_id: r.order_id, kind: 'order_done', to: r.customer_email,\n      subject: 'Twoje zamówienie jest gotowe',\n      body: 'Dzień dobry,\\n\\nz przyjemnością informujemy, że Twoje zamówienie jest gotowe. Skontaktujemy się w sprawie odbioru lub dostawy.\\n\\nPozdrawiamy,\\nStolarnia' },\n    { channel: 'slack', kind: 'task_done', dedupe_key: `done:${prep.id}`,\n      text: `✅ ${slackEsc(r.assignee)} zakończył(a) zadanie dla ${slackEsc(r.customer_email)}. Klient dostanie informację.` },\n  ] } }];\n}\nconst msg = r.error === 'TASK_ALREADY_DONE' ? 'To zadanie jest już zakończone.' : r.error === 'TASK_NOT_FOUND' ? 'Nie znaleziono zadania.' : 'Nie udało się zakończyć zadania.';\nreturn [{ json: { ...page('Błąd', `<h1 class=\"err\">${esc(msg)}</h1>`, 409), notifications: [] } }];\n"
+        "jsCode": "// Wynik task_done -> strona. Mail dla klienta i wiadomość Slack zapisuje już baza, w tej samej transakcji.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst r = $input.first().json;\nif (r.ok) {\n  return [{ json: page('Zakończono', '<h1 class=\"ok\">Zadanie zakończone</h1><p>Klient dostanie informację, że zamówienie jest gotowe.</p>') }];\n}\nconst msg = r.error === 'TASK_ALREADY_DONE' ? 'To zadanie jest już zakończone.'\n  : r.error === 'TASK_NOT_FOUND' ? 'Nie znaleziono zadania.' : 'Nie udało się zakończyć zadania.';\nreturn [{ json: page('Błąd', `<h1 class=\"err\">${esc(msg)}</h1>`, 409) }];\n"
       }
     },
     {
-      "id": "n054-queue-notifications",
-      "name": "Queue notifications",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1320,
-        420
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/enqueue_notifications",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p: $json.notifications }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "n055-final-page",
-      "name": "Final page",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1540,
-        420
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
-        "jsCode": "// Ostatni krok łańcuchów POST: strona z wyniku tej gałęzi, która się wykonała (zatwierdzenie albo zakończenie).\n// Błąd zapisu powiadomień nie ukrywa wyniku operacji, która już się udała.\nconst src = (() => {\n  try { return $('Approve result').first().json; } catch (e) { return $('Done result').first().json; }\n})();\nreturn [{ json: { html: src.html, code: src.code } }];\n"
-      }
-    },
-    {
-      "id": "n056-bad-link",
+      "id": "n054-bad-link",
       "name": "Bad link",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -620,7 +602,7 @@
       }
     },
     {
-      "id": "n057-respond-page",
+      "id": "n055-respond-page",
       "name": "Respond page",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -785,7 +767,7 @@
       "main": [
         [
           {
-            "node": "Queue notifications",
+            "node": "Respond page",
             "type": "main",
             "index": 0
           }
@@ -880,28 +862,6 @@
       "main": [
         [
           {
-            "node": "Queue notifications",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Queue notifications": {
-      "main": [
-        [
-          {
-            "node": "Final page",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Final page": {
-      "main": [
-        [
-          {
             "node": "Respond page",
             "type": "main",
             "index": 0
@@ -924,7 +884,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
   },
   "versionId": "team00000000001-v1"
 }

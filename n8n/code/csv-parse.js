@@ -1,7 +1,8 @@
 // Parsuje cenniki hurtowni (połączone pliki CSV z polecenia cat): supplier,material,price.
 // Obsługuje BOM, CRLF, pola w cudzysłowie z przecinkami, puste linie, komentarze (#) i powtórzony nagłówek.
-// Wiersze z brakującymi polami przechodzą dalej bez ceny, a baza zgłosi je jako błędne.
-const raw = String($input.first().json.stdout || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+// Ścisłość: wiersz musi mieć dokładnie 3 kolumny i domknięte cudzysłowy. Inne wiersze przechodzą dalej jako
+// {raw} bez ceny, więc baza zgłosi je jako błędne zamiast zapisać po cichu część danych.
+const raw = String($input.first().json.stdout || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
 
 function parseLine(line) {
   const out = [];
@@ -18,17 +19,16 @@ function parseLine(line) {
     else cur += ch;
   }
   out.push(cur);
-  return out.map((c) => c.trim());
+  return { cols: out.map((c) => c.trim()), unterminated: quoted };
 }
 
 const rows = [];
 for (const line of raw.split('\n')) {
   const t = line.trim();
   if (!t || t.startsWith('#')) continue;
-  const [supplier, material, price] = parseLine(t);
-  if (supplier.toLowerCase() === 'supplier' && String(material || '').toLowerCase() === 'material') continue;
-  const row = { supplier, material };
-  if (price !== undefined) row.price = price;
-  rows.push(row);
+  const { cols, unterminated } = parseLine(t);
+  if (cols[0].toLowerCase() === 'supplier' && String(cols[1] || '').toLowerCase() === 'material') continue;
+  if (unterminated || cols.length !== 3) { rows.push({ raw: t.slice(0, 200) }); continue; }
+  rows.push({ supplier: cols[0], material: cols[1], price: cols[2] });
 }
 return [{ json: { rows } }];

@@ -1,16 +1,17 @@
-// Parametry dostarczania. Z harmonogramu nie ma żadnego wejścia z zewnątrz. Webhook /deliver działa tylko
-// w trybie testowym (ALLOW_LLM_MOCK=1) i może wskazać lokalny odbiornik zamiast Slacka (http://127.0.0.1:port/...);
-// wtedy dostarczamy wyłącznie wiadomości oznaczone jako testowe, a maile nie są wysyłane.
+// Parametry dostarczania. Z harmonogramu nie ma żadnego wejścia z zewnątrz. Webhook /deliver działa wyłącznie
+// w trybie testowym (ALLOW_LLM_MOCK=1) i MUSI wskazać dokładnie jeden lokalny odbiornik (http://127.0.0.1:<TEST_SINK_PORT>/hook);
+// bez niego, albo z innym adresem, jest odrzucany. Wtedy dostarczamy wyłącznie wiadomości oznaczone jako testowe,
+// a maile nie są wysyłane, więc żadne żądanie z zewnątrz nie uruchomi prawdziwej wysyłki.
 const i = $input.first().json;
 const viaWebhook = i.headers !== undefined;
 const testMode = i.allowMock === '1';
 const body = i.body && typeof i.body === 'object' ? i.body : {};
 
-let allowed = !viaWebhook || testMode;
+let allowed = !viaWebhook;
 let slackUrl = '';
-if (viaWebhook && testMode && body.slack_url !== undefined) {
-  if (typeof body.slack_url === 'string' && /^http:\/\/127\.0\.0\.1:\d{2,5}\/[A-Za-z0-9_\/-]{0,60}$/.test(body.slack_url)) slackUrl = body.slack_url;
-  else allowed = false;
+if (viaWebhook && testMode) {
+  const expected = `http://127.0.0.1:${i.testSinkPort}/hook`;
+  if (typeof body.slack_url === 'string' && body.slack_url === expected) { slackUrl = expected; allowed = true; }
 }
 const onlyTest = slackUrl !== '';
 // W trybie testowym harmonogram niczego nie dostarcza: testy chwilowo wstawiają do kolejek wiadomości,
@@ -24,7 +25,7 @@ return [{
     slackUrl,
     onlyTest,
     slackReady: onlyTest || i.slackConfigured === true,
-    // wysyłka maili jest domyślnie wyłączona; po włączeniu idzie tylko na adresy z listy dozwolonych
+    // wysyłka maili jest domyślnie wyłączona; po włączeniu baza wydaje tylko adresy z listy dozwolonych
     emailOn: i.emailDelivery === 'on' && !onlyTest,
     allowlist: String(i.emailAllowlist || ''),
   },

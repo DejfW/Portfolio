@@ -11,9 +11,16 @@ test('csv-parse: BOM, CRLF, cudzysłowy z przecinkami, komentarze i puste linie'
   assert.ok(r.rows.some((x) => x.material === 'Materiał, z przecinkiem' && x.price === '10.00'), 'przecinek w cudzysłowie');
   assert.ok(!r.rows.some((x) => x.supplier === 'supplier'), 'nagłówek pominięty');
   assert.ok(!r.rows.some((x) => String(x.supplier).startsWith('#')), 'komentarz pominięty');
-  const twoCols = r.rows.find((x) => x.material === 'tylko dwie kolumny');
-  assert.ok(twoCols && !('price' in twoCols), 'brakująca cena przechodzi dalej bez pola price');
-  assert.equal(r.rows.length, 7);
+  assert.equal(r.rows.length, 9);
+});
+
+test('csv-parse: wiersze uszkodzone przechodzą jako {raw} bez ceny, a nie jako częściowo poprawne (zarzut 11)', () => {
+  const run = (stdout) => runCode('csv-parse', { input: [{ stdout }] })[0].rows;
+  assert.deepEqual(run('H,M,"1\n'), [{ raw: 'H,M,"1' }]);            // niedomknięty cudzysłów
+  assert.deepEqual(run('H,M,2,99\n'), [{ raw: 'H,M,2,99' }]);        // czwarta kolumna
+  assert.deepEqual(run('Okucia24 Hurt,tylko dwie kolumny\n'), [{ raw: 'Okucia24 Hurt,tylko dwie kolumny' }]);
+  assert.deepEqual(run('H,M,2\n'), [{ supplier: 'H', material: 'M', price: '2' }]);
+  assert.equal(run('x'.repeat(500) + ',a\n')[0].raw.length, 200);       // długie surowe wiersze są skracane
 });
 
 test('csv-parse: kilka plików po sobie i brak danych', () => {

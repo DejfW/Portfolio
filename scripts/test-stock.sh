@@ -39,9 +39,11 @@ expect "mixed: cena z przecinkiem zapisana" \
   "select price from supplier_prices where supplier_id=(select id from suppliers where name='Hurtownia Drewna Lasek') and material_id=(select id from materials where name='Płyta dębowa 18 mm')" "201.50"
 expect "mixed: cena jest świeża" \
   "select updated_at > now() - interval '2 minutes' from supplier_prices where supplier_id=(select id from suppliers where name='Okucia24 Hurt') and material_id=(select id from materials where name='Konfirmat 7x50 (op. 100 szt)')" "t"
+expect "mixed: plik bez końcowej nowej linii nie skleja się z następnym" \
+  "select price from supplier_prices where supplier_id=(select id from suppliers where name='Okucia24 Hurt') and material_id=(select id from materials where name='Nóżka stalowa 70 cm')" "55.00"
 expect "mixed: raport wymienia nieznaną hurtownię" "select text like '%Nieznane hurtownie: Nie ma takiej hurtowni%' from slack_outbox where dedupe_key='stock-digest:$KEY1'" "t"
 expect "mixed: raport wymienia nieznany materiał" "select text like '%Nieznane materiały: Materiał, z przecinkiem%' from slack_outbox where dedupe_key='stock-digest:$KEY1'" "t"
-expect "mixed: raport liczy błędne wiersze" "select text like '%Błędnych wierszy: 3%' from slack_outbox where dedupe_key='stock-digest:$KEY1'" "t"
+expect "mixed: raport liczy błędne wiersze" "select text like '%Błędnych wierszy: 5%' from slack_outbox where dedupe_key='stock-digest:$KEY1'" "t"
 expect "mixed: raport zawiera materiały do zamówienia" "select text like '%Do zamówienia%' and text like '%Uchwyt czarny 128 mm%' from slack_outbox where dedupe_key='stock-digest:$KEY1'" "t"
 
 # --- ponowienie z tym samym kluczem niczego nie dubluje ------------------------------------------------

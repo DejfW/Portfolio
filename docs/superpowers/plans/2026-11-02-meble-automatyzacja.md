@@ -96,26 +96,15 @@
 - [ ] **Step 4: Uruchom skrypt.** Expected: 5/5 OK. Ręcznie: wyślij prawdziwy mail na skrzynkę demo i sprawdź, czy wiersz w `orders` ma `source='email'`.
 - [ ] **Step 5: Commit** `feat(n8n): order intake with AI parsing and quote`.
 
-### Task 4: n8n — zatwierdzenie, zadania dla zespołu i alerty magazynowe (śr.–czw.)
+### Task 4: n8n — zatwierdzenie, zadania dla zespołu, alerty magazynowe i dostarczanie powiadomień (wykonane)
 
-**Files:**
-- Create: `n8n/workflows/02-approve-and-assign.json`
-- Create: `n8n/workflows/03-complete-task.json`
-- Create: `n8n/workflows/04-stock-and-prices.json`
-- Create: `data/suppliers/hurtownia-{a,b,c}.csv` w formacie `material_name,price`
-- Create: `scripts/test-tasks.sh`
+**Co powstało (stan rzeczywisty, po recenzji Codex):**
+- **Baza:** `approve_order`, `task_done` (powiadomienia Slack i mail zapisywane w tej samej transakcji co zmiana stanu), `task_shortages`, `import_supplier_prices` (cena ≤ 2 miejsca po przecinku, dopasowanie nazw bez rozróżniania wielkości liter, unikalne znormalizowane nazwy), `low_stock_report`, `enqueue_notifications`, kolejka `slack_outbox`, `claim_deliveries` (dzierżawa 2 min, lista dozwolonych adresów w SQL, limit liczony po filtrach), `mark_delivered`, `mark_failed` (odstęp 2, 4, 8... min, rezygnacja po 8 próbach). Migracje 009–012, testy `007`–`010`.
+- **Workflowy:** `03-team-tasks` (linki GET z przyciskiem i formularze POST; logowanie Basic operatora; odrzucanie formularzy `Sec-Fetch-Site: cross-site`), `04-stock-prices` (codziennie 7:00, cenniki `data/suppliers/*.csv`, ścisły parser CSV), `05-deliver` (co minutę: Slack przez Incoming Webhook, maile przez Gmail SMTP, domyślnie wyłączone i tylko na adresy z `EMAIL_ALLOWLIST`).
+- **Bezpieczeństwo:** webhooki testowe (`/sweep`, `/stock-report`, `/deliver`) działają tylko z `ALLOW_LLM_MOCK=1`, a `/deliver` wymaga dokładnie jednego lokalnego odbiornika i dostarcza wtedy wyłącznie wiadomości testowe; klucz Supabase czytany z `$env` i nieobecny w danych; błędne wykonania nie zapisują danych (`saveDataErrorExecution: none`); `scripts/n8n.sh` generuje hasło operatora w `.env.local`.
+- **Testy:** `scripts/test-tasks.sh` (47), `test-stock.sh` (17), `test-deliver.sh` (23), 52 testy jednostkowe w Node (`node --test n8n/test/`), 64 testy SQL.
 
-**Interfaces:**
-- Consumes: `create_task`, `complete_task`, `low_stock`, `supplier_prices`.
-- Produces: `GET /webhook/approve?order_id=&assignee=` ustawia status `approved`, wywołuje `create_task` i wysyła Slack do wykonawcy. Przy `INSUFFICIENT_STOCK` wysyła do właściciela listę braków z najlepszym dostawcą.
-- Produces: `POST /webhook/task-done {task_id}` wywołuje `complete_task`, a potem mail do klienta „zamówienie gotowe”.
-- Produces: cron codziennie o 7:00 wczytuje 3 CSV, robi upsert do `supplier_prices` (`updated_at = now()`), czyta `low_stock` i wysyła jedną zbiorczą wiadomość „do zamówienia: materiał, ilość, hurtownia, cena”.
-
-- [ ] **Step 1: Napisz `scripts/test-tasks.sh`:** approve zamówienia z seedu daje `in_progress` i rosnące `reserved` (sprawdzane przez REST), dwa approve na materiał na granicy stanu dają drugą odpowiedź `INSUFFICIENT_STOCK`, task-done zmniejsza `stock`, ręczny run workflow 04 aktualizuje `updated_at` cen i zwraca listę `low_stock`.
-- [ ] **Step 2: Uruchom.** Expected: FAIL (404).
-- [ ] **Step 3: Zbuduj i wyeksportuj workflowy 02–04.**
-- [ ] **Step 4: Uruchom skrypt i skrypt z Task 3.** Expected: wszystko OK.
-- [ ] **Step 5: Commit** `feat(n8n): approval, team tasks, stock and price alerts`.
+**Świadomie nie zrobione:** semantyka dostarczania to „co najmniej raz” (jeśli proces padnie po wysłaniu, a przed `mark_delivered`, wiadomość może pójść ponownie); testy integracyjne zakładają lokalną bazę bez innego ruchu (przywracają stany magazynowe po sobie); prawdziwa wysyłka Slack i SMTP wymaga zgody właściciela na wiadomość testową.
 
 ### Task 5: Kalkulator dla klienta i raport bestsellerów (czw.)
 

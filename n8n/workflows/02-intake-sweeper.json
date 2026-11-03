@@ -83,6 +83,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-slackConfigured",
               "name": "slackConfigured",
               "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
@@ -536,7 +542,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
   },
   "versionId": "sweeper00000001-v1"
 }

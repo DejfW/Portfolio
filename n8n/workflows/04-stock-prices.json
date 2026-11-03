@@ -3,7 +3,7 @@
   "name": "04 Stock and prices",
   "nodes": [
     {
-      "id": "n058-schedule-7-00",
+      "id": "n056-schedule-7-00",
       "name": "Schedule 7:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "n059-webhook",
+      "id": "n057-webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -40,7 +40,7 @@
       "webhookId": "stock-report-0001"
     },
     {
-      "id": "n060-config",
+      "id": "n058-config",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -83,6 +83,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-slackConfigured",
               "name": "slackConfigured",
               "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
@@ -113,7 +119,7 @@
       }
     },
     {
-      "id": "n061-stock-params",
+      "id": "n059-stock-params",
       "name": "Stock params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -128,7 +134,7 @@
       }
     },
     {
-      "id": "n062-allowed-",
+      "id": "n060-allowed-",
       "name": "Allowed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -162,7 +168,7 @@
       }
     },
     {
-      "id": "n063-forbidden",
+      "id": "n061-forbidden",
       "name": "Forbidden",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -179,7 +185,7 @@
       }
     },
     {
-      "id": "n064-via-webhook-",
+      "id": "n062-via-webhook-",
       "name": "Via webhook?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -213,7 +219,7 @@
       }
     },
     {
-      "id": "n065-started",
+      "id": "n063-started",
       "name": "Started",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -230,7 +236,7 @@
       }
     },
     {
-      "id": "n066-read-csv",
+      "id": "n064-read-csv",
       "name": "Read CSV",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
@@ -239,12 +245,12 @@
         20
       ],
       "parameters": {
-        "command": "=cat \"{{ $json.projectDir }}\"/data/{{ $json.dir }}/*.csv"
+        "command": "=for f in \"{{ $json.projectDir }}\"/data/{{ $json.dir }}/*.csv; do [ -e \"$f\" ] && { cat \"$f\"; printf '\\n'; }; done"
       },
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n067-parse-csv",
+      "id": "n065-parse-csv",
       "name": "Parse CSV",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -255,11 +261,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Parsuje cenniki hurtowni (połączone pliki CSV z polecenia cat): supplier,material,price.\n// Obsługuje BOM, CRLF, pola w cudzysłowie z przecinkami, puste linie, komentarze (#) i powtórzony nagłówek.\n// Wiersze z brakującymi polami przechodzą dalej bez ceny, a baza zgłosi je jako błędne.\nconst raw = String($input.first().json.stdout || '').replace(/^﻿/, '').replace(/\\r\\n?/g, '\\n');\n\nfunction parseLine(line) {\n  const out = [];\n  let cur = '';\n  let quoted = false;\n  for (let k = 0; k < line.length; k++) {\n    const ch = line[k];\n    if (quoted) {\n      if (ch === '\"' && line[k + 1] === '\"') { cur += '\"'; k++; }\n      else if (ch === '\"') quoted = false;\n      else cur += ch;\n    } else if (ch === '\"') quoted = true;\n    else if (ch === ',') { out.push(cur); cur = ''; }\n    else cur += ch;\n  }\n  out.push(cur);\n  return out.map((c) => c.trim());\n}\n\nconst rows = [];\nfor (const line of raw.split('\\n')) {\n  const t = line.trim();\n  if (!t || t.startsWith('#')) continue;\n  const [supplier, material, price] = parseLine(t);\n  if (supplier.toLowerCase() === 'supplier' && String(material || '').toLowerCase() === 'material') continue;\n  const row = { supplier, material };\n  if (price !== undefined) row.price = price;\n  rows.push(row);\n}\nreturn [{ json: { rows } }];\n"
+        "jsCode": "// Parsuje cenniki hurtowni (połączone pliki CSV z polecenia cat): supplier,material,price.\n// Obsługuje BOM, CRLF, pola w cudzysłowie z przecinkami, puste linie, komentarze (#) i powtórzony nagłówek.\n// Ścisłość: wiersz musi mieć dokładnie 3 kolumny i domknięte cudzysłowy. Inne wiersze przechodzą dalej jako\n// {raw} bez ceny, więc baza zgłosi je jako błędne zamiast zapisać po cichu część danych.\nconst raw = String($input.first().json.stdout || '').replace(/^\\uFEFF/, '').replace(/\\r\\n?/g, '\\n');\n\nfunction parseLine(line) {\n  const out = [];\n  let cur = '';\n  let quoted = false;\n  for (let k = 0; k < line.length; k++) {\n    const ch = line[k];\n    if (quoted) {\n      if (ch === '\"' && line[k + 1] === '\"') { cur += '\"'; k++; }\n      else if (ch === '\"') quoted = false;\n      else cur += ch;\n    } else if (ch === '\"') quoted = true;\n    else if (ch === ',') { out.push(cur); cur = ''; }\n    else cur += ch;\n  }\n  out.push(cur);\n  return { cols: out.map((c) => c.trim()), unterminated: quoted };\n}\n\nconst rows = [];\nfor (const line of raw.split('\\n')) {\n  const t = line.trim();\n  if (!t || t.startsWith('#')) continue;\n  const { cols, unterminated } = parseLine(t);\n  if (cols[0].toLowerCase() === 'supplier' && String(cols[1] || '').toLowerCase() === 'material') continue;\n  if (unterminated || cols.length !== 3) { rows.push({ raw: t.slice(0, 200) }); continue; }\n  rows.push({ supplier: cols[0], material: cols[1], price: cols[2] });\n}\nreturn [{ json: { rows } }];\n"
       }
     },
     {
-      "id": "n068-import-prices",
+      "id": "n066-import-prices",
       "name": "Import prices",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -296,7 +302,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n069-stock-report",
+      "id": "n067-stock-report",
       "name": "Stock report",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -332,7 +338,7 @@
       }
     },
     {
-      "id": "n070-digest",
+      "id": "n068-digest",
       "name": "Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -347,7 +353,7 @@
       }
     },
     {
-      "id": "n071-queue-notifications",
+      "id": "n069-queue-notifications",
       "name": "Queue notifications",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -535,7 +541,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
   },
   "versionId": "stock0000000001-v1"
 }

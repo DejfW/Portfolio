@@ -20,6 +20,7 @@ const TEAM_WORKFLOW_ID = 'team00000000001';
 const STOCK_WORKFLOW_ID = 'stock0000000001';
 const DELIVER_WORKFLOW_ID = 'deliver00000001';
 const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
+const OPERATOR_CREDENTIAL = { id: 'operatorauth0001', name: 'Operator' };
 
 // --- pomocnicze konstruktory węzłów -----------------------------------------------------------
 
@@ -87,6 +88,7 @@ const configNode = (position, name = 'Config') => {
         set('publicUrl', env('PUBLIC_URL', 'http://localhost:5678')),
         set('team', env('TEAM', 'Jan,Anna,Piotr')),
         // tylko wartości niebędące sekretami: adres webhooka Slacka i hasło Gmaila czytamy bezpośrednio z $env w węzłach
+        set('testSinkPort', env('TEST_SINK_PORT', '18765')),
         set('slackConfigured', '={{ !!$env.SLACK_WEBHOOK_URL }}', 'boolean'),
         set('emailDelivery', env('EMAIL_DELIVERY', 'off')),
         set('emailAllowlist', `={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}`),
@@ -113,7 +115,8 @@ function connect(links) {
 
 const workflow = (id, name, nodes, links) => ({
   id, name, nodes, connections: connect(links), active: false, pinData: {},
-  settings: { executionOrder: 'v1' }, versionId: `${id}-v1`,
+  // Błędne wykonania nie zapisują danych: żądania HTTP w błędach zawierają nagłówki (klucz Supabase) i adres webhooka Slacka.
+  settings: { executionOrder: 'v1', saveDataErrorExecution: 'none' }, versionId: `${id}-v1`,
 });
 
 // Wspólny koniec obu przepływów: kontekst zamówienia z bazy -> maile -> email_outbox.
@@ -235,13 +238,16 @@ function buildSweeper() {
 
 // --- 03-team-tasks ---------------------------------------------------------------------------
 // Linki z maila i ze Slacka: GET pokazuje stronę z przyciskiem (skanery linków w poczcie nie mogą
-// niczego zatwierdzić), a dopiero POST z formularza zmienia stan i dopisuje powiadomienia do kolejek.
+// niczego zatwierdzić), a dopiero POST z formularza zmienia stan. Powiadomienia zapisuje baza w tej samej transakcji.
 
 function buildTeamTasks() {
   const forConfig = (src, cfgName) => src.split("$('Config')").join(`$('${cfgName}')`);
   const hook = (name, method, path, y, id) =>
-    node(name, 'n8n-nodes-base.webhook', 2.1, [0, y], { httpMethod: method, path, responseMode: 'responseNode', options: {} },
-      { webhookId: id });
+    // linki w mailach i na Slacku prowadzą do tych webhooków, więc wymagają logowania operatora (Basic),
+    // a sam identyfikator zamówienia w adresie nie daje dostępu
+    node(name, 'n8n-nodes-base.webhook', 2.1, [0, y],
+      { httpMethod: method, path, authentication: 'basicAuth', responseMode: 'responseNode', options: {} },
+      { webhookId: id, credentials: { httpBasicAuth: OPERATOR_CREDENTIAL } });
 
   const nodes = [
     // GET /approve?order_id=... -> strona z formularzem
@@ -257,7 +263,8 @@ function buildTeamTasks() {
     configNode([220, 260], 'Config POST'),
     codeNode('Parse approve', [440, 260], code('id-prep')),
     boolIf('Approve form valid?', [660, 260], '$json.valid'),
-    rpc('Approve order', [880, 200], 'approve_order', `{ p_order_id: $json.id, p_assignee: $json.assignee }`),
+    rpc('Approve order', [880, 200], 'approve_order',
+      `{ p_order_id: $json.id, p_assignee: $json.assignee, p_public_url: $('Config POST').first().json.publicUrl }`),
     codeNode('Approve result', [1100, 200], forConfig(code('approve-result'), 'Config POST')),
 
     // GET /task-done?task_id=... -> strona z przyciskiem
@@ -272,10 +279,6 @@ function buildTeamTasks() {
     rpc('Task done', [880, 640], 'task_done', `{ p_task_id: $json.id }`),
     codeNode('Done result', [1100, 640], code('done-result')),
 
-    // wspólny koniec łańcuchów POST i odpowiedzi
-    rpc('Queue notifications', [1320, 420], 'enqueue_notifications', `{ p: $json.notifications }`,
-      { onError: 'continueRegularOutput' }, { response: { response: { responseFormat: 'json' } } }),
-    codeNode('Final page', [1540, 420], code('final-page')),
     codeNode('Bad link', [880, 460], code('bad-link')),
     node('Respond page', 'n8n-nodes-base.respondToWebhook', 1.1, [1760, 260], {
       respondWith: 'text',
@@ -294,15 +297,15 @@ function buildTeamTasks() {
 
     ['POST approve', 'Config POST'], ['Config POST', 'Parse approve'], ['Parse approve', 'Approve form valid?'],
     ['Approve form valid?', 'Approve order', 0], ['Approve form valid?', 'Bad link', 1],
-    ['Approve order', 'Approve result'], ['Approve result', 'Queue notifications'],
+    ['Approve order', 'Approve result'], ['Approve result', 'Respond page'],
 
     ['GET task-done', 'Parse done page'], ['Parse done page', 'Done page'], ['Done page', 'Respond page'],
 
     ['POST task-done', 'Parse done'], ['Parse done', 'Done form valid?'],
     ['Done form valid?', 'Task done', 0], ['Done form valid?', 'Bad link', 1],
-    ['Task done', 'Done result'], ['Done result', 'Queue notifications'],
+    ['Task done', 'Done result'], ['Done result', 'Respond page'],
 
-    ['Queue notifications', 'Final page'], ['Final page', 'Respond page'], ['Bad link', 'Respond page'],
+    ['Bad link', 'Respond page'],
   ]);
 }
 
@@ -330,7 +333,8 @@ function buildStock() {
       respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
     }),
     node('Read CSV', 'n8n-nodes-base.executeCommand', 1, [1320, 20], {
-      command: `=cat "{{ $json.projectDir }}"/data/{{ $json.dir }}/*.csv`,
+      // po każdym pliku dodajemy nową linię, żeby brak końcowego LF nie skleił ostatniego wiersza z początkiem następnego pliku
+      command: `=for f in "{{ $json.projectDir }}"/data/{{ $json.dir }}/*.csv; do [ -e "$f" ] && { cat "$f"; printf '\\n'; }; done`,
     }, { onError: 'continueRegularOutput' }),
     codeNode('Parse CSV', [1540, 20], code('csv-parse')),
     rpc('Import prices', [1760, 20], 'import_supplier_prices', `{ p: { rows: $json.rows } }`,
@@ -353,7 +357,8 @@ function buildStock() {
 // --- 05-deliver --------------------------------------------------------------------------------
 // Co minutę wysyła to, co czeka w slack_outbox i email_outbox. Slack idzie przez Incoming Webhook,
 // maile przez Gmail SMTP, ale domyślnie są wyłączone i trafiają wyłącznie na adresy z listy dozwolonych.
-// Wiadomość jest oznaczana jako wysłana dopiero po potwierdzeniu przez Slack (odpowiedź "ok") albo SMTP.
+// Wiadomość jest oznaczana jako wysłana dopiero po potwierdzeniu przez Slack (odpowiedź "ok") albo SMTP;
+// niepowodzenie trafia do mark_failed (ponowienie po 2, 4, 8... minutach, rezygnacja po 8 próbach).
 
 function buildDeliver() {
   const nodes = [
@@ -374,8 +379,9 @@ function buildDeliver() {
       respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
     }),
     boolIf('Run now?', [1320, 20], '$json.run'),
-    rpc('Pending', [1540, 20], 'pending_deliveries',
-      `{ p_limit: 20, p_only_test: $('Deliver params').first().json.onlyTest }`),
+    rpc('Claim', [1540, 20], 'claim_deliveries',
+      `{ p_limit: 20, p_only_test: $('Deliver params').first().json.onlyTest, p_slack: $('Deliver params').first().json.slackReady, ` +
+      `p_email: $('Deliver params').first().json.emailOn, p_allowlist: $('Deliver params').first().json.allowlist }`),
     codeNode('Plan', [1760, 20], code('deliver-plan')),
     node('Route', 'n8n-nodes-base.switch', 3.2, [1980, 20], {
       mode: 'expression', numberOutputs: 3,
@@ -386,7 +392,7 @@ function buildDeliver() {
       url: `={{ $('Deliver params').first().json.slackUrl || $env.SLACK_WEBHOOK_URL }}`,
       sendBody: true, contentType: 'json', specifyBody: 'json',
       jsonBody: `={{ JSON.stringify({ text: $json.text }) }}`,
-      options: { timeout: 10000, response: { response: { responseFormat: 'text' } } },
+      options: { timeout: 10000, redirect: { redirect: { followRedirects: false } }, response: { response: { responseFormat: 'text' } } },
     }, { onError: 'continueRegularOutput' }),
     boolIf('Slack confirmed?', [2200, -80], `$json.data === 'ok'`),
     node('Send email', 'n8n-nodes-base.emailSend', 2.1, [1980, 120], {
@@ -397,16 +403,20 @@ function buildDeliver() {
     node('Skip', 'n8n-nodes-base.noOp', 1, [1980, 300], {}),
     rpc('Mark delivered', [2420, 20], 'mark_delivered',
       `{ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id }`),
+    codeNode('Failure reason', [2420, 300], code('deliver-error')),
+    rpc('Mark failed', [2640, 300], 'mark_failed',
+      `{ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id, p_error: $json.text }`),
   ];
 
   return workflow(DELIVER_WORKFLOW_ID, '05 Deliver', nodes, [
     ['Schedule', 'Config'], ['Webhook', 'Config'], ['Config', 'Deliver params'], ['Deliver params', 'Allowed?'],
     ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
     ['Via webhook?', 'Started', 0], ['Via webhook?', 'Run now?', 1], ['Started', 'Run now?'],
-    ['Run now?', 'Pending', 0], ['Pending', 'Plan'], ['Plan', 'Route'],
+    ['Run now?', 'Claim', 0], ['Claim', 'Plan'], ['Plan', 'Route'],
     ['Route', 'Send Slack', 0], ['Route', 'Send email', 1], ['Route', 'Skip', 2],
-    ['Send Slack', 'Slack confirmed?'], ['Slack confirmed?', 'Mark delivered', 0],
-    ['Send email', 'Email sent?'], ['Email sent?', 'Mark delivered', 0],
+    ['Send Slack', 'Slack confirmed?'], ['Slack confirmed?', 'Mark delivered', 0], ['Slack confirmed?', 'Failure reason', 1],
+    ['Send email', 'Email sent?'], ['Email sent?', 'Mark delivered', 0], ['Email sent?', 'Failure reason', 1],
+    ['Failure reason', 'Mark failed'],
   ]);
 }
 

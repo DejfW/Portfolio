@@ -44,61 +44,54 @@ test('strona zatwierdzenia: brak zamówienia i zły status nie pokazują formula
   assert.match(r.html, /in_progress/);
 });
 
-const approve = (result) => runCode('approve-result', { nodes: { Config: cfg, 'Parse approve': { id: ID } }, input: [result] })[0];
+const approve = (result) => runCode('approve-result', { nodes: { 'Config POST': cfg }, input: [result] })[0];
 
-test('udane zatwierdzenie: Slack z przydziałem i linkiem do zakończenia', () => {
+test('udane zatwierdzenie: strona z wykonawcą i linkiem do zakończenia zadania', () => {
   const r = approve({ ok: true, task_id: 'T1', order_id: ID, assignee: 'Jan', customer_email: 'k@example.com', total: 700 });
   assert.equal(r.code, 200);
-  const n = r.notifications[0];
-  assert.deepEqual([n.channel, n.kind, n.dedupe_key], ['slack', 'task_assigned', 'task:T1']);
-  assert.match(n.text, /\*Jan\*/);
-  assert.match(n.text, /700,00 zł/);
-  assert.match(n.text, /\/webhook\/task-done\?task_id=T1/);
+  assert.match(r.html, /Zlecono zadanie/);
+  assert.match(r.html, /\/webhook\/task-done\?task_id=T1/);
+  assert.ok(!('notifications' in r), 'powiadomienia zapisuje baza, nie n8n');
 });
 
-test('brak materiału: lista braków z najtańszą hurtownią, status 409 i alert Slack', () => {
+test('brak materiału: strona 409 z listą braków i najtańszą hurtownią, bez surowego HTML', () => {
   const r = approve({ ok: false, error: 'INSUFFICIENT_STOCK', shortages: [
-    { name: 'Płyta dąb', unit: 'm2', needed: 5, available: 3, missing: 2, best_supplier: 'MebloHurt', best_price: 205 },
+    { name: 'Płyta <b>dąb</b>', unit: 'm2', needed: 5, available: 3, missing: 2, best_supplier: 'MebloHurt', best_price: 205 },
     { name: 'Olej', unit: 'l', needed: 1, available: 0, missing: 1, best_supplier: null, best_price: null }] });
   assert.equal(r.code, 409);
-  const t = r.notifications[0].text;
-  assert.match(t, /Płyta dąb: brakuje 2 m2/);
-  assert.match(t, /najtaniej: MebloHurt po 205,00 zł/);
-  assert.match(t, /Olej: brakuje 1 l.*brak aktualnej ceny/);
-  assert.match(r.notifications[0].dedupe_key, new RegExp(`^shortage:${ID}:\\d{4}-\\d{2}-\\d{2}$`));
+  assert.match(r.html, /Płyta &lt;b&gt;dąb&lt;\/b&gt;: brakuje <b>2 m2<\/b>/);
+  assert.match(r.html, /najtaniej: MebloHurt po 205,00 zł/);
+  assert.match(r.html, /Olej: brakuje <b>1 l<\/b>.*brak aktualnej ceny/);
+  assert.ok(!r.html.includes('<b>dąb</b>'));
 });
 
-test('błędy zatwierdzenia nie wysyłają powiadomień', () => {
+test('błędy zatwierdzenia dają stronę 409', () => {
   for (const error of ['ORDER_NOT_READY:in_progress', 'MISSING_ASSIGNEE', 'ORDER_NOT_FOUND', 'COS_NIEZNANEGO']) {
-    const r = approve({ ok: false, error });
-    assert.equal(r.code, 409);
-    assert.deepEqual(r.notifications, []);
+    assert.equal(approve({ ok: false, error }).code, 409, error);
   }
+  assert.match(approve({ ok: false, error: 'ORDER_NOT_READY:done' }).html, /nie czeka już na zatwierdzenie/);
 });
 
-test('zakończenie zadania: mail do klienta i Slack, a powtórka to tylko komunikat', () => {
-  const run = (r) => runCode('done-result', { nodes: { 'Parse done': { id: 'T1' } }, input: [r] })[0];
+test('zakończenie zadania: strona sukcesu, a powtórka to komunikat 409', () => {
+  const run = (r) => runCode('done-result', { input: [r] })[0];
   const ok = run({ ok: true, order_id: ID, assignee: 'Jan', customer_email: 'k@example.com' });
-  assert.deepEqual(ok.notifications.map((n) => n.channel + ':' + n.kind), ['email:order_done', 'slack:task_done']);
-  assert.equal(ok.notifications[0].to, 'k@example.com');
-  assert.equal(ok.notifications[1].dedupe_key, 'done:T1');
+  assert.equal(ok.code, 200);
+  assert.match(ok.html, /Zadanie zakończone/);
   const again = run({ ok: false, error: 'TASK_ALREADY_DONE' });
   assert.equal(again.code, 409);
-  assert.deepEqual(again.notifications, []);
+  assert.match(again.html, /już zakończone/);
 });
 
-test('Slack: dane od klienta są escapowane (&, <, >)', () => {
-  const r = approve({ ok: true, task_id: 'T1', order_id: ID, assignee: 'Jan <!channel>', customer_email: 'a&b@x.pl', total: 1 });
-  assert.ok(!r.notifications[0].text.includes('<!channel>'));
-  assert.match(r.notifications[0].text, /&lt;!channel&gt;/);
-  assert.match(r.notifications[0].text, /a&amp;b@x\.pl/);
-});
-
-test('final-page bierze wynik gałęzi, która się wykonała', () => {
-  const a = runCode('final-page', { nodes: { 'Approve result': { html: 'A', code: 200 } }, input: [{ queued: 1 }] });
-  assert.deepEqual(a, [{ html: 'A', code: 200 }]);
-  const d = runCode('final-page', { nodes: { 'Done result': { html: 'D', code: 409 } }, input: [{}] });
-  assert.deepEqual(d, [{ html: 'D', code: 409 }]);
+test('id-prep odrzuca formularz wysłany z innej witryny (Sec-Fetch-Site: cross-site)', () => {
+  const post = (site) => runCode('id-prep', { input: [{ query: {}, body: { order_id: ID, assignee: 'Jan' }, headers: site ? { 'sec-fetch-site': site } : {} }] })[0];
+  assert.equal(post('same-origin').valid, true);
+  assert.equal(post(undefined).valid, true);          // curl i skrypty nie wysyłają tego nagłówka
+  assert.equal(post('same-site').valid, true);
+  const cross = post('cross-site');
+  assert.deepEqual([cross.valid, cross.id], [false, null]);
+  // GET z linku w mailu może pochodzić z innej witryny, więc go nie blokujemy
+  const get = runCode('id-prep', { input: [{ query: { order_id: ID }, headers: { 'sec-fetch-site': 'cross-site' } }] })[0];
+  assert.equal(get.valid, true);
 });
 
 test('bad-link zwraca stronę 400', () => {

@@ -184,35 +184,6 @@ begin
   raise notice 'PASS test_low_stock_report';
 end $$;
 
--- test_pending_deliveries: kolejka Slack i maili w jednym miejscu, oznaczenie wysłania usuwa wpis
-do $$
-declare v_o uuid; v_s uuid; v_e uuid; v_p jsonb;
-begin
-  v_o := upsert_order(jsonb_build_object('external_id', 'tt-9', 'source', 'form',
-    'customer_email', 'k@example.com', 'kind', 'catalog'));
-  v_s := enqueue_slack('stock_digest', 'Raport', 'pd-1');
-  v_e := enqueue_email(v_o, 'needs_info', 'k@example.com', 'Temat', 'Treść');
-
-  v_p := pending_deliveries(100);
-  assert exists (select 1 from jsonb_array_elements(v_p) e where e->>'channel' = 'slack' and e->>'id' = v_s::text), 'slack pending';
-  assert exists (select 1 from jsonb_array_elements(v_p) e where e->>'channel' = 'email' and e->>'id' = v_e::text
-                 and e->>'to' = 'k@example.com' and e->>'subject' = 'Temat'), 'email pending';
-
-  perform mark_delivered('slack', v_s);
-  perform mark_delivered('email', v_e);
-  perform mark_delivered('email', v_e);
-  v_p := pending_deliveries(100);
-  assert not exists (select 1 from jsonb_array_elements(v_p) e where e->>'id' in (v_s::text, v_e::text)), 'delivered gone';
-  assert (select sent_at from email_outbox where id = v_e) is not null, 'sent_at set';
-  begin
-    perform mark_delivered('sms', v_s);
-    assert false, 'unknown channel accepted';
-  exception when others then
-    assert sqlerrm <> 'unknown channel accepted', 'wrong: ' || sqlerrm;
-  end;
-  raise notice 'PASS test_pending_deliveries';
-end $$;
-
 -- test_order_done_email_kind: nowy rodzaj maila dla klienta po zakończeniu zadania
 do $$
 declare v_o uuid;

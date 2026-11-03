@@ -3,7 +3,7 @@
   "name": "05 Deliver",
   "nodes": [
     {
-      "id": "n072-schedule",
+      "id": "n070-schedule",
       "name": "Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
       }
     },
     {
-      "id": "n073-webhook",
+      "id": "n071-webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -40,7 +40,7 @@
       "webhookId": "deliver-0001"
     },
     {
-      "id": "n074-config",
+      "id": "n072-config",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -83,6 +83,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-slackConfigured",
               "name": "slackConfigured",
               "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
@@ -113,7 +119,7 @@
       }
     },
     {
-      "id": "n075-deliver-params",
+      "id": "n073-deliver-params",
       "name": "Deliver params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -124,11 +130,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Parametry dostarczania. Z harmonogramu nie ma żadnego wejścia z zewnątrz. Webhook /deliver działa tylko\n// w trybie testowym (ALLOW_LLM_MOCK=1) i może wskazać lokalny odbiornik zamiast Slacka (http://127.0.0.1:port/...);\n// wtedy dostarczamy wyłącznie wiadomości oznaczone jako testowe, a maile nie są wysyłane.\nconst i = $input.first().json;\nconst viaWebhook = i.headers !== undefined;\nconst testMode = i.allowMock === '1';\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\n\nlet allowed = !viaWebhook || testMode;\nlet slackUrl = '';\nif (viaWebhook && testMode && body.slack_url !== undefined) {\n  if (typeof body.slack_url === 'string' && /^http:\\/\\/127\\.0\\.0\\.1:\\d{2,5}\\/[A-Za-z0-9_\\/-]{0,60}$/.test(body.slack_url)) slackUrl = body.slack_url;\n  else allowed = false;\n}\nconst onlyTest = slackUrl !== '';\n// W trybie testowym harmonogram niczego nie dostarcza: testy chwilowo wstawiają do kolejek wiadomości,\n// które nie mogą trafić na prawdziwy kanał Slack. Dostarczanie działa wtedy tylko na żądanie (webhook).\nconst run = allowed && (viaWebhook || !testMode);\nreturn [{\n  json: {\n    viaWebhook,\n    allowed,\n    run,\n    slackUrl,\n    onlyTest,\n    slackReady: onlyTest || i.slackConfigured === true,\n    // wysyłka maili jest domyślnie wyłączona; po włączeniu idzie tylko na adresy z listy dozwolonych\n    emailOn: i.emailDelivery === 'on' && !onlyTest,\n    allowlist: String(i.emailAllowlist || ''),\n  },\n}];\n"
+        "jsCode": "// Parametry dostarczania. Z harmonogramu nie ma żadnego wejścia z zewnątrz. Webhook /deliver działa wyłącznie\n// w trybie testowym (ALLOW_LLM_MOCK=1) i MUSI wskazać dokładnie jeden lokalny odbiornik (http://127.0.0.1:<TEST_SINK_PORT>/hook);\n// bez niego, albo z innym adresem, jest odrzucany. Wtedy dostarczamy wyłącznie wiadomości oznaczone jako testowe,\n// a maile nie są wysyłane, więc żadne żądanie z zewnątrz nie uruchomi prawdziwej wysyłki.\nconst i = $input.first().json;\nconst viaWebhook = i.headers !== undefined;\nconst testMode = i.allowMock === '1';\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\n\nlet allowed = !viaWebhook;\nlet slackUrl = '';\nif (viaWebhook && testMode) {\n  const expected = `http://127.0.0.1:${i.testSinkPort}/hook`;\n  if (typeof body.slack_url === 'string' && body.slack_url === expected) { slackUrl = expected; allowed = true; }\n}\nconst onlyTest = slackUrl !== '';\n// W trybie testowym harmonogram niczego nie dostarcza: testy chwilowo wstawiają do kolejek wiadomości,\n// które nie mogą trafić na prawdziwy kanał Slack. Dostarczanie działa wtedy tylko na żądanie (webhook).\nconst run = allowed && (viaWebhook || !testMode);\nreturn [{\n  json: {\n    viaWebhook,\n    allowed,\n    run,\n    slackUrl,\n    onlyTest,\n    slackReady: onlyTest || i.slackConfigured === true,\n    // wysyłka maili jest domyślnie wyłączona; po włączeniu baza wydaje tylko adresy z listy dozwolonych\n    emailOn: i.emailDelivery === 'on' && !onlyTest,\n    allowlist: String(i.emailAllowlist || ''),\n  },\n}];\n"
       }
     },
     {
-      "id": "n076-allowed-",
+      "id": "n074-allowed-",
       "name": "Allowed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -162,7 +168,7 @@
       }
     },
     {
-      "id": "n077-forbidden",
+      "id": "n075-forbidden",
       "name": "Forbidden",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -179,7 +185,7 @@
       }
     },
     {
-      "id": "n078-via-webhook-",
+      "id": "n076-via-webhook-",
       "name": "Via webhook?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -213,7 +219,7 @@
       }
     },
     {
-      "id": "n079-started",
+      "id": "n077-started",
       "name": "Started",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -230,7 +236,7 @@
       }
     },
     {
-      "id": "n080-run-now-",
+      "id": "n078-run-now-",
       "name": "Run now?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -264,8 +270,8 @@
       }
     },
     {
-      "id": "n081-pending",
-      "name": "Pending",
+      "id": "n079-claim",
+      "name": "Claim",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -274,7 +280,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/pending_deliveries",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/claim_deliveries",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -295,12 +301,12 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_limit: 20, p_only_test: $('Deliver params').first().json.onlyTest }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_limit: 20, p_only_test: $('Deliver params').first().json.onlyTest, p_slack: $('Deliver params').first().json.slackReady, p_email: $('Deliver params').first().json.emailOn, p_allowlist: $('Deliver params').first().json.allowlist }) }}",
         "options": {}
       }
     },
     {
-      "id": "n082-plan",
+      "id": "n080-plan",
       "name": "Plan",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -311,11 +317,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Decyduje, co zrobić z każdą oczekującą wiadomością: wysłać (route \"slack:send\" / \"email:send\") albo\n// zostawić w kolejce (\"skip\"). Maile trafiają tylko na adresy z listy dozwolonych (pełny adres albo \"@domena\"),\n// więc przypadkowy adres z danych demo nigdy nie dostanie prawdziwej wiadomości.\nconst p = $('Deliver params').first().json;\nconst entries = p.allowlist.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);\nconst allowedAddress = (to) => {\n  const t = String(to || '').trim().toLowerCase();\n  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(t)) return false;\n  return entries.some((e) => (e.startsWith('@') ? t.endsWith(e) : t === e));\n};\n\nreturn $input.all().map(({ json: m }) => {\n  let route = 'skip';\n  let reason = null;\n  if (m.channel === 'slack') {\n    if (p.slackReady) route = 'slack:send'; else reason = 'NO_SLACK_URL';\n  } else if (m.channel === 'email') {\n    if (!p.emailOn) reason = 'EMAIL_DELIVERY_OFF';\n    else if (!allowedAddress(m.to)) reason = 'ADDRESS_NOT_ALLOWED';\n    else route = 'email:send';\n  } else reason = 'UNKNOWN_CHANNEL';\n  return { json: { ...m, route, reason } };\n});\n"
+        "jsCode": "// Wybiera trasę dla każdej odebranej wiadomości. Filtrowanie maili po liście dozwolonych adresów robi baza\n// (claim_deliveries), więc tutaj trafiają tylko wiadomości, które wolno wysłać.\nreturn $input.all().map(({ json: m }) => {\n  const route = m.channel === 'slack' ? 'slack:send' : m.channel === 'email' ? 'email:send' : 'skip';\n  return { json: { ...m, route } };\n});\n"
       }
     },
     {
-      "id": "n083-route",
+      "id": "n081-route",
       "name": "Route",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -330,7 +336,7 @@
       }
     },
     {
-      "id": "n084-send-slack",
+      "id": "n082-send-slack",
       "name": "Send Slack",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -347,6 +353,11 @@
         "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}",
         "options": {
           "timeout": 10000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
           "response": {
             "response": {
               "responseFormat": "text"
@@ -357,7 +368,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n085-slack-confirmed-",
+      "id": "n083-slack-confirmed-",
       "name": "Slack confirmed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -391,7 +402,7 @@
       }
     },
     {
-      "id": "n086-send-email",
+      "id": "n084-send-email",
       "name": "Send email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -416,7 +427,7 @@
       }
     },
     {
-      "id": "n087-email-sent-",
+      "id": "n085-email-sent-",
       "name": "Email sent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -450,7 +461,7 @@
       }
     },
     {
-      "id": "n088-skip",
+      "id": "n086-skip",
       "name": "Skip",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -461,7 +472,7 @@
       "parameters": {}
     },
     {
-      "id": "n089-mark-delivered",
+      "id": "n087-mark-delivered",
       "name": "Mark delivered",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -493,6 +504,57 @@
         "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n088-failure-reason",
+      "name": "Failure reason",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Opis błędu wysyłki do zapisania w kolejce. Adresy URL są wycinane, bo adres webhooka Slacka jest sekretem.\nconst j = $input.first().json;\nconst e = j.error;\nconst raw = e && typeof e === 'object' ? (e.message || e.description || 'unknown')\n  : e || (typeof j.data === 'string' && j.data ? `odpowiedź: ${j.data}` : 'unknown');\nreturn [{ json: { text: String(raw).replace(/https?:\\/\\/\\S+/g, '<url>').slice(0, 200) } }];\n"
+      }
+    },
+    {
+      "id": "n089-mark-failed",
+      "name": "Mark failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/mark_failed",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id, p_error: $json.text }) }}",
         "options": {}
       }
     }
@@ -593,14 +655,14 @@
       "main": [
         [
           {
-            "node": "Pending",
+            "node": "Claim",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Pending": {
+    "Claim": {
       "main": [
         [
           {
@@ -666,6 +728,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Failure reason",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -688,6 +757,24 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Failure reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Failure reason": {
+      "main": [
+        [
+          {
+            "node": "Mark failed",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -695,7 +782,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
   },
   "versionId": "deliver00000001-v1"
 }
