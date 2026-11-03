@@ -1,6 +1,6 @@
 # Automatyzacja sklepu z meblami na zamówienie
 
-Portfolio z zakresu automatyzacji i AI. System obsługuje małą pracownię mebli robionych na zamówienie: przyjmuje zamówienia z formularza i maila, wycenia je, pilnuje magazynu i cen hurtowni, rozdziela zadania zespołowi i raz w tygodniu raportuje bestsellery. Całość działa na n8n i Supabase (Postgres), a kod napisał Claude z recenzją drugiego modelu (Codex).
+Portfolio z zakresu automatyzacji i AI. System obsługuje małą pracownię mebli robionych na zamówienie i jej salony: przyjmuje zamówienia z formularza, maila, kalkulatora i tabletu w salonie, wycenia je, pilnuje magazynu i cen hurtowni, zamawia brakujące materiały, rozdziela zadania zespołowi, pilnuje wycen bez odpowiedzi, informuje klienta o statusie i prosi o opinię, a raz w tygodniu raportuje bestsellery. Całość działa na n8n i Supabase (Postgres), a kod napisał Claude z recenzją drugiego modelu (Codex).
 
 Wszystkie firmy, adresy i klienci w danych demo są fikcyjne.
 
@@ -16,25 +16,17 @@ Właściciel małej pracowni traci czas na pracę, którą da się zautomatyzowa
 | Szukanie najtańszej hurtowni | Codzienny import cenników CSV i `best_price` (tylko ceny nie starsze niż 30 dni) |
 | Klient chce znać cenę od ręki | Publiczny kalkulator z wyceną na żywo i zamówieniem jednym kliknięciem |
 | Nie wiadomo, co się sprzedaje | Poniedziałkowy raport bestsellerów na Slacku z podsumowaniem AI |
+| Materiały kończą się bez ostrzeżenia | Szkice zamówień do najtańszej hurtowni, zatwierdzane jednym kliknięciem, a przyjęcie dostawy zwiększa stan |
+| Wyceny wiszą bez odpowiedzi | Przypomnienia po 3 i 7 dniach, po 14 dniach zamknięcie wyceny i ankieta „dlaczego nie” |
+| Klient pyta „na jakim etapie jest mój mebel?” | Strona statusu z osią czasu, mail o rozpoczęciu realizacji i prośba o opinię po zakończeniu |
+| Skrzynka pełna pytań, reklamacji i spamu | Triage AI: zamówienia nie giną, pytania dostają szkic odpowiedzi do akceptacji |
+| Klienci oglądają próbki w salonach | Tablet salonowy: wycena na miejscu i lead przypisany do salonu i handlowca |
 
 ## Architektura
 
-```
- klient ──► formularz / mail ─► [01 Order intake] ─► AI (agy) ─► walidacja ─┐
- klient ──► web/index.html ───► [06 Calculator] ─► quote_preview / calculator_order ─┤
-                                                                           ▼
-                                                       ┌────────────  SUPABASE (Postgres)  ───────────┐
-                                                       │ orders, order_items, tasks, stock_movements, │
-                                                       │ materials, supplier_prices, *_outbox         │
-                                                       │ logika: wycena, rezerwacje, best_price,      │
-                                                       │ raporty (funkcje SQL, testy w supabase/tests)│
-                                                       └──────────────────────────────────────────────┘
-        ▲                         ▲                         ▲                          │
- [03 Team tasks]          [04 Stock & prices]       [07 Weekly report]        [05 Deliver] co minutę
- link „zatwierdź”,        7:00, import CSV,         pon. 8:00, bestsellery    email_outbox → Gmail SMTP
- link „zrobione”          raport braków             + podsumowanie AI         slack_outbox → Slack
-                                                                              (at-least-once)
-```
+![Architektura systemu](docs/architecture.svg)
+
+Kanały (formularz, poczta, kalkulator, tablet w salonie, strona statusu) wchodzą przez webhooki n8n albo, dla statusu, bezpośrednio przez publiczną funkcję bazy. Workflowy tylko wołają funkcje SQL w Supabase i kolejkują powiadomienia; model AI działa lokalnie przez wspólny sub-workflow.
 
 ### Workflowy n8n
 
@@ -65,6 +57,8 @@ Pliki `n8n/workflows/*.json` są **generowane** przez `n8n/build.mjs` z `n8n/cod
 - **Idempotencja.** `upsert_order` i `calculator_order` działają po `external_id`, więc ponowienie żądania nie dubluje zamówienia. Klucz kalkulatora to skrót SHA-256 treści zamówienia.
 - **Outbox.** Maile i wiadomości Slacka trafiają najpierw do tabel `email_outbox` i `slack_outbox` z kluczem deduplikacji, a `05-deliver` je wysyła. Dostarczanie jest *at-least-once*: po awarii wiadomość może pójść ponownie, ale nie zginie.
 - **Bezpieczne domyślne ustawienia.** Wysyłka maili jest domyślnie wyłączona (`EMAIL_DELIVERY=off`), a po włączeniu idzie tylko na adresy z `EMAIL_ALLOWLIST`. Tryb testowy z mockiem LLM trzeba włączyć świadomie (`ALLOW_LLM_MOCK=1`).
+- **Decyzje podejmuje baza, nie model.** Model proponuje (kategoria maila, treść zamówienia, wstęp przypomnienia), a funkcje SQL decydują o trasie, wycenie i rezerwacji. Niepewny, błędny albo podejrzany wynik modelu kończy w bezpiecznej ścieżce (intake, stały szablon), nigdy w cichym pominięciu.
+- **Maile i powiadomienia składa baza.** Funkcje takie jak `record_followup`, `notify_status_events` czy `approve_purchase_order` kolejkują wiadomość i zmieniają stan w jednej transakcji, więc ponowny przebieg niczego nie dubluje i nie gubi.
 - **Minimum danych na zewnątrz.** Publiczne API zwraca ceny sprzedaży i sumę, bez kosztów materiałów, robocizny i marży. RLS jest włączone bez polityk, więc dostęp ma tylko `service_role`.
 
 ## Uruchomienie lokalne (10 kroków)
@@ -78,8 +72,8 @@ Wymagane: Docker (np. OrbStack), Supabase CLI, Node.js 20+, lokalne `agy` (Antig
 5. `ALLOW_LLM_MOCK=1 scripts/n8n.sh start` i odczekaj około 25 s (do demo bez mocka: `scripts/n8n.sh start`).
 6. `scripts/test-sql.sh` (testy SQL).
 7. `node --test n8n/test/*.test.mjs` (testy jednostkowe kodu workflowów).
-8. `scripts/test-intake.sh`, `scripts/test-tasks.sh`, `scripts/test-stock.sh`, `scripts/test-deliver.sh`, `scripts/test-calculator.sh` (testy end-to-end z mockiem LLM).
-9. `node scripts/serve-web.mjs` i otwórz http://localhost:8080 (kalkulator dla klienta).
+8. Testy end-to-end z atrapą modelu: `scripts/test-intake.sh`, `test-tasks.sh`, `test-stock.sh`, `test-deliver.sh`, `test-calculator.sh`, `test-purchasing.sh`, `test-followup.sh`, `test-showroom.sh`, `test-triage.sh`, `test-status.sh` (ostatni wymaga też serwera stron z kroku 9).
+9. `node scripts/serve-web.mjs` i otwórz http://localhost:8080 (kalkulator dla klienta; `/showroom.html` tablet salonowy, `/status.html` status zamówienia).
 10. Chmurowa baza demo: `scripts/deploy-db.sh` (podgląd), potem `--apply`.
 
 Hasło operatora do linków zatwierdzania generuje `scripts/n8n.sh` i zapisuje w `.env.local`.
@@ -120,9 +114,9 @@ Każda zmiana statusu zamówienia zostawia zdarzenie (`order_events`, wpisywane 
 - Osobny projekt Supabase na dev, staging i produkcję z CI uruchamiającym `supabase db reset` i testy.
 - Wersjonowanie cennika, żeby raporty liczyły sprzedaż po cenach z dnia zamówienia.
 
-## Co dalej
+## Co dalej (wersja 2)
 
-Zaplanowane, jeszcze niewdrożone: automatyczne zamówienia do hurtowni, follow-up wycen, triage skrzynki z AI, statusy zamówień i prośby o opinię. Social media (generowanie postów) to pomysł na wersję 2.
+Pomysły poza zakresem tego sprintu: widełki cenowe ±10% w `quote_preview` przed pomiarem, `generate_cutlist()` z eksportem formatek do CSV, zamówienia płyt w pełnych arkuszach i `lead_time_days` dostawcy, bramka zadatku (`deposit_paid_at`), lista załadunkowa z BOM, blokada prośby o opinię przy otwartej reklamacji oraz generowanie postów na social media. Nie było też prawdziwych wywołań modelu ani wysyłki maili w testach (tylko atrapy), więc przed wdrożeniem produkcyjnym trzeba je sprawdzić ręcznie.
 
 ## Struktura repozytorium
 
@@ -134,8 +128,8 @@ n8n/code, prompts     źródła węzłów Code i promptów
 n8n/build.mjs         generator workflowów
 n8n/workflows         wygenerowane workflowy (importowane przez scripts/n8n.sh sync)
 n8n/test              testy jednostkowe (node --test)
-scripts               uruchamianie, testy e2e, wdrożenie bazy
-web/index.html        kalkulator dla klienta (czysty JS)
+scripts               uruchamianie n8n i serwera stron, testy e2e, wdrożenie bazy
+web/                  strony: index.html (kalkulator), showroom.html (tablet salonowy), status.html (status zamówienia), czysty JS
 data/suppliers        przykładowe cenniki CSV
-docs                  plan sprintu i scenariusz demo (demo-script.md)
+docs                  architecture.svg, demo-script.md, plany i specyfikacja (superpowers/)
 ```
