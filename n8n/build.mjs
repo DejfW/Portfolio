@@ -18,6 +18,8 @@ const INTAKE_WORKFLOW_ID = 'intake000000001';
 const SWEEPER_WORKFLOW_ID = 'sweeper00000001';
 const TEAM_WORKFLOW_ID = 'team00000000001';
 const STOCK_WORKFLOW_ID = 'stock0000000001';
+const DELIVER_WORKFLOW_ID = 'deliver00000001';
+const SMTP_CREDENTIAL = { id: 'smtpgmail000001', name: 'Gmail SMTP' };
 
 // --- pomocnicze konstruktory węzłów -----------------------------------------------------------
 
@@ -84,6 +86,10 @@ const configNode = (position, name = 'Config') => {
         set('ownerEmail', env('OWNER_EMAIL', 'owner@example.com')),
         set('publicUrl', env('PUBLIC_URL', 'http://localhost:5678')),
         set('team', env('TEAM', 'Jan,Anna,Piotr')),
+        // tylko wartości niebędące sekretami: adres webhooka Slacka i hasło Gmaila czytamy bezpośrednio z $env w węzłach
+        set('slackConfigured', '={{ !!$env.SLACK_WEBHOOK_URL }}', 'boolean'),
+        set('emailDelivery', env('EMAIL_DELIVERY', 'off')),
+        set('emailAllowlist', `={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}`),
         set('authorized',
           `={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}`, 'boolean'),
       ],
@@ -343,6 +349,67 @@ function buildStock() {
   ]);
 }
 
+
+// --- 05-deliver --------------------------------------------------------------------------------
+// Co minutę wysyła to, co czeka w slack_outbox i email_outbox. Slack idzie przez Incoming Webhook,
+// maile przez Gmail SMTP, ale domyślnie są wyłączone i trafiają wyłącznie na adresy z listy dozwolonych.
+// Wiadomość jest oznaczana jako wysłana dopiero po potwierdzeniu przez Slack (odpowiedź "ok") albo SMTP.
+
+function buildDeliver() {
+  const nodes = [
+    node('Schedule', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], {
+      rule: { interval: [{ field: 'minutes', minutesInterval: 1 }] },
+    }),
+    node('Webhook', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'POST', path: 'deliver', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'deliver-0001' }),
+    configNode([220, 100]),
+    codeNode('Deliver params', [440, 100], code('deliver-params')),
+    boolIf('Allowed?', [660, 100], '$json.allowed'),
+    node('Forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Via webhook?', [880, 20], '$json.viaWebhook'),
+    node('Started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -60], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    boolIf('Run now?', [1320, 20], '$json.run'),
+    rpc('Pending', [1540, 20], 'pending_deliveries',
+      `{ p_limit: 20, p_only_test: $('Deliver params').first().json.onlyTest }`),
+    codeNode('Plan', [1760, 20], code('deliver-plan')),
+    node('Route', 'n8n-nodes-base.switch', 3.2, [1980, 20], {
+      mode: 'expression', numberOutputs: 3,
+      output: `={{ ({ 'slack:send': 0, 'email:send': 1 })[$json.route] ?? 2 }}`,
+    }),
+    node('Send Slack', 'n8n-nodes-base.httpRequest', 4.2, [1980, -80], {
+      method: 'POST',
+      url: `={{ $('Deliver params').first().json.slackUrl || $env.SLACK_WEBHOOK_URL }}`,
+      sendBody: true, contentType: 'json', specifyBody: 'json',
+      jsonBody: `={{ JSON.stringify({ text: $json.text }) }}`,
+      options: { timeout: 10000, response: { response: { responseFormat: 'text' } } },
+    }, { onError: 'continueRegularOutput' }),
+    boolIf('Slack confirmed?', [2200, -80], `$json.data === 'ok'`),
+    node('Send email', 'n8n-nodes-base.emailSend', 2.1, [1980, 120], {
+      fromEmail: `={{ $env.GMAIL_USER }}`, toEmail: `={{ $json.to }}`, subject: `={{ $json.subject }}`,
+      emailFormat: 'text', text: `={{ $json.text }}`, options: {},
+    }, { onError: 'continueRegularOutput', credentials: { smtp: SMTP_CREDENTIAL } }),
+    boolIf('Email sent?', [2200, 120], `!$json.error`),
+    node('Skip', 'n8n-nodes-base.noOp', 1, [1980, 300], {}),
+    rpc('Mark delivered', [2420, 20], 'mark_delivered',
+      `{ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id }`),
+  ];
+
+  return workflow(DELIVER_WORKFLOW_ID, '05 Deliver', nodes, [
+    ['Schedule', 'Config'], ['Webhook', 'Config'], ['Config', 'Deliver params'], ['Deliver params', 'Allowed?'],
+    ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
+    ['Via webhook?', 'Started', 0], ['Via webhook?', 'Run now?', 1], ['Started', 'Run now?'],
+    ['Run now?', 'Pending', 0], ['Pending', 'Plan'], ['Plan', 'Route'],
+    ['Route', 'Send Slack', 0], ['Route', 'Send email', 1], ['Route', 'Skip', 2],
+    ['Send Slack', 'Slack confirmed?'], ['Slack confirmed?', 'Mark delivered', 0],
+    ['Send email', 'Email sent?'], ['Email sent?', 'Mark delivered', 0],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -353,6 +420,7 @@ for (const [file, wf] of [
   ['02-intake-sweeper.json', buildSweeper()],
   ['03-team-tasks.json', buildTeamTasks()],
   ['04-stock-prices.json', buildStock()],
+  ['05-deliver.json', buildDeliver()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);

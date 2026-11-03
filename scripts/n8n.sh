@@ -54,6 +54,23 @@ case "${1:-}" in
     ;;
   sync)
     node n8n/build.mjs
+    # Poświadczenie SMTP dla Gmaila powstaje z .env.local w pliku tymczasowym (uprawnienia 600),
+    # który jest usuwany zaraz po imporcie. Hasło nie trafia do repozytorium ani do logów.
+    if [ -n "${GMAIL_USER:-}" ] && [ -n "${GMAIL_APP_PASSWORD:-}" ]; then
+      cred_file="$(mktemp)"
+      node -e '
+        const fs = require("fs");
+        fs.writeFileSync(process.argv[1], JSON.stringify([{
+          id: "smtpgmail000001", name: "Gmail SMTP", type: "smtp",
+          data: { user: process.env.GMAIL_USER, password: process.env.GMAIL_APP_PASSWORD,
+                  host: "smtp.gmail.com", port: 465, secure: true },
+        }]), { mode: 0o600 });
+      ' "$cred_file"
+      n8n import:credentials --input="$cred_file" || echo "Import poświadczeń SMTP nie powiódł się" >&2
+      rm -f "$cred_file"
+    else
+      echo "Pominięto poświadczenia SMTP (brak GMAIL_USER lub GMAIL_APP_PASSWORD w .env.local)"
+    fi
     for f in n8n/workflows/*.json; do
       n8n import:workflow --input="$f"
     done
