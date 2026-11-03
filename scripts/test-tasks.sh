@@ -90,14 +90,14 @@ code=$(http GET "approve?order_id=00000000-0000-0000-0000-00000000dead")
 [ "$code" = "404" ] && ok "approve_page: nieistniejące zamówienie -> 404" || fail "approve_page: nieistniejące" "HTTP $code"
 
 # --- zlecenie zadania ---------------------------------------------------------------------------------
-RES_BEFORE=$(q "select reserved from materials where name='Płyta MDF 18 mm biała'")
+RES_BEFORE=$(q "select reserved from materials where name='Płyta laminowana Biała Korpusowa 18 mm'")
 code=$(http POST approve "order_id=$O1&assignee=Jan")
 [ "$code" = "200" ] && ok "approve_post: HTTP 200" || fail "approve_post" "HTTP $code: $(head -c 200 "$BODYF")"
 body_has "Zlecono zadanie" && ok "approve_post: strona potwierdzenia" || fail "approve_post" "brak potwierdzenia"
 body_has "/webhook/task-done?task_id=" && ok "approve_post: link do zakończenia zadania" || fail "approve_post" "brak linku"
 expect "approve_post: zamówienie w realizacji" "select status from orders where id='$O1'" "in_progress"
 expect "approve_post: zadanie przydzielone Janowi" "select assignee from tasks where order_id='$O1'" "Jan"
-expect "approve_post: materiał zarezerwowany" "select reserved > $RES_BEFORE from materials where name='Płyta MDF 18 mm biała'" "t"
+expect "approve_post: materiał zarezerwowany" "select reserved > $RES_BEFORE from materials where name='Płyta laminowana Biała Korpusowa 18 mm'" "t"
 T1=$(q "select id from tasks where order_id='$O1'")
 expect "approve_post: wiadomość Slack w kolejce" "select count(*) from slack_outbox where dedupe_key='task:$T1' and kind='task_assigned' and text like '%*Jan*%' and text like '%task-done?task_id=$T1%'" "1"
 
@@ -134,7 +134,7 @@ body_has '<img src=x' && fail "xss" "surowy znacznik na stronie" || ok "xss: dan
 body_has '&lt;img src=x' && ok "xss: widoczna wersja zakodowana" || fail "xss" "brak zakodowanego tekstu"
 
 # --- zakończenie zadania ------------------------------------------------------------------------------
-STOCK_BEFORE=$(q "select stock from materials where name='Płyta MDF 18 mm biała'")
+STOCK_BEFORE=$(q "select stock from materials where name='Płyta laminowana Biała Korpusowa 18 mm'")
 code=$(http GET "task-done?task_id=$T1")
 [ "$code" = "200" ] && ok "done_page: HTTP 200" || fail "done_page" "HTTP $code"
 body_has '<form method="post" action="/webhook/task-done">' && ok "done_page: formularz POST" || fail "done_page" "brak formularza"
@@ -146,7 +146,7 @@ code=$(http POST task-done "task_id=$T1")
 [ "$code" = "200" ] && ok "done_post: HTTP 200" || fail "done_post" "HTTP $code: $(head -c 200 "$BODYF")"
 body_has "Zadanie zakończone" && ok "done_post: strona potwierdzenia" || fail "done_post" "brak potwierdzenia"
 expect "done_post: zadanie i zamówienie zakończone" "select (select status from tasks where id='$T1') || '/' || (select status from orders where id='$O1')" "done/done"
-expect "done_post: materiał zużyty" "select stock < $STOCK_BEFORE from materials where name='Płyta MDF 18 mm biała'" "t"
+expect "done_post: materiał zużyty" "select stock < $STOCK_BEFORE from materials where name='Płyta laminowana Biała Korpusowa 18 mm'" "t"
 expect "done_post: mail dla klienta w kolejce" "select count(*) from email_outbox where order_id='$O1' and kind='order_done' and to_email='klient-a@example.com'" "1"
 expect "done_post: Slack o zakończeniu" "select count(*) from slack_outbox where dedupe_key='done:$T1' and kind='task_done'" "1"
 

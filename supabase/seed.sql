@@ -12,19 +12,21 @@ insert into suppliers (name, email) values
 
 -- Uchwyt czarny 128 mm i Olej do drewna są celowo poniżej stanu minimalnego (alert w demo).
 insert into materials (name, unit, stock, min_stock) values
-  ('Płyta dębowa 18 mm',          'm2',   40,  10),
-  ('Płyta MDF 18 mm biała',       'm2',   60,  15),
+  ('Dąb Halifax Naturalny 18 mm (Egger)',          'm2',   40,  10),
+  ('Płyta laminowana Biała Korpusowa 18 mm',       'm2',   60,  15),
   ('Płyta orzechowa 18 mm',       'm2',   15,   8),
   ('Sklejka brzozowa 18 mm',      'm2',   30,  10),
   ('Płyta HDF 3 mm',              'm2',   50,  15),
   ('Blat dębowy lity 40 mm',      'm2',    8,   4),
-  ('Zawias z cichym domykiem',    'szt', 120,  40),
-  ('Prowadnica szuflady 50 cm',   'para', 30,  20),
+  ('Zawias Blum Clip Top z cichym domykiem',    'szt', 120,  40),
+  ('Prowadnica Blum Tandembox 50 cm',   'para', 30,  20),
   ('Uchwyt czarny 128 mm',        'szt',  15,  30),
   ('Nóżka stalowa 70 cm',         'szt',  24,  16),
   ('Lakier wodny bezbarwny',      'l',     6,   5),
   ('Olej do drewna',              'l',     2,   3),
-  ('Konfirmat 7x50 (op. 100 szt)', 'op',  10,   4);
+  ('Konfirmat 7x50 (op. 100 szt)', 'op',  10,   4),
+  ('MDF Lakierowany Mat 18 mm',    'm2',   20,   8),
+  ('Obrzeże ABS 2 mm',            'mb',  400, 150);
 -- Na wymiar wolno wycenić tylko materiały płytowe (kalkulator dla klienta).
 update materials set custom_ok = true where unit = 'm2';
 
@@ -32,10 +34,10 @@ update materials set custom_ok = true where unit = 'm2';
 insert into supplier_prices (supplier_id, material_id, price, updated_at)
 select s.id, m.id, v.price, now() - make_interval(days => v.age_days)
 from (values
-  ('Hurtownia Drewna Lasek', 'Płyta dębowa 18 mm',          189.00, 40),
-  ('MebloHurt Poznań',       'Płyta dębowa 18 mm',          205.00,  2),
-  ('Hurtownia Drewna Lasek', 'Płyta MDF 18 mm biała',        92.00,  3),
-  ('MebloHurt Poznań',       'Płyta MDF 18 mm biała',        85.00,  2),
+  ('Hurtownia Drewna Lasek', 'Dąb Halifax Naturalny 18 mm (Egger)',          189.00, 40),
+  ('MebloHurt Poznań',       'Dąb Halifax Naturalny 18 mm (Egger)',          205.00,  2),
+  ('Hurtownia Drewna Lasek', 'Płyta laminowana Biała Korpusowa 18 mm',        92.00,  3),
+  ('MebloHurt Poznań',       'Płyta laminowana Biała Korpusowa 18 mm',        85.00,  2),
   ('Hurtownia Drewna Lasek', 'Płyta orzechowa 18 mm',       310.00,  5),
   ('Hurtownia Drewna Lasek', 'Sklejka brzozowa 18 mm',      128.00,  3),
   ('MebloHurt Poznań',       'Sklejka brzozowa 18 mm',      134.00,  2),
@@ -43,10 +45,10 @@ from (values
   ('MebloHurt Poznań',       'Płyta HDF 3 mm',               16.00,  2),
   ('Hurtownia Drewna Lasek', 'Blat dębowy lity 40 mm',      640.00,  3),
   ('MebloHurt Poznań',       'Blat dębowy lity 40 mm',      615.00,  2),
-  ('MebloHurt Poznań',       'Zawias z cichym domykiem',     14.50,  2),
-  ('Okucia24 Hurt',          'Zawias z cichym domykiem',     11.90,  1),
-  ('MebloHurt Poznań',       'Prowadnica szuflady 50 cm',    42.00,  2),
-  ('Okucia24 Hurt',          'Prowadnica szuflady 50 cm',    38.50,  1),
+  ('MebloHurt Poznań',       'Zawias Blum Clip Top z cichym domykiem',     14.50,  2),
+  ('Okucia24 Hurt',          'Zawias Blum Clip Top z cichym domykiem',     11.90,  1),
+  ('MebloHurt Poznań',       'Prowadnica Blum Tandembox 50 cm',    42.00,  2),
+  ('Okucia24 Hurt',          'Prowadnica Blum Tandembox 50 cm',    38.50,  1),
   ('MebloHurt Poznań',       'Uchwyt czarny 128 mm',          9.80,  2),
   ('Okucia24 Hurt',          'Uchwyt czarny 128 mm',         12.40,  1),
   ('Okucia24 Hurt',          'Nóżka stalowa 70 cm',          54.00,  1),
@@ -54,7 +56,11 @@ from (values
   ('Okucia24 Hurt',          'Lakier wodny bezbarwny',       72.00,  1),
   ('MebloHurt Poznań',       'Olej do drewna',               85.00,  2),
   ('Okucia24 Hurt',          'Olej do drewna',               79.00,  1),
-  ('Okucia24 Hurt',          'Konfirmat 7x50 (op. 100 szt)', 21.00,  1)
+  ('Okucia24 Hurt',          'Konfirmat 7x50 (op. 100 szt)', 21.00,  1),
+  ('Hurtownia Drewna Lasek', 'MDF Lakierowany Mat 18 mm',   148.00,  3),
+  ('MebloHurt Poznań',       'MDF Lakierowany Mat 18 mm',   139.00,  2),
+  ('MebloHurt Poznań',       'Obrzeże ABS 2 mm',              1.90,  2),
+  ('Okucia24 Hurt',          'Obrzeże ABS 2 mm',              1.70,  1)
 ) as v(supplier, material, price, age_days)
 join suppliers s on s.name = v.supplier
 join materials m on m.name = v.material;
@@ -72,14 +78,14 @@ insert into products (name, base_price, labor_hours) values
 insert into product_materials (product_id, material_id, qty)
 select p.id, m.id, v.qty
 from (values
-  ('Komoda dębowa, 4 szuflady', 'Płyta dębowa 18 mm',           3.2),
+  ('Komoda dębowa, 4 szuflady', 'Dąb Halifax Naturalny 18 mm (Egger)',           3.2),
   ('Komoda dębowa, 4 szuflady', 'Płyta HDF 3 mm',               0.8),
-  ('Komoda dębowa, 4 szuflady', 'Prowadnica szuflady 50 cm',    4),
+  ('Komoda dębowa, 4 szuflady', 'Prowadnica Blum Tandembox 50 cm',    4),
   ('Komoda dębowa, 4 szuflady', 'Uchwyt czarny 128 mm',         4),
   ('Komoda dębowa, 4 szuflady', 'Olej do drewna',               0.5),
-  ('Szafka nocna MDF biała',    'Płyta MDF 18 mm biała',        1.1),
+  ('Szafka nocna MDF biała',    'Płyta laminowana Biała Korpusowa 18 mm',        1.1),
   ('Szafka nocna MDF biała',    'Płyta HDF 3 mm',               0.3),
-  ('Szafka nocna MDF biała',    'Prowadnica szuflady 50 cm',    1),
+  ('Szafka nocna MDF biała',    'Prowadnica Blum Tandembox 50 cm',    1),
   ('Szafka nocna MDF biała',    'Uchwyt czarny 128 mm',         1),
   ('Stół dębowy 160×90',        'Blat dębowy lity 40 mm',       1.44),
   ('Stół dębowy 160×90',        'Nóżka stalowa 70 cm',          4),
@@ -88,20 +94,20 @@ from (values
   ('Regał sklejkowy 80×200',    'Płyta HDF 3 mm',               1.6),
   ('Regał sklejkowy 80×200',    'Lakier wodny bezbarwny',       0.6),
   ('Regał sklejkowy 80×200',    'Konfirmat 7x50 (op. 100 szt)', 0.3),
-  ('Szafa MDF 2-drzwiowa',      'Płyta MDF 18 mm biała',        6.5),
+  ('Szafa MDF 2-drzwiowa',      'Płyta laminowana Biała Korpusowa 18 mm',        6.5),
   ('Szafa MDF 2-drzwiowa',      'Płyta HDF 3 mm',               2.2),
-  ('Szafa MDF 2-drzwiowa',      'Zawias z cichym domykiem',     4),
+  ('Szafa MDF 2-drzwiowa',      'Zawias Blum Clip Top z cichym domykiem',     4),
   ('Szafa MDF 2-drzwiowa',      'Uchwyt czarny 128 mm',         2),
   ('Szafa MDF 2-drzwiowa',      'Konfirmat 7x50 (op. 100 szt)', 0.5),
   ('Biurko orzechowe 140×70',   'Płyta orzechowa 18 mm',        2.2),
   ('Biurko orzechowe 140×70',   'Nóżka stalowa 70 cm',          4),
   ('Biurko orzechowe 140×70',   'Olej do drewna',               0.3),
-  ('Ławka dębowa 120 cm',       'Płyta dębowa 18 mm',           1.0),
+  ('Ławka dębowa 120 cm',       'Dąb Halifax Naturalny 18 mm (Egger)',           1.0),
   ('Ławka dębowa 120 cm',       'Nóżka stalowa 70 cm',          4),
   ('Ławka dębowa 120 cm',       'Olej do drewna',               0.2),
   ('Szafka RTV sklejka 180 cm', 'Sklejka brzozowa 18 mm',       2.4),
   ('Szafka RTV sklejka 180 cm', 'Płyta HDF 3 mm',               0.6),
-  ('Szafka RTV sklejka 180 cm', 'Zawias z cichym domykiem',     4),
+  ('Szafka RTV sklejka 180 cm', 'Zawias Blum Clip Top z cichym domykiem',     4),
   ('Szafka RTV sklejka 180 cm', 'Lakier wodny bezbarwny',       0.4)
 ) as v(product, material, qty)
 join products p on p.name = v.product
@@ -188,3 +194,9 @@ begin
     where id = v_id;
   end loop;
 end $$;
+
+-- Salony stacjonarne (adresy fikcyjne). Token jest generowany przy wgraniu seeda.
+insert into showrooms (code, name, salesperson_email) values
+  ('warszawa-mokotow', 'Salon Warszawa Mokotów', 'handlowiec.warszawa@example.com'),
+  ('krakow-kazimierz', 'Salon Kraków Kazimierz', 'handlowiec.krakow@example.com'),
+  ('gdansk-wrzeszcz',  'Salon Gdańsk Wrzeszcz',  'handlowiec.gdansk@example.com');

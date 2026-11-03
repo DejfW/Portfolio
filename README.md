@@ -101,7 +101,7 @@ Zaplanowane, jeszcze niewdrożone: automatyczne zamówienia do hurtowni, follow-
 ## Struktura repozytorium
 
 ```
-supabase/migrations   schemat i funkcje SQL (001–014)
+supabase/migrations   schemat i funkcje SQL (001–015)
 supabase/tests        testy SQL (DO + assert, w transakcji z rollbackiem)
 supabase/seed.sql     dane demo
 n8n/code, prompts     źródła węzłów Code i promptów

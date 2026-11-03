@@ -36,7 +36,7 @@ code=$(run_report suppliers-test "$KEY1")
 wait_for "select exists(select 1 from slack_outbox where dedupe_key='stock-digest:$KEY1')" 40 \
   && ok "mixed: raport w kolejce Slack" || fail "mixed" "brak raportu"
 expect "mixed: cena z przecinkiem zapisana" \
-  "select price from supplier_prices where supplier_id=(select id from suppliers where name='Hurtownia Drewna Lasek') and material_id=(select id from materials where name='Płyta dębowa 18 mm')" "201.50"
+  "select price from supplier_prices where supplier_id=(select id from suppliers where name='Hurtownia Drewna Lasek') and material_id=(select id from materials where name='Dąb Halifax Naturalny 18 mm (Egger)')" "201.50"
 expect "mixed: cena jest świeża" \
   "select updated_at > now() - interval '2 minutes' from supplier_prices where supplier_id=(select id from suppliers where name='Okucia24 Hurt') and material_id=(select id from materials where name='Konfirmat 7x50 (op. 100 szt)')" "t"
 expect "mixed: plik bez końcowej nowej linii nie skleja się z następnym" \
@@ -57,9 +57,9 @@ code=$(run_report suppliers "$KEY2")
 [ "$code" = "200" ] && ok "prod: HTTP 200" || fail "prod" "HTTP $code"
 wait_for "select exists(select 1 from slack_outbox where dedupe_key='stock-digest:$KEY2')" 40 \
   && ok "prod: raport w kolejce Slack" || fail "prod" "brak raportu"
-expect "prod: wszystkie 23 ceny odświeżone" "select count(*) from supplier_prices where updated_at > now() - interval '2 minutes'" "23"
+expect "prod: wszystkie 27 cen odświeżone" "select count(*) from supplier_prices where updated_at > now() - interval '2 minutes'" "27"
 expect "prod: raport bez problemów importu" "select text not like '%⚠️%' from slack_outbox where dedupe_key='stock-digest:$KEY2'" "t"
-expect "prod: najtańszy dąb to Lasek 195 zł" "select supplier_name || ' ' || price from best_price((select id from materials where name='Płyta dębowa 18 mm'))" "Hurtownia Drewna Lasek 195.00"
+expect "prod: najtańszy dąb to Lasek 195 zł" "select supplier_name || ' ' || price from best_price((select id from materials where name='Dąb Halifax Naturalny 18 mm (Egger)'))" "Hurtownia Drewna Lasek 195.00"
 
 # --- bezpieczeństwo parametrów -------------------------------------------------------------------------
 code=$(run_report "../etc" "t$RUN-bad")

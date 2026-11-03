@@ -7,7 +7,7 @@ const messy = readFileSync(new URL('../../data/suppliers-test/mieszany.csv', imp
 
 test('csv-parse: BOM, CRLF, cudzysłowy z przecinkami, komentarze i puste linie', () => {
   const [r] = runCode('csv-parse', { input: [{ stdout: messy }] });
-  assert.deepEqual(r.rows[0], { supplier: 'Hurtownia Drewna Lasek', material: 'Płyta dębowa 18 mm', price: '201,50' });
+  assert.deepEqual(r.rows[0], { supplier: 'Hurtownia Drewna Lasek', material: 'Dąb Halifax Naturalny 18 mm (Egger)', price: '201,50' });
   assert.ok(r.rows.some((x) => x.material === 'Materiał, z przecinkiem' && x.price === '10.00'), 'przecinek w cudzysłowie');
   assert.ok(!r.rows.some((x) => x.supplier === 'supplier'), 'nagłówek pominięty');
   assert.ok(!r.rows.some((x) => String(x.supplier).startsWith('#')), 'komentarz pominięty');
