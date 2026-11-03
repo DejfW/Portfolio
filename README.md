@@ -74,7 +74,7 @@ Wymagane: Docker (np. OrbStack), Supabase CLI, Node.js 20+, lokalne `agy` (Antig
 7. `node --test n8n/test/*.test.mjs` (testy jednostkowe kodu workflowów).
 8. Testy end-to-end z atrapą modelu: `scripts/test-intake.sh`, `test-tasks.sh`, `test-stock.sh`, `test-deliver.sh`, `test-calculator.sh`, `test-purchasing.sh`, `test-followup.sh`, `test-showroom.sh`, `test-triage.sh`, `test-status.sh` (ostatni wymaga też serwera stron z kroku 9).
 9. `node scripts/serve-web.mjs` i otwórz http://localhost:8080 (kalkulator dla klienta; `/showroom.html` tablet salonowy, `/status.html` status zamówienia).
-10. Chmurowa baza demo: `scripts/deploy-db.sh` (podgląd), potem `--apply` (i `--seed` do pustej bazy). Żeby n8n pracował na chmurze: zapisz klucz `scripts/store-clipboard-secret.sh SUPABASE_CLOUD_SERVICE_KEY` i uruchom `N8N_TARGET=cloud scripts/n8n.sh start` (tryb testowy jest tam zablokowany, a testy e2e działają tylko na lokalnej bazie). Stronę statusu na chmurze serwuj z `SUPABASE_URL` i `SUPABASE_PUBLISHABLE_KEY` ustawionymi na projekt chmurowy.
+10. Chmurowa baza demo: `scripts/deploy-db.sh` (podgląd), potem `--apply` (i `--seed` do pustej bazy). Żeby n8n pracował na chmurze: zapisz klucz `scripts/store-clipboard-secret.sh SUPABASE_CLOUD_SERVICE_KEY` i uruchom `N8N_TARGET=cloud scripts/n8n.sh start` (tryb testowy jest tam zablokowany, a testy e2e działają tylko na lokalnej bazie). Stronę statusu na chmurze serwuj przez `WEB_TARGET=cloud node scripts/serve-web.mjs` (adres projektu z `SUPABASE_CLOUD_REF`, klucz publiczny z `SUPABASE_CLOUD_PUBLISHABLE_KEY` w `.env.local`).
 
 Hasło operatora do linków zatwierdzania generuje `scripts/n8n.sh` i zapisuje w `.env.local`.
 

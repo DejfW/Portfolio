@@ -3,7 +3,7 @@
 // Strony wywołują API n8n na localhost:5678 przez CORS.
 // Użycie: node scripts/serve-web.mjs [port]
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { isPublicKey } from './lib/public-key.mjs';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +16,20 @@ const pages = { '/': 'index.html', '/index.html': 'index.html', '/showroom.html'
 // Strona statusu woła Supabase REST kluczem publicznym (rola anon). Adres i klucz bierzemy ze zmiennych środowiska
 // (SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, np. dla projektu w chmurze) albo z lokalnego `supabase status`;
 // nie leżą w repozytorium. Klucz publiczny trafia do strony z założenia, ale nie dajemy tam klucza service_role.
+// WEB_TARGET=cloud: projekt chmurowy z .env.local (SUPABASE_CLOUD_REF i SUPABASE_CLOUD_PUBLISHABLE_KEY; czytamy tylko te dwa
+// klucze, żadnych sekretów). Klucz publiczny i tak przechodzi sprawdzenie isPublicKey.
+function envFileValue(name) {
+  const file = join(dirname(fileURLToPath(import.meta.url)), '..', '.env.local');
+  if (!existsSync(file)) return undefined;
+  const m = readFileSync(file, 'utf8').match(new RegExp(`^${name}=(['"]?)(.*)\\1$`, 'm'));
+  return m ? m[2] : undefined;
+}
+
 function supabasePublic() {
+  if (process.env.WEB_TARGET === 'cloud') {
+    const ref = envFileValue('SUPABASE_CLOUD_REF'), key = envFileValue('SUPABASE_CLOUD_PUBLISHABLE_KEY');
+    return { url: ref ? `https://${ref}.supabase.co` : undefined, key };
+  }
   let url = process.env.SUPABASE_URL, key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) {
     try {
