@@ -8,6 +8,14 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+# Dane dostępowe (Gmail, Slack) trzymamy w .env.local, który jest poza gitem. Wzór: env.local.example
+if [ -f .env.local ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env.local
+  set +a
+fi
 N8N_VERSION="${N8N_VERSION:-2.45.7}"
 
 service_key="$(supabase status -o env 2>/dev/null | sed -n 's/^SERVICE_ROLE_KEY="\(.*\)"$/\1/p')"
