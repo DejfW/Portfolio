@@ -38,6 +38,9 @@ export N8N_USER_FOLDER="$PWD/tmp/n8n"
 # Oba są domyślnie wyłączone w n8n 2.x; to środowisko deweloperskie na localhost.
 export N8N_BLOCK_ENV_ACCESS_IN_NODE=false
 export NODES_EXCLUDE='[]'
+# Harmonogramy (np. raport o 7:00) liczą się w czasie polskim
+export GENERIC_TIMEZONE="${GENERIC_TIMEZONE:-Europe/Warsaw}"
+export TZ="$GENERIC_TIMEZONE"
 export N8N_DIAGNOSTICS_ENABLED=false
 export N8N_VERSION_NOTIFICATIONS_ENABLED=false
 export N8N_PERSONALIZATION_ENABLED=false

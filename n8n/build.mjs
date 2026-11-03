@@ -17,6 +17,7 @@ const LLM_WORKFLOW_ID = 'llm0000000000001';
 const INTAKE_WORKFLOW_ID = 'intake000000001';
 const SWEEPER_WORKFLOW_ID = 'sweeper00000001';
 const TEAM_WORKFLOW_ID = 'team00000000001';
+const STOCK_WORKFLOW_ID = 'stock0000000001';
 
 // --- pomocnicze konstruktory węzłów -----------------------------------------------------------
 
@@ -299,6 +300,49 @@ function buildTeamTasks() {
   ]);
 }
 
+
+// --- 04-stock-prices ---------------------------------------------------------------------------
+// Codziennie o 7:00: wczytuje cenniki z data/suppliers/*.csv, aktualizuje ceny w bazie i wysyła
+// właścicielowi podsumowanie: co zamówić i u kogo najtaniej. Webhook /stock-report działa tylko w trybie testowym.
+
+function buildStock() {
+  const nodes = [
+    node('Schedule 7:00', 'n8n-nodes-base.scheduleTrigger', 1.2, [0, 0], {
+      rule: { interval: [{ field: 'cronExpression', expression: '0 7 * * *' }] },
+    }),
+    node('Webhook', 'n8n-nodes-base.webhook', 2.1, [0, 220], {
+      httpMethod: 'POST', path: 'stock-report', responseMode: 'responseNode', options: {},
+    }, { webhookId: 'stock-report-0001' }),
+    configNode([220, 100]),
+    codeNode('Stock params', [440, 100], code('stock-params')),
+    boolIf('Allowed?', [660, 100], '$json.allowed'),
+    node('Forbidden', 'n8n-nodes-base.respondToWebhook', 1.1, [880, 260], {
+      respondWith: 'json', responseBody: `={{ { error: 'FORBIDDEN' } }}`, options: { responseCode: 403 },
+    }),
+    boolIf('Via webhook?', [880, 20], '$json.viaWebhook'),
+    node('Started', 'n8n-nodes-base.respondToWebhook', 1.1, [1100, -60], {
+      respondWith: 'json', responseBody: `={{ { status: 'started' } }}`, options: { responseCode: 200 },
+    }),
+    node('Read CSV', 'n8n-nodes-base.executeCommand', 1, [1320, 20], {
+      command: `=cat "{{ $json.projectDir }}"/data/{{ $json.dir }}/*.csv`,
+    }, { onError: 'continueRegularOutput' }),
+    codeNode('Parse CSV', [1540, 20], code('csv-parse')),
+    rpc('Import prices', [1760, 20], 'import_supplier_prices', `{ p: { rows: $json.rows } }`,
+      { onError: 'continueRegularOutput' }),
+    rpc('Stock report', [1980, 20], 'low_stock_report', '{}'),
+    codeNode('Digest', [2200, 20], code('stock-digest')),
+    rpc('Queue notifications', [2420, 20], 'enqueue_notifications', `{ p: $json.p }`, { onError: 'continueRegularOutput' }),
+  ];
+
+  return workflow(STOCK_WORKFLOW_ID, '04 Stock and prices', nodes, [
+    ['Schedule 7:00', 'Config'], ['Webhook', 'Config'], ['Config', 'Stock params'], ['Stock params', 'Allowed?'],
+    ['Allowed?', 'Via webhook?', 0], ['Allowed?', 'Forbidden', 1],
+    ['Via webhook?', 'Started', 0], ['Via webhook?', 'Read CSV', 1], ['Started', 'Read CSV'],
+    ['Read CSV', 'Parse CSV'], ['Parse CSV', 'Import prices'], ['Import prices', 'Stock report'],
+    ['Stock report', 'Digest'], ['Digest', 'Queue notifications'],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -308,6 +352,7 @@ for (const [file, wf] of [
   ['01-order-intake.json', buildIntake()],
   ['02-intake-sweeper.json', buildSweeper()],
   ['03-team-tasks.json', buildTeamTasks()],
+  ['04-stock-prices.json', buildStock()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);
