@@ -1,0 +1,12 @@
+{
+  "slug": "meble-automatyzacja",
+  "title": "Furniture Workshop Automation",
+  "status": "shipped",
+  "tagline": "Orders, quotes, stock and purchasing for a made-to-order furniture workshop, automated end to end.",
+  "summary": "An automation system built on n8n and Supabase (Postgres) that turns emails, forms and showroom tablets into priced orders.",
+  "tags": ["n8n", "Supabase", "PostgreSQL", "AI"],
+  "links": [{ "label": "Source on GitHub", "url": "https://github.com/DejfW/Portfolio" }],
+  "sections": [
+    { "type": "prose", "title": "The problem", "paragraphs": ["Full case study coming in Task 7."] }
+  ]
+}

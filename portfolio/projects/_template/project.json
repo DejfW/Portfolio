@@ -1,0 +1,31 @@
+{
+  "slug": "your-project-slug",
+  "title": "Project title",
+  "status": "in-progress",
+  "tagline": "One sentence, max 140 characters.",
+  "summary": "Two or three sentences shown on the card and at the top of the page.",
+  "year": 2026,
+  "role": "Design and implementation",
+  "tags": ["Tech one", "Tech two"],
+  "links": [{ "label": "Source on GitHub", "url": "https://github.com/your-name/your-repo" }],
+  "stats": [{ "value": "12", "label": "things counted" }],
+  "sections": [
+    { "type": "prose", "title": "The problem", "paragraphs": ["Paragraph one.", "Paragraph two."] },
+    { "type": "list", "title": "Design decisions", "items": [{ "title": "Decision", "text": "Why." }] },
+    { "type": "table", "title": "Table", "columns": ["Column A", "Column B"], "rows": [["a1", "b1"]] },
+    { "type": "diagram", "title": "Architecture", "src": "media/diagram.svg", "alt": "Describe the flow", "caption": "Optional caption" },
+    { "type": "chart", "title": "Chart", "unit": "files", "bars": [{ "label": "Label", "value": 10 }] },
+    {
+      "type": "graph", "title": "Dependencies",
+      "nodes": [{ "id": "a", "label": "Input", "layer": 0, "kind": "channel" }, { "id": "b", "label": "Worker", "layer": 1, "kind": "workflow" }],
+      "edges": [{ "from": "a", "to": "b" }]
+    },
+    {
+      "type": "gallery", "title": "Recordings and screenshots",
+      "items": [
+        { "type": "image", "src": "media/screenshot.webp", "alt": "What the screenshot shows", "caption": "Optional" },
+        { "type": "video", "src": "media/demo.mp4", "poster": "media/demo-poster.webp", "caption": "Optional" }
+      ]
+    }
+  ]
+}
