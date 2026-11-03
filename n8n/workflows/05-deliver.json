@@ -1,0 +1,789 @@
+{
+  "id": "deliver00000001",
+  "name": "05 Deliver",
+  "nodes": [
+    {
+      "id": "n070-schedule",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n071-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "deliver",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "deliver-0001"
+    },
+    {
+      "id": "n072-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n073-deliver-params",
+      "name": "Deliver params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Parametry dostarczania. Z harmonogramu nie ma żadnego wejścia z zewnątrz. Webhook /deliver działa wyłącznie\n// w trybie testowym (ALLOW_LLM_MOCK=1) i MUSI wskazać dokładnie jeden lokalny odbiornik (http://127.0.0.1:<TEST_SINK_PORT>/hook);\n// bez niego, albo z innym adresem, jest odrzucany. Wtedy dostarczamy wyłącznie wiadomości oznaczone jako testowe,\n// a maile nie są wysyłane, więc żadne żądanie z zewnątrz nie uruchomi prawdziwej wysyłki.\nconst i = $input.first().json;\nconst viaWebhook = i.headers !== undefined;\nconst testMode = i.allowMock === '1';\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\n\nlet allowed = !viaWebhook;\nlet slackUrl = '';\nif (viaWebhook && testMode) {\n  const expected = `http://127.0.0.1:${i.testSinkPort}/hook`;\n  if (typeof body.slack_url === 'string' && body.slack_url === expected) { slackUrl = expected; allowed = true; }\n}\nconst onlyTest = slackUrl !== '';\n// W trybie testowym harmonogram niczego nie dostarcza: testy chwilowo wstawiają do kolejek wiadomości,\n// które nie mogą trafić na prawdziwy kanał Slack. Dostarczanie działa wtedy tylko na żądanie (webhook).\nconst run = allowed && (viaWebhook || !testMode);\nreturn [{\n  json: {\n    viaWebhook,\n    allowed,\n    run,\n    slackUrl,\n    onlyTest,\n    slackReady: onlyTest || i.slackConfigured === true,\n    // wysyłka maili jest domyślnie wyłączona; po włączeniu baza wydaje tylko adresy z listy dozwolonych\n    emailOn: i.emailDelivery === 'on' && !onlyTest,\n    allowlist: String(i.emailAllowlist || ''),\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "n074-allowed-",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-allowed-",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n075-forbidden",
+      "name": "Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'FORBIDDEN' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "n076-via-webhook-",
+      "name": "Via webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-via-webhook-",
+              "leftValue": "={{ $json.viaWebhook }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n077-started",
+      "name": "Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'started' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n078-run-now-",
+      "name": "Run now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-run-now-",
+              "leftValue": "={{ $json.run }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n079-claim",
+      "name": "Claim",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/claim_deliveries",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_limit: 20, p_only_test: $('Deliver params').first().json.onlyTest, p_slack: $('Deliver params').first().json.slackReady, p_email: $('Deliver params').first().json.emailOn, p_allowlist: $('Deliver params').first().json.allowlist }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n080-plan",
+      "name": "Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Wybiera trasę dla każdej odebranej wiadomości. Filtrowanie maili po liście dozwolonych adresów robi baza\n// (claim_deliveries), więc tutaj trafiają tylko wiadomości, które wolno wysłać.\nreturn $input.all().map(({ json: m }) => {\n  const route = m.channel === 'slack' ? 'slack:send' : m.channel === 'email' ? 'email:send' : 'skip';\n  return { json: { ...m, route } };\n});\n"
+      }
+    },
+    {
+      "id": "n081-route",
+      "name": "Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1980,
+        20
+      ],
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 3,
+        "output": "={{ ({ 'slack:send': 0, 'email:send': 1 })[$json.route] ?? 2 }}"
+      }
+    },
+    {
+      "id": "n082-send-slack",
+      "name": "Send Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        -80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Deliver params').first().json.slackUrl || $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}",
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n083-slack-confirmed-",
+      "name": "Slack confirmed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2200,
+        -80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-slack-confirmed-",
+              "leftValue": "={{ $json.data === 'ok' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n084-send-email",
+      "name": "Send email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1980,
+        120
+      ],
+      "parameters": {
+        "fromEmail": "={{ $env.GMAIL_USER }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.text }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "smtp": {
+          "id": "smtpgmail000001",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "id": "n085-email-sent-",
+      "name": "Email sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2200,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-email-sent-",
+              "leftValue": "={{ !$json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n086-skip",
+      "name": "Skip",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "n087-mark-delivered",
+      "name": "Mark delivered",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/mark_delivered",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n088-failure-reason",
+      "name": "Failure reason",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Opis błędu wysyłki do zapisania w kolejce. Adresy URL są wycinane, bo adres webhooka Slacka jest sekretem.\nconst j = $input.first().json;\nconst e = j.error;\nconst raw = e && typeof e === 'object' ? (e.message || e.description || 'unknown')\n  : e || (typeof j.data === 'string' && j.data ? `odpowiedź: ${j.data}` : 'unknown');\nreturn [{ json: { text: String(raw).replace(/https?:\\/\\/\\S+/g, '<url>').slice(0, 200) } }];\n"
+      }
+    },
+    {
+      "id": "n089-mark-failed",
+      "name": "Mark failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/mark_failed",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_channel: $('Plan').item.json.channel, p_id: $('Plan').item.json.id, p_error: $json.text }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Deliver params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deliver params": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Via webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Via webhook?": {
+      "main": [
+        [
+          {
+            "node": "Started",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run now?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Started": {
+      "main": [
+        [
+          {
+            "node": "Run now?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now?": {
+      "main": [
+        [
+          {
+            "node": "Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim": {
+      "main": [
+        [
+          {
+            "node": "Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Send Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack": {
+      "main": [
+        [
+          {
+            "node": "Slack confirmed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack confirmed?": {
+      "main": [
+        [
+          {
+            "node": "Mark delivered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failure reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Email sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email sent?": {
+      "main": [
+        [
+          {
+            "node": "Mark delivered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failure reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Failure reason": {
+      "main": [
+        [
+          {
+            "node": "Mark failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
+  },
+  "versionId": "deliver00000001-v1"
+}

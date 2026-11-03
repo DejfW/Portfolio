@@ -1,0 +1,644 @@
+{
+  "id": "calc00000000001",
+  "name": "06 Customer calculator",
+  "nodes": [
+    {
+      "id": "n090-catalog-webhook",
+      "name": "Catalog webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "catalog",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "calculator-catalog-0001"
+    },
+    {
+      "id": "n091-read-catalog",
+      "name": "Read catalog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/catalog_for_calculator",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n092-catalog-response",
+      "name": "Catalog response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "n093-order-webhook",
+      "name": "Order webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        660
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calculator-order",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "calculator-order-0001"
+    },
+    {
+      "id": "n094-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        660
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n095-create-order",
+      "name": "Create order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        660
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/calculator_order",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: $('Order webhook').first().json.body }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n096-order-error-",
+      "name": "Order error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        660
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-order-error-",
+              "leftValue": "={{ !!$json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n097-order-rejected",
+      "name": "Order rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        760
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: $json.error } }}",
+        "options": {
+          "responseCode": 422
+        }
+      }
+    },
+    {
+      "id": "n098-order-accepted",
+      "name": "Order accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        560
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: $json.created ? 'received' : 'duplicate' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n099-created-",
+      "name": "Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1140,
+        560
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-created-",
+              "leftValue": "={{ $json.created }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n100-context",
+      "name": "Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/notification_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $('Create order').first().json.order_id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n101-compose-emails",
+      "name": "Compose emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        560
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Składa maile ze stanu zamówienia w bazie (wynik notification_context). Ten sam kod obsługuje\n// przepływ normalny i naprawę po awarii (sweeper), więc brakujące maile da się zawsze odtworzyć.\n// Zwraca elementy {order_id, kind, to, subject, body}; kolejne węzły dopisują je do email_outbox\n// (unikalnie po zamówieniu i rodzaju), a rodzaje już istniejące pomijamy tutaj.\n// Treść jest zwykłym tekstem. Przy wysyłce w HTML trzeba ją escape'ować (zawiera tekst od klienta).\nconst cfg = $('Config').first().json;\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst mails = [];\n\nfor (const item of $input.all()) {\n  const c = item.json;\n  if (!c || !c.order_id) continue; // brak zamówienia o takim id\n\n  const has = new Set(c.existing_kinds || []);\n  const add = (kind, to, subject, body) => {\n    if (!has.has(kind)) mails.push({ json: { order_id: c.order_id, kind, to, subject, body } });\n  };\n  const email = c.customer_email;\n  const excerpt = String(c.raw_text || '').slice(0, 300);\n\n  if (c.status === 'quoted' && c.quote && c.quote.total !== undefined) {\n    const lines = (c.quote.lines || []).map((l) => `- ${l.label} × ${l.qty}`).join('\\n');\n    add('customer_quote', email, 'Wstępna wycena Twojego zamówienia',\n      `Dzień dobry,\\n\\ndziękujemy za zapytanie. Pozycje w wycenie:\\n${lines}\\n\\n` +\n      `Wstępna wycena: ${pln(c.quote.total)}\\n\\n` +\n      'To wycena wstępna, wyliczona automatycznie. Ostateczną cenę i termin potwierdzimy po weryfikacji zamówienia.\\n\\n' +\n      'Pozdrawiamy,\\nStolarnia');\n    add('owner_alert', cfg.ownerEmail, `Nowe zamówienie do zatwierdzenia: ${email} (${pln(c.quote.total)})`,\n      `Klient: ${email}\\nŹródło: ${c.source}\\nWycena wstępna: ${pln(c.quote.total)}\\n\\n` +\n      `Wiadomość klienta:\\n${excerpt}\\n\\nZatwierdź i zleć zadanie: ${cfg.publicUrl}/webhook/approve?order_id=${c.order_id}`);\n  } else if (c.status === 'needs_info') {\n    const list = (c.missing || []).map((m) => `- ${m}`).join('\\n');\n    add('needs_info', email, 'Potrzebujemy kilku informacji do wyceny',\n      `Dzień dobry,\\n\\ndziękujemy za wiadomość. Żeby przygotować wycenę, prosimy jeszcze o:\\n${list}\\n\\n` +\n      'Wystarczy odpowiedzieć na tego maila.\\n\\nPozdrawiamy,\\nStolarnia');\n  } else if (c.status === 'needs_review') {\n    add('owner_alert', cfg.ownerEmail, `Zamówienie do sprawdzenia: ${email}`,\n      `Automat nie wycenił tego zamówienia. Powód: ${c.reason || c.status}\\n\\nKlient: ${email}\\nŹródło: ${c.source}\\n\\n` +\n      `Wiadomość klienta:\\n${excerpt}`);\n  }\n}\n\nreturn mails;\n"
+      }
+    },
+    {
+      "id": "n102-queue-email",
+      "name": "Queue email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        560
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/enqueue_email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.order_id, p_kind: $json.kind, p_to: $json.to, p_subject: $json.subject, p_body: $json.body }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n103-preview-webhook",
+      "name": "Preview webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        440
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quote-preview",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "calculator-preview-0001"
+    },
+    {
+      "id": "n104-preview",
+      "name": "Preview",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/quote_preview",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: $json.body }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n105-preview-response",
+      "name": "Preview response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        520,
+        440
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.error ? 422 : 200 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Catalog webhook": {
+      "main": [
+        [
+          {
+            "node": "Read catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read catalog": {
+      "main": [
+        [
+          {
+            "node": "Catalog response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview webhook": {
+      "main": [
+        [
+          {
+            "node": "Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview": {
+      "main": [
+        [
+          {
+            "node": "Preview response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Create order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create order": {
+      "main": [
+        [
+          {
+            "node": "Order error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order error?": {
+      "main": [
+        [
+          {
+            "node": "Order rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Order accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order accepted": {
+      "main": [
+        [
+          {
+            "node": "Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Created?": {
+      "main": [
+        [
+          {
+            "node": "Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context": {
+      "main": [
+        [
+          {
+            "node": "Compose emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose emails": {
+      "main": [
+        [
+          {
+            "node": "Queue email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
+  },
+  "versionId": "calc00000000001-v1"
+}

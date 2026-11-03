@@ -158,10 +158,13 @@ begin
   assert r.price = 80, 'price: ' || coalesce(r.price::text, 'null');
   assert r.supplier_name = 'Test Hurt B', 'supplier: ' || coalesce(r.supplier_name, 'null');
 
-  -- zero i cena ujemna są ignorowane
-  update supplier_prices set price = 0 where material_id = '00000000-0000-0000-0000-0000000000b2'
-    and supplier_id = '00000000-0000-0000-0000-0000000000a2';
-  assert not exists (select 1 from best_price('00000000-0000-0000-0000-0000000000b2')), 'zero price ignored';
+  -- zero i cena ujemna są odrzucane już przez tabelę (constraint supplier_prices_price_positive)
+  begin
+    update supplier_prices set price = 0 where material_id = '00000000-0000-0000-0000-0000000000b2'
+      and supplier_id = '00000000-0000-0000-0000-0000000000a2';
+    assert false, 'zero price accepted';
+  exception when check_violation then null;
+  end;
 
   -- same przeterminowane ceny: wynik pusty, a wycena kończy się NO_PRICE
   update supplier_prices set price = 80, updated_at = now() - interval '31 days'

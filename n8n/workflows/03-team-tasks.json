@@ -1,0 +1,891 @@
+{
+  "id": "team00000000001",
+  "name": "03 Team tasks",
+  "nodes": [
+    {
+      "id": "n034-get-approve",
+      "name": "GET approve",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "approve",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "team-approve-get",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n035-config-page",
+      "name": "Config page",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n036-parse-approve-page",
+      "name": "Parse approve page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=..., ?task_id=... albo ?po_id=...) dla stron otwieranych linkiem (GET).\n// Zwraca {valid, id}. Nic poza poprawnym UUID nie przechodzi dalej. Żądania zmieniające stan (POST) obsługuje id-prep-post.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst q = i.query || {};\nconst id = q.order_id !== undefined ? q.order_id : (q.task_id !== undefined ? q.task_id : q.po_id);\nconst valid = isUuid(id);\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null } }];\n"
+      }
+    },
+    {
+      "id": "n037-approve-link-valid-",
+      "name": "Approve link valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-approve-link-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n038-order-context",
+      "name": "Order context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        -60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/notification_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n039-approve-page",
+      "name": "Approve page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Strona potwierdzenia zatwierdzenia zamówienia. Samo wejście w link z maila niczego nie zmienia\n// (skanery linków w poczcie otwierają adresy automatycznie), dopiero przycisk wysyła formularz POST.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst cfg = $('Config page').first().json;\nconst c = $input.first().json;\n\nif (!c || !c.order_id) return [{ json: page('Nie znaleziono', '<h1 class=\"err\">Nie znaleziono zamówienia</h1>', 404) }];\nif (c.status !== 'quoted') {\n  return [{ json: page('Zamówienie', `<h1>Zamówienie nie czeka na zatwierdzenie</h1><p>Status: <b>${esc(c.status)}</b></p>`, 200) }];\n}\nconst team = String(cfg.team || '').split(',').map((s) => s.trim()).filter(Boolean);\nconst options = team.map((n) => `<option>${esc(n)}</option>`).join('');\nconst lines = ((c.quote && c.quote.lines) || []).map((l) => `<li>${esc(l.label)} × ${esc(l.qty)}</li>`).join('');\nreturn [{\n  json: page('Zatwierdź zamówienie',\n    `<h1>Zatwierdź zamówienie</h1><p>Klient: <b>${esc(c.customer_email)}</b><br>Wstępna wycena: <b>${esc(pln(c.quote.total))}</b></p>` +\n    `<ul>${lines}</ul>` +\n    `<form method=\"post\" action=\"/webhook/approve\"><input type=\"hidden\" name=\"order_id\" value=\"${esc(c.order_id)}\">` +\n    `<label>Kto wykonuje zadanie?<select name=\"assignee\">${options}</select></label>` +\n    `<button type=\"submit\">Zatwierdź i zleć zadanie</button></form>`),\n}];\n"
+      }
+    },
+    {
+      "id": "n040-post-approve",
+      "name": "POST approve",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        260
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "approve",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "team-approve-post",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n041-config-post",
+      "name": "Config POST",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        260
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n042-parse-approve",
+      "name": "Parse approve",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        260
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Walidacja formularza POST (zmiana stanu): identyfikator tylko z treści formularza, nigdy z adresu.\n// Kontrola pochodzenia dotyczy każdego POST, także z pustą treścią. Strony n8n są serwowane w piaskownicy CSP,\n// więc prawdziwy formularz wysyła Origin: null (i Sec-Fetch-Site: cross-site); odrzucamy tylko żądania z Origin\n// innej witryny. Ochroną przed obcym formularzem są też logowanie Basic i nieodgadnialny UUID w treści.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst h = i.headers || {};\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\nconst origin = String(h.origin || '').trim().toLowerCase();\nconst host = String(h['x-forwarded-host'] || h.host || '').trim().toLowerCase();\nconst sameOrigin = origin === '' || origin === 'null' || origin.replace(/^https?:\\/\\//, '') === host;\nconst id = body.order_id !== undefined ? body.order_id : (body.task_id !== undefined ? body.task_id : body.po_id);\nconst assignee = typeof body.assignee === 'string' ? body.assignee : '';\nconst valid = isUuid(id) && sameOrigin;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
+      }
+    },
+    {
+      "id": "n043-approve-form-valid-",
+      "name": "Approve form valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        260
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-approve-form-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n044-approve-order",
+      "name": "Approve order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/approve_order",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_order_id: $json.id, p_assignee: $json.assignee, p_public_url: $('Config POST').first().json.publicUrl }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n045-approve-result",
+      "name": "Approve result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Wynik approve_order -> strona dla właściciela. Powiadomienia Slack (przydział albo braki materiałów)\n// powstają już w bazie, w tej samej transakcji co zmiana stanu.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst cfg = $('Config POST').first().json;\nconst r = $input.first().json;\n\nif (r.ok) {\n  const doneLink = `${cfg.publicUrl}/webhook/task-done?task_id=${r.task_id}`;\n  return [{ json: page('Zlecono',\n    `<h1 class=\"ok\">Zlecono zadanie</h1><p>Wykonuje: <b>${esc(r.assignee)}</b><br>Klient: ${esc(r.customer_email)}</p>` +\n    `<p>Po wykonaniu zamknij zadanie: <a href=\"${esc(doneLink)}\">${esc(doneLink)}</a></p>`) }];\n}\n\nif (r.error === 'INSUFFICIENT_STOCK') {\n  const rows = (r.shortages || []).map((s) => {\n    const where = s.best_supplier ? `najtaniej: ${s.best_supplier} po ${pln(s.best_price)}` : 'brak aktualnej ceny w hurtowniach';\n    return `<li>${esc(s.name)}: brakuje <b>${esc(Number(s.missing))} ${esc(s.unit)}</b> (potrzeba ${esc(Number(s.needed))}, dostępne ${esc(Number(s.available))}), ${esc(where)}</li>`;\n  });\n  return [{ json: page('Brak materiałów',\n    `<h1 class=\"err\">Nie można zlecić: brakuje materiałów</h1><ul>${rows.join('')}</ul><p>Zamówienie czeka na uzupełnienie magazynu.</p>`, 409) }];\n}\n\nconst labels = { MISSING_ASSIGNEE: 'Wybierz osobę wykonującą zadanie.', INVALID_ASSIGNEE: 'Nieprawidłowa nazwa osoby.',\n  ORDER_NOT_FOUND: 'Nie znaleziono zamówienia.', ORDER_NOT_QUOTED: 'Zamówienie nie ma poprawnej wyceny.',\n  EMPTY_ORDER: 'Zamówienie nie ma pozycji.' };\nconst msg = labels[r.error] || (String(r.error || '').startsWith('ORDER_NOT_READY')\n  ? 'To zamówienie nie czeka już na zatwierdzenie (jest w realizacji lub zakończone).' : 'Nie udało się zlecić zadania.');\nreturn [{ json: page('Błąd', `<h1 class=\"err\">${esc(msg)}</h1>`, 409) }];\n"
+      }
+    },
+    {
+      "id": "n046-get-task-done",
+      "name": "GET task-done",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        520
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "task-done",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "team-done-get",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n047-parse-done-page",
+      "name": "Parse done page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Czyta i waliduje identyfikator z adresu (?order_id=..., ?task_id=... albo ?po_id=...) dla stron otwieranych linkiem (GET).\n// Zwraca {valid, id}. Nic poza poprawnym UUID nie przechodzi dalej. Żądania zmieniające stan (POST) obsługuje id-prep-post.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst q = i.query || {};\nconst id = q.order_id !== undefined ? q.order_id : (q.task_id !== undefined ? q.task_id : q.po_id);\nconst valid = isUuid(id);\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null } }];\n"
+      }
+    },
+    {
+      "id": "n048-done-page",
+      "name": "Done page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Strona potwierdzenia zakończenia zadania (przycisk wysyła POST, sam link niczego nie zmienia).\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst p = $input.first().json;\nif (!p.valid) return [{ json: page('Błędny link', '<h1 class=\"err\">Nieprawidłowy link</h1>', 400) }];\nreturn [{\n  json: page('Zakończ zadanie',\n    `<h1>Zakończyć zadanie?</h1><p>Zużyjemy zarezerwowane materiały i powiadomimy klienta, że zamówienie jest gotowe.</p>` +\n    `<form method=\"post\" action=\"/webhook/task-done\"><input type=\"hidden\" name=\"task_id\" value=\"${esc(p.id)}\">` +\n    `<button type=\"submit\">Zakończ zadanie</button></form>`),\n}];\n"
+      }
+    },
+    {
+      "id": "n049-post-task-done",
+      "name": "POST task-done",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        700
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-done",
+        "authentication": "basicAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "team-done-post",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "operatorauth0001",
+          "name": "Operator"
+        }
+      }
+    },
+    {
+      "id": "n050-parse-done",
+      "name": "Parse done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        700
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Walidacja formularza POST (zmiana stanu): identyfikator tylko z treści formularza, nigdy z adresu.\n// Kontrola pochodzenia dotyczy każdego POST, także z pustą treścią. Strony n8n są serwowane w piaskownicy CSP,\n// więc prawdziwy formularz wysyła Origin: null (i Sec-Fetch-Site: cross-site); odrzucamy tylko żądania z Origin\n// innej witryny. Ochroną przed obcym formularzem są też logowanie Basic i nieodgadnialny UUID w treści.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst i = $input.first().json;\nconst h = i.headers || {};\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\nconst origin = String(h.origin || '').trim().toLowerCase();\nconst host = String(h['x-forwarded-host'] || h.host || '').trim().toLowerCase();\nconst sameOrigin = origin === '' || origin === 'null' || origin.replace(/^https?:\\/\\//, '') === host;\nconst id = body.order_id !== undefined ? body.order_id : (body.task_id !== undefined ? body.task_id : body.po_id);\nconst assignee = typeof body.assignee === 'string' ? body.assignee : '';\nconst valid = isUuid(id) && sameOrigin;\nreturn [{ json: { valid, id: valid ? id.toLowerCase() : null, assignee } }];\n"
+      }
+    },
+    {
+      "id": "n051-done-form-valid-",
+      "name": "Done form valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        700
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-done-form-valid-",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n052-task-done",
+      "name": "Task done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/task_done",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_task_id: $json.id }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n053-done-result",
+      "name": "Done result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        640
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Wynik task_done -> strona. Mail dla klienta i wiadomość Slack zapisuje już baza, w tej samej transakcji.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst r = $input.first().json;\nif (r.ok) {\n  return [{ json: page('Zakończono', '<h1 class=\"ok\">Zadanie zakończone</h1><p>Klient dostanie informację, że zamówienie jest gotowe.</p>') }];\n}\nconst msg = r.error === 'TASK_ALREADY_DONE' ? 'To zadanie jest już zakończone.'\n  : r.error === 'TASK_NOT_FOUND' ? 'Nie znaleziono zadania.' : 'Nie udało się zakończyć zadania.';\nreturn [{ json: page('Błąd', `<h1 class=\"err\">${esc(msg)}</h1>`, 409) }];\n"
+      }
+    },
+    {
+      "id": "n054-bad-link",
+      "name": "Bad link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Odpowiedź na nieprawidłowy link (zły albo brakujący identyfikator).\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nreturn [{ json: page('Błędny link', '<h1 class=\"err\">Nieprawidłowy link</h1><p>Poproś o nowy w wiadomości od systemu.</p>', 400) }];\n"
+      }
+    },
+    {
+      "id": "n055-respond-page",
+      "name": "Respond page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        260
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.code }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET approve": {
+      "main": [
+        [
+          {
+            "node": "Config page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config page": {
+      "main": [
+        [
+          {
+            "node": "Parse approve page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse approve page": {
+      "main": [
+        [
+          {
+            "node": "Approve link valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve link valid?": {
+      "main": [
+        [
+          {
+            "node": "Order context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order context": {
+      "main": [
+        [
+          {
+            "node": "Approve page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve page": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST approve": {
+      "main": [
+        [
+          {
+            "node": "Config POST",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config POST": {
+      "main": [
+        [
+          {
+            "node": "Parse approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse approve": {
+      "main": [
+        [
+          {
+            "node": "Approve form valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve form valid?": {
+      "main": [
+        [
+          {
+            "node": "Approve order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve order": {
+      "main": [
+        [
+          {
+            "node": "Approve result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve result": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET task-done": {
+      "main": [
+        [
+          {
+            "node": "Parse done page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse done page": {
+      "main": [
+        [
+          {
+            "node": "Done page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Done page": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST task-done": {
+      "main": [
+        [
+          {
+            "node": "Parse done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse done": {
+      "main": [
+        [
+          {
+            "node": "Done form valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Done form valid?": {
+      "main": [
+        [
+          {
+            "node": "Task done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task done": {
+      "main": [
+        [
+          {
+            "node": "Done result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Done result": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bad link": {
+      "main": [
+        [
+          {
+            "node": "Respond page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
+  },
+  "versionId": "team00000000001-v1"
+}

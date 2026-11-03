@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalkulator wyceny mebli</title>
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --ink: #2b2118; --muted: #6f6256; --line: #e4dccf;
+    --accent: #8a5a2b; --accent-ink: #ffffff; --err: #a32020; --ok: #1f6b3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1612; --card: #251e18; --ink: #f1e9df; --muted: #b5a798; --line: #3a3027;
+            --accent: #d49a5a; --accent-ink: #1b1612; --err: #ff8a8a; --ok: #7fd49c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .item { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end;
+          border-bottom: 1px dashed var(--line); padding-bottom: 16px; margin-bottom: 16px; }
+  .item:last-of-type { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 10px; font: inherit; color: var(--ink); background: var(--bg);
+                            border: 1px solid var(--line); border-radius: 8px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+           color: var(--ink); cursor: pointer; min-height: 44px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .remove { color: var(--err); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .total { font-size: 1.5rem; font-weight: 700; }
+  .muted { color: var(--muted); }
+  .err { color: var(--err); }
+  .ok { color: var(--ok); }
+  .hint { font-size: .85rem; color: var(--muted); }
+  .skeleton { opacity: .5; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Kalkulator wyceny mebli</h1>
+  <p class="lead">Złóż zestaw z gotowych produktów albo podaj wymiary mebla na zamówienie. Wycena aktualizuje się na bieżąco.</p>
+
+  <section class="card" aria-labelledby="items-h">
+    <h2 id="items-h" style="margin-top:0;font-size:1.1rem">Pozycje</h2>
+    <div id="items"></div>
+    <div class="row" style="margin-top:16px">
+      <button type="button" id="add-catalog">+ Produkt z katalogu</button>
+      <button type="button" id="add-custom">+ Mebel na wymiar</button>
+    </div>
+    <p id="catalog-error" class="err" role="alert" hidden></p>
+  </section>
+
+  <section class="card" aria-labelledby="quote-h" aria-live="polite">
+    <h2 id="quote-h" style="margin-top:0;font-size:1.1rem">Wycena</h2>
+    <p id="quote-status" class="muted">Dodaj pozycję, aby zobaczyć cenę.</p>
+    <div id="quote-body" hidden>
+      <table>
+        <thead><tr><th>Pozycja</th><th class="num">Ilość</th><th class="num">Cena</th></tr></thead>
+        <tbody id="quote-lines"></tbody>
+      </table>
+      <p class="total">Razem: <span id="quote-total">—</span></p>
+      <p class="hint">Cena orientacyjna, bez podatku VAT. Ostateczną wycenę potwierdzamy mailem po przyjęciu zamówienia.</p>
+    </div>
+  </section>
+
+  <form class="card" id="order-form" aria-labelledby="order-h" novalidate>
+    <h2 id="order-h" style="margin-top:0;font-size:1.1rem">Zamów</h2>
+    <div style="margin-bottom:12px">
+      <label for="email">Twój adres e-mail</label>
+      <input id="email" type="email" autocomplete="email" maxlength="200" required>
+    </div>
+    <div style="margin-bottom:12px">
+      <label for="notes">Uwagi (opcjonalnie)</label>
+      <textarea id="notes" rows="3" maxlength="1000"></textarea>
+    </div>
+    <div class="row">
+      <button type="submit" class="primary" id="order-btn" disabled>Zamawiam</button>
+      <span id="order-status" role="status"></span>
+    </div>
+  </form>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // Adres API n8n (webhooki). Przy hostingu publicznym ustaw tu adres produkcyjny.
+  var API = 'http://localhost:5678/webhook';
+  var MAX_ITEMS = 20, MIN_CM = 20, MAX_CM = 300, MAX_QTY = 1000;
+  var ERRORS = {
+    NO_ITEMS: 'Dodaj co najmniej jedną pozycję.', TOO_MANY_ITEMS: 'Maksymalnie 20 pozycji.',
+    INVALID_QTY: 'Ilość musi być liczbą całkowitą od 1 do 1000.',
+    INVALID_SPEC: 'Wymiary muszą mieścić się w zakresie 20–300 cm.',
+    INVALID_ITEM: 'Uzupełnij wszystkie pozycje.', UNKNOWN_PRODUCT: 'Nieznany produkt.',
+    UNKNOWN_MATERIAL: 'Wybierz materiał.', MATERIAL_NOT_ALLOWED: 'Ten materiał nie nadaje się do mebla na wymiar.',
+    INVALID_EMAIL: 'Podaj poprawny adres e-mail.', NO_PRICE: 'Tej pozycji nie da się teraz wycenić. Napisz do nas, a wycenimy ręcznie.',
+    INCOMPLETE_PRODUCT: 'Tej pozycji nie da się teraz wycenić.'
+  };
+
+  var catalog = { products: [], materials: [] };
+  var items = [];          // {type:'catalog'|'custom', product_id, qty, w, h, d, material_id}
+  var lastQuote = null;
+  var timer = null, seq = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, props, children) {
+    var n = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      if (k === 'text') n.textContent = props[k]; else n.setAttribute(k, props[k]);
+    });
+    (children || []).forEach(function (c) { n.appendChild(c); });
+    return n;
+  }
+  function pln(v) { return Number(v).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' }); }
+  function field(label, control) {
+    var id = control.id;
+    return el('div', {}, [el('label', { 'for': id, text: label }), control]);
+  }
+  function select(id, options, value, onchange, placeholder) {
+    var s = el('select', { id: id });
+    s.appendChild(el('option', { value: '', text: placeholder }));
+    options.forEach(function (o) {
+      var op = el('option', { value: o.id, text: o.name });
+      if (o.id === value) op.selected = true;
+      s.appendChild(op);
+    });
+    s.addEventListener('change', function () { onchange(s.value); });
+    return s;
+  }
+  function num(id, value, min, max, onchange) {
+    var i = el('input', { id: id, type: 'number', inputmode: 'numeric', min: min, max: max, step: 1 });
+    i.value = value === null || value === undefined ? '' : value;
+    i.addEventListener('input', function () { onchange(i.value === '' ? null : Number(i.value)); });
+    return i;
+  }
+
+  function render() {
+    var box = $('items');
+    box.textContent = '';
+    items.forEach(function (it, idx) {
+      var n = idx + 1, row = el('div', { 'class': 'item' });
+      if (it.type === 'catalog') {
+        row.appendChild(field('Produkt', select('p' + n, catalog.products, it.product_id,
+          function (v) { it.product_id = v; changed(); }, 'Wybierz produkt')));
+      } else {
+        row.appendChild(field('Szerokość (cm)', num('w' + n, it.w, MIN_CM, MAX_CM, function (v) { it.w = v; changed(); })));
+        row.appendChild(field('Wysokość (cm)', num('h' + n, it.h, MIN_CM, MAX_CM, function (v) { it.h = v; changed(); })));
+        row.appendChild(field('Głębokość (cm)', num('d' + n, it.d, MIN_CM, MAX_CM, function (v) { it.d = v; changed(); })));
+        row.appendChild(field('Materiał', select('m' + n, catalog.materials, it.material_id,
+          function (v) { it.material_id = v; changed(); }, 'Wybierz materiał')));
+      }
+      row.appendChild(field('Ilość', num('q' + n, it.qty, 1, MAX_QTY, function (v) { it.qty = v; changed(); })));
+      var rm = el('button', { type: 'button', 'class': 'remove', text: 'Usuń', 'aria-label': 'Usuń pozycję ' + n });
+      rm.addEventListener('click', function () { items.splice(idx, 1); render(); changed(); $('add-catalog').focus(); });
+      row.appendChild(rm);
+      box.appendChild(row);
+    });
+    $('add-catalog').disabled = $('add-custom').disabled = items.length >= MAX_ITEMS;
+  }
+
+  // Pozycja jest kompletna, gdy da się ją wysłać do wyceny (pełną walidację robi baza).
+  function payload() {
+    var out = [];
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!Number.isInteger(it.qty) || it.qty < 1 || it.qty > MAX_QTY) return null;
+      if (it.type === 'catalog') {
+        if (!it.product_id) return null;
+        out.push({ product_id: it.product_id, qty: it.qty });
+      } else {
+        var dims = [it.w, it.h, it.d];
+        for (var k = 0; k < 3; k++) if (!Number.isFinite(dims[k]) || dims[k] < MIN_CM || dims[k] > MAX_CM) return null;
+        if (!it.material_id) return null;
+        out.push({ custom_spec: { width_cm: it.w, height_cm: it.h, depth_cm: it.d, material_id: it.material_id }, qty: it.qty });
+      }
+    }
+    return out.length ? out : null;
+  }
+
+  function setStatus(text, cls) {
+    var s = $('quote-status'); s.textContent = text; s.className = cls || 'muted'; s.hidden = !text;
+  }
+
+  function changed() {
+    clearTimeout(timer);
+    var mine = ++seq;       // każda zmiana unieważnia odpowiedzi na wcześniejsze zapytania, także gdy zestaw jest niepełny
+    lastQuote = null;
+    $('order-btn').disabled = true;
+    $('order-status').textContent = '';
+    var p = payload();
+    if (!p) {
+      $('quote-body').hidden = true;
+      setStatus(items.length ? 'Uzupełnij pozycje (wymiary 20–300 cm, ilość, materiał), aby zobaczyć cenę.' : 'Dodaj pozycję, aby zobaczyć cenę.');
+      return;
+    }
+    setStatus('Liczę…');
+    $('quote-body').classList.add('skeleton');
+    timer = setTimeout(function () { fetchQuote(p, mine); }, 350);
+  }
+
+  function fetchQuote(p, mine) {
+    fetch(API + '/quote-preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: p })
+    }).then(function (r) { return r.json().catch(function () { return { error: 'NETWORK' }; }); })
+      .catch(function () { return { error: 'NETWORK' }; })
+      .then(function (q) {
+        if (mine !== seq) return; // nowsza zmiana wyprzedziła tę odpowiedź
+        $('quote-body').classList.remove('skeleton');
+        if (!q || q.error || !Array.isArray(q.lines)) {
+          $('quote-body').hidden = true;
+          setStatus(ERRORS[q && q.error] || 'Nie udało się policzyć wyceny. Spróbuj ponownie za chwilę.', 'err');
+          return;
+        }
+        showQuote(q);
+      });
+  }
+
+  function showQuote(q) {
+    lastQuote = q;
+    var tb = $('quote-lines'); tb.textContent = '';
+    q.lines.forEach(function (l) {
+      tb.appendChild(el('tr', {}, [
+        el('td', { text: l.label }), el('td', { 'class': 'num', text: String(l.qty) }),
+        el('td', { 'class': 'num', text: pln(l.price) })
+      ]));
+    });
+    $('quote-total').textContent = pln(q.total);
+    $('quote-body').hidden = false;
+    setStatus('');
+    $('order-btn').disabled = false;
+  }
+
+  // Klucz idempotencji to skrót treści zamówienia: to samo żądanie ponowione (także po odświeżeniu strony) trafia
+  // w to samo zamówienie, a zmiana pozycji, e-maila albo uwag daje nowe.
+  function digest(text) {
+    var bytes = new TextEncoder().encode(text);
+    return crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('').slice(0, 32);
+    });
+  }
+
+  function lockForm(locked) {
+    document.querySelectorAll('#items input, #items select, #items button, #add-catalog, #add-custom, #email, #notes')
+      .forEach(function (n) { n.disabled = locked; });
+  }
+
+  $('order-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = $('email').value.trim(), st = $('order-status'), notes = $('notes').value.trim();
+    var p = payload();   // zawsze z aktualnego stanu formularza, nie z ostatniej odpowiedzi
+    if (!p || !lastQuote) { st.className = 'err'; st.textContent = 'Najpierw uzupełnij pozycje.'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.className = 'err'; st.textContent = 'Podaj poprawny adres e-mail.'; $('email').focus(); return; }
+    var body = { customer_email: email, items: p, notes: notes };
+    $('order-btn').disabled = true; lockForm(true); st.className = 'muted'; st.textContent = 'Wysyłam…';
+    digest(JSON.stringify(body)).then(function (key) {
+      body.external_id = 'calc-' + key;
+      return fetch(API + '/calculator-order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var err = new Error('HTTP ' + r.status); err.code = j && j.error; throw err; }
+      });
+    }).then(function () {
+      items = []; $('notes').value = ''; lockForm(false); render(); changed();
+      st.className = 'ok';
+      st.textContent = 'Dziękujemy! Wycenę ostateczną wyślemy na ' + email + ' w ciągu kilku minut.';
+    }).catch(function (err) {
+      lockForm(false);
+      render(); changed();
+      st.className = 'err';
+      st.textContent = err && err.code && ERRORS[err.code] ? ERRORS[err.code]
+        : 'Nie udało się wysłać zamówienia. Spróbuj ponownie (zamówienie nie zostanie zdublowane).';
+    });
+  });
+
+  function addItem(item, firstFocusId) {
+    items.push(item); render(); changed();
+    var f = $(firstFocusId + items.length); if (f) f.focus();
+  }
+
+  $('add-catalog').addEventListener('click', function () { addItem({ type: 'catalog', product_id: '', qty: 1 }, 'p'); });
+  $('add-custom').addEventListener('click', function () { addItem({ type: 'custom', w: null, h: null, d: null, material_id: '', qty: 1 }, 'w'); });
+
+  fetch(API + '/catalog').then(function (r) { return r.json(); }).then(function (c) {
+    catalog = { products: c.products || [], materials: c.materials || [] };
+    if (!catalog.products.length && !catalog.materials.length) throw new Error('empty');
+    items.push({ type: 'catalog', product_id: '', qty: 1 });
+    render(); changed();
+  }).catch(function () {
+    var e = $('catalog-error'); e.hidden = false;
+    e.textContent = 'Nie udało się wczytać katalogu. Odśwież stronę albo napisz do nas.';
+    $('add-catalog').disabled = $('add-custom').disabled = true;
+  });
+})();
+</script>
+</body>
+</html>

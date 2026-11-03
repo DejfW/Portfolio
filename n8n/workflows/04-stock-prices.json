@@ -1,0 +1,548 @@
+{
+  "id": "stock0000000001",
+  "name": "04 Stock and prices",
+  "nodes": [
+    {
+      "id": "n056-schedule-7-00",
+      "name": "Schedule 7:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n057-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stock-report",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "stock-report-0001"
+    },
+    {
+      "id": "n058-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-projectDir",
+              "name": "projectDir",
+              "value": "={{ $env.PROJECT_DIR }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-allowMock",
+              "name": "allowMock",
+              "value": "={{ $env.ALLOW_LLM_MOCK || '0' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-ownerEmail",
+              "name": "ownerEmail",
+              "value": "={{ $env.OWNER_EMAIL || 'owner@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-publicUrl",
+              "name": "publicUrl",
+              "value": "={{ $env.PUBLIC_URL || 'http://localhost:5678' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-testSinkPort",
+              "name": "testSinkPort",
+              "value": "={{ $env.TEST_SINK_PORT || '18765' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-slackConfigured",
+              "name": "slackConfigured",
+              "value": "={{ !!$env.SLACK_WEBHOOK_URL }}",
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-emailDelivery",
+              "name": "emailDelivery",
+              "value": "={{ $env.EMAIL_DELIVERY || 'off' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-emailAllowlist",
+              "name": "emailAllowlist",
+              "value": "={{ $env.EMAIL_ALLOWLIST || $env.GMAIL_USER || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-authorized",
+              "name": "authorized",
+              "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "n059-stock-params",
+      "name": "Stock params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Parametry raportu magazynu. Domyślnie czytamy data/suppliers; wywołanie przez webhook (/stock-report)\n// działa tylko w trybie testowym (ALLOW_LLM_MOCK=1) i może wskazać inny katalog w data/ oraz klucz raportu.\n// Z harmonogramu nie ma żadnego wejścia z zewnątrz.\nconst i = $input.first().json;\nconst viaWebhook = i.headers !== undefined;\nconst testMode = i.allowMock === '1';\nconst body = i.body && typeof i.body === 'object' ? i.body : {};\n\n// ścieżka projektu trafia do polecenia w cudzysłowie, więc odrzucamy znaki specjalne powłoki\nif (typeof i.projectDir !== 'string' || !i.projectDir || /[\"`$\\\\]/.test(i.projectDir)) throw new Error('INVALID_PROJECT_DIR');\n\nlet allowed = !viaWebhook || testMode;\nlet dir = 'suppliers';\nif (viaWebhook && testMode && body.dir !== undefined) {\n  if (typeof body.dir === 'string' && /^[a-z0-9_-]{1,40}$/.test(body.dir)) dir = body.dir;\n  else allowed = false;\n}\nconst today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });\nlet key = today;\nif (viaWebhook && testMode && body.digest_key !== undefined) {\n  if (typeof body.digest_key === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(body.digest_key)) key = body.digest_key;\n  else allowed = false;\n}\nreturn [{ json: { viaWebhook, allowed, dir, key, today, projectDir: i.projectDir } }];\n"
+      }
+    },
+    {
+      "id": "n060-allowed-",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-allowed-",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n061-forbidden",
+      "name": "Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'FORBIDDEN' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "n062-via-webhook-",
+      "name": "Via webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-via-webhook-",
+              "leftValue": "={{ $json.viaWebhook }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n063-started",
+      "name": "Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'started' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "n064-read-csv",
+      "name": "Read CSV",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        20
+      ],
+      "parameters": {
+        "command": "=for f in \"{{ $json.projectDir }}\"/data/{{ $json.dir }}/*.csv; do [ -e \"$f\" ] && { cat \"$f\"; printf '\\n'; }; done"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n065-parse-csv",
+      "name": "Parse CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Parsuje cenniki hurtowni (połączone pliki CSV z polecenia cat): supplier,material,price.\n// Obsługuje BOM, CRLF, pola w cudzysłowie z przecinkami, puste linie, komentarze (#) i powtórzony nagłówek.\n// Ścisłość: wiersz musi mieć dokładnie 3 kolumny i domknięte cudzysłowy. Inne wiersze przechodzą dalej jako\n// {raw} bez ceny, więc baza zgłosi je jako błędne zamiast zapisać po cichu część danych.\nconst raw = String($input.first().json.stdout || '').replace(/^\\uFEFF/, '').replace(/\\r\\n?/g, '\\n');\n\nfunction parseLine(line) {\n  const out = [];\n  let cur = '';\n  let quoted = false;\n  for (let k = 0; k < line.length; k++) {\n    const ch = line[k];\n    if (quoted) {\n      if (ch === '\"' && line[k + 1] === '\"') { cur += '\"'; k++; }\n      else if (ch === '\"') quoted = false;\n      else cur += ch;\n    } else if (ch === '\"') quoted = true;\n    else if (ch === ',') { out.push(cur); cur = ''; }\n    else cur += ch;\n  }\n  out.push(cur);\n  return { cols: out.map((c) => c.trim()), unterminated: quoted };\n}\n\nconst rows = [];\nfor (const line of raw.split('\\n')) {\n  const t = line.trim();\n  if (!t || t.startsWith('#')) continue;\n  const { cols, unterminated } = parseLine(t);\n  if (cols[0].toLowerCase() === 'supplier' && String(cols[1] || '').toLowerCase() === 'material') continue;\n  if (unterminated || cols.length !== 3) { rows.push({ raw: t.slice(0, 200) }); continue; }\n  rows.push({ supplier: cols[0], material: cols[1], price: cols[2] });\n}\nreturn [{ json: { rows } }];\n"
+      }
+    },
+    {
+      "id": "n066-import-prices",
+      "name": "Import prices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/import_supplier_prices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: { rows: $json.rows } }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n067-stock-report",
+      "name": "Stock report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/low_stock_report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n068-digest",
+      "name": "Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Składa podsumowanie dla właściciela: wynik importu cen i materiały do zamówienia.\n// Wiadomość powstaje tylko wtedy, gdy jest o czym informować; klucz deduplikacji chroni przed dublem.\n// Wspólne pomocniki stron HTML i komunikatów (wstawiane do węzłów Code przez n8n/build.mjs).\nconst esc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>\"']/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst slackEsc = (s) => String(s === undefined || s === null ? '' : s).replace(/[&<>]/g, (c) => (\n  { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));\nconst page = (title, body, code = 200) => ({\n  code,\n  html: `<!doctype html><html lang=\"pl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">` +\n    `<title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:34rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}` +\n    `h1{font-size:1.3rem}button{font:inherit;padding:.6rem 1.2rem;border:0;border-radius:.4rem;background:#1f6feb;color:#fff;cursor:pointer}` +\n    `select,input{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.3rem 0 1rem}.err{color:#b42318}.ok{color:#067647}li{margin:.25rem 0}</style>` +\n    `</head><body>${body}</body></html>`,\n});\nconst pln = (x) => `${Number(x).toFixed(2).replace('.', ',')} zł`;\nconst isUuid = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\n\nconst params = $('Stock params').first().json;\nconst imp = $('Import prices').first().json;\nconst rep = $input.first().json;\n\nconst list = (a) => (Array.isArray(a) ? a : []);\nconst lines = [];\nconst issues = [];\n\nif (imp.error) issues.push(`Import cenników nie powiódł się (${imp.error}).`);\nif (list(imp.unknown_suppliers).length) issues.push(`Nieznane hurtownie: ${list(imp.unknown_suppliers).map(slackEsc).join(', ')}.`);\nif (list(imp.unknown_materials).length) issues.push(`Nieznane materiały: ${list(imp.unknown_materials).map(slackEsc).join(', ')}.`);\nif (list(imp.invalid).length) issues.push(`Błędnych wierszy: ${list(imp.invalid).length}.`);\nif (!imp.error && Number(imp.updated) === 0) issues.push('Żadna cena nie została zaktualizowana (brak plików albo same błędne wiersze).');\n\nconst items = list(rep.items);\nfor (const it of items) {\n  const where = it.best_supplier ? `najtaniej: ${slackEsc(it.best_supplier)} po ${pln(it.best_price)}` : 'brak aktualnej ceny';\n  lines.push(`• ${slackEsc(it.name)}: dostępne ${Number(it.available)}, do zamówienia ${Number(it.to_order)}, ${where}`);\n}\nconst unpriced = list(rep.unpriced);\n\nif (!items.length && !issues.length) return [{ json: { p: [] } }];\n\nconst text = [\n  `📦 Raport magazynu (${params.today})`,\n  imp.error ? null : `Ceny hurtowni zaktualizowane: ${Number(imp.updated) || 0}.`,\n  ...issues.map((x) => `⚠️ ${x}`),\n  items.length ? `Do zamówienia (${items.length}):\\n${lines.join('\\n')}` : null,\n  unpriced.length ? `Bez aktualnej ceny w hurtowniach: ${unpriced.map(slackEsc).join(', ')}.` : null,\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { p: [{ channel: 'slack', kind: 'stock_digest', dedupe_key: `stock-digest:${params.key}`, text: text.slice(0, 2900) }] } }];\n"
+      }
+    },
+    {
+      "id": "n069-queue-notifications",
+      "name": "Queue notifications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/enqueue_notifications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p: $json.p }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule 7:00": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Stock params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stock params": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Via webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Via webhook?": {
+      "main": [
+        [
+          {
+            "node": "Started",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Started": {
+      "main": [
+        [
+          {
+            "node": "Read CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CSV": {
+      "main": [
+        [
+          {
+            "node": "Parse CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CSV": {
+      "main": [
+        [
+          {
+            "node": "Import prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import prices": {
+      "main": [
+        [
+          {
+            "node": "Stock report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stock report": {
+      "main": [
+        [
+          {
+            "node": "Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Digest": {
+      "main": [
+        [
+          {
+            "node": "Queue notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none"
+  },
+  "versionId": "stock0000000001-v1"
+}

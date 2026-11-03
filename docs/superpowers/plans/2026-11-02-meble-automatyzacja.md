@@ -20,7 +20,7 @@
 - Stan magazynowy nigdy nie spada poniżej 0. Dostępne = `stock - reserved`.
 - Każde zamówienie ma unikalne `external_id` (Message-ID z maila albo UUID z formularza), więc ponowne przetworzenie niczego nie duplikuje.
 - Wynik LLM zawsze przechodzi walidację. Niepoprawny JSON albo nieznany materiał daje status `needs_review`, a nie wycenę.
-- Treść maila ani formularza nigdy nie trafia do stringa komendy powłoki. Prompt jest zapisywany do pliku, a `scripts/llm.sh <plik>` przekazuje go do `agy` jako jeden argument w cudzysłowie. Chroni to przed wstrzyknięciem komendy przez klienta.
+- Treść maila ani formularza nigdy nie trafia do stringa komendy powłoki. Prompt jest kodowany w base64 (znaki `[A-Za-z0-9+/=]`) i przekazywany do `scripts/llm.sh` przez stdin, więc do powłoki nie trafia nic, co pochodzi od klienta. Chroni to przed wstrzyknięciem komendy przez klienta.
 - Sekrety (Supabase service key, Gmail) tylko w credentials n8n. Nigdy w eksportowanych JSON-ach workflow ani w repo.
 - Dane demo są fikcyjne: 3 hurtownie, ok. 12 materiałów, 8 produktów katalogowych, 60 historycznych zamówień.
 
@@ -79,49 +79,40 @@
 **Files:**
 - Create: `n8n/workflows/01-order-intake.json`
 - Create: `n8n/prompts/parse-order.md`
-- Create: `n8n/fixtures/` (`email-catalog.txt`, `email-custom.txt`, `email-incomplete.txt`, `llm-garbage.json`)
+- Create: `n8n/fixtures/` (`email-*.txt` i `llm-*.json`), `n8n/code/*.js` (kod węzłów Code), `n8n/build.mjs` (generuje `workflows/*.json`)
+- Create: `supabase/migrations/005_catalog_outbox.sql`, `006_intake.sql`, testy `004_outbox_test.sql`, `005_intake_test.sql`
+- Create: `scripts/n8n.sh` (start, import i publikacja przez `npx`), `n8n/workflows/02-intake-sweeper.json` (co 5 min: zgłoszenia niedomknięte po 10 min idą do sprawdzenia, brakujące maile są uzupełniane), `supabase/migrations/007_intake_recovery.sql`, testy w Node `n8n/test/*.test.mjs` (`node --test n8n/test/`)
 - Create: `scripts/test-intake.sh`
 - Create: `scripts/llm.sh`, `n8n/workflows/00-llm.json` (sub-workflow LLM z sekcji „LLM w workflowach n8n”)
 
 **Interfaces:**
-- Consumes: `upsert_order`, `estimate_quote` przez Supabase REST `/rest/v1/rpc/...`.
-- Produces: webhook `POST /webhook/order` z body `{external_id?, customer_email, message}`. Ta sama ścieżka obsługuje też formularz. Odpowiedź od razu: `{external_id, status: "processing"}`, a reszta przepływu biegnie asynchronicznie (LLM potrzebuje 10–30 s). Nagłówek `X-LLM-Mock: <nazwa>` działa tylko przy `ALLOW_LLM_MOCK=1` i tylko dla nazw pasujących do `^[a-z0-9-]+$`. Podmienia wtedy odpowiedź LLM na `n8n/fixtures/llm-<nazwa>.json`.
-- Przepływ: (Webhook | IMAP Trigger) → normalizacja do `{external_id, source, customer_email, raw_text}` → LLM (prompt z listą produktów i materiałów pobraną z bazy; wynik to wyłącznie JSON `{kind, items:[{product_name?|custom_spec?, qty}], missing:[...]}`) → Code node waliduje schemat i mapuje nazwy na id → gałąź: `missing` niepuste daje `needs_info` i mail z prośbą o brakujące dane; błąd walidacji daje `needs_review`; w pozostałych przypadkach `upsert_order` i `estimate_quote` → mail do klienta z wyceną wstępną oraz wiadomość na Slacku dla właściciela z linkiem do zatwierdzenia (`/webhook/approve?order_id=`).
+- Consumes: `upsert_order`, `estimate_quote` (Task 1). Produces w bazie: `catalog_for_llm() returns jsonb`, `intake_receive(p jsonb) returns jsonb` (zapis zgłoszenia przed odpowiedzią HTTP; `created=false` dla duplikatu), `intake_complete(p_order_id uuid, p jsonb) returns jsonb` (domknięcie wynikiem AI, `route` = `ok`, `needs_info`, `needs_review`; działa raz), `notification_context(uuid)`, `orders_missing_notifications(int)`, `mark_stuck_intakes(int)` (odzyskiwanie po awarii), tabela `email_outbox` i `enqueue_email(order_id, kind, to, subject, body) returns uuid` (unikalnie po zamówieniu i rodzaju). Maile trafiają do `email_outbox`; faktyczną wysyłkę dopinamy, gdy jest skrzynka (Gmail), do tego czasu da się je sprawdzić w tabeli.
+- Produces: webhook `POST /webhook/order` z body `{external_id?, customer_email, message}`. Ta sama ścieżka obsługuje też formularz. Odpowiedź po trwałym zapisie zgłoszenia: `{external_id, status: "processing"}` (lub `"duplicate"`), a reszta biegnie asynchronicznie (LLM potrzebuje 10–30 s). `external_id` jest wymagany. Opcjonalny `INTAKE_TOKEN` wymusza nagłówek `X-Intake-Token` (401). Nagłówek `X-LLM-Mock: <nazwa>` działa tylko przy `ALLOW_LLM_MOCK=1` i tylko dla nazw pasujących do `^[a-z0-9-]+$`. Podmienia wtedy odpowiedź LLM na `n8n/fixtures/llm-<nazwa>.json`.
+- Przepływ (w Task 3 samo wejście webhookowe; IMAP Trigger dochodzi z Gmailem w Task 9): Webhook → normalizacja do `{external_id, source, customer_email, raw_text}` → LLM (prompt z listą produktów i materiałów pobraną z bazy; wynik to wyłącznie JSON `{kind, items:[{product_name?|custom_spec?, qty}], missing:[...]}`) → Code node waliduje schemat i mapuje nazwy na id → gałąź: `missing` niepuste daje `needs_info` i mail z prośbą o brakujące dane; błąd walidacji daje `needs_review`; w pozostałych przypadkach `upsert_order` i `estimate_quote` → mail do klienta z wyceną wstępną oraz wiadomość na Slacku dla właściciela z linkiem do zatwierdzenia (`/webhook/approve?order_id=`).
 
-- [ ] **Step 1: Napisz `scripts/test-intake.sh`**, który wysyła każdy fixture curlem z nagłówkiem `X-LLM-Mock`, a potem przez Supabase REST odpytuje `orders?external_id=eq.<id>` (co 2 s, maks. 30 s) i sprawdza status: `parse_catalog_email` daje `quoted`, `parse_custom_email` daje `quoted` i `quote.total > 0`, `parse_incomplete_email` daje `needs_info`, `parse_garbage_llm_output` daje `needs_review`. Ten sam fixture wysłany drugi raz nie tworzy drugiego wiersza. `shell_injection_safe`: wiadomość `"; touch /tmp/pwned; echo "` nie tworzy pliku `/tmp/pwned`. Jeden test (`smoke_real_agy`) idzie bez mocka do prawdziwego `agy` i sprawdza tylko, że zamówienie dostało status inny niż `processing`.
+- [ ] **Step 1: Napisz `scripts/test-intake.sh`**, który wysyła każdy fixture curlem z nagłówkiem `X-LLM-Mock`, a potem odpytuje bazę (co 0,5 s, maks. 40 s) o status zamówienia i maile w `email_outbox`: `parse_catalog_email` daje `quoted`, `parse_custom_email` daje `quoted` i `quote.total > 0`, `parse_incomplete_email` daje `needs_info`, `parse_garbage_llm_output` daje `needs_review`. Ten sam fixture wysłany drugi raz nie tworzy drugiego wiersza. `shell_injection_safe`: wiadomość `"; touch /tmp/pwned; echo "` nie tworzy pliku `/tmp/pwned`. Jeden test (`smoke_real_agy`) idzie bez mocka do prawdziwego `agy` i sprawdza tylko, że zamówienie dostało status inny niż `processing`.
 - [ ] **Step 2: Uruchom skrypt przy pustym n8n.** Expected: FAIL, 404 na webhooku.
 - [ ] **Step 3: Zbuduj workflow** w n8n, wyeksportuj go bez credentials do `01-order-intake.json` i zapisz prompt.
 - [ ] **Step 4: Uruchom skrypt.** Expected: 5/5 OK. Ręcznie: wyślij prawdziwy mail na skrzynkę demo i sprawdź, czy wiersz w `orders` ma `source='email'`.
 - [ ] **Step 5: Commit** `feat(n8n): order intake with AI parsing and quote`.
 
-### Task 4: n8n — zatwierdzenie, zadania dla zespołu i alerty magazynowe (śr.–czw.)
+### Task 4: n8n — zatwierdzenie, zadania dla zespołu, alerty magazynowe i dostarczanie powiadomień (wykonane)
 
-**Files:**
-- Create: `n8n/workflows/02-approve-and-assign.json`
-- Create: `n8n/workflows/03-complete-task.json`
-- Create: `n8n/workflows/04-stock-and-prices.json`
-- Create: `data/suppliers/hurtownia-{a,b,c}.csv` w formacie `material_name,price`
-- Create: `scripts/test-tasks.sh`
+**Co powstało (stan rzeczywisty, po recenzji Codex):**
+- **Baza:** `approve_order`, `task_done` (powiadomienia Slack i mail zapisywane w tej samej transakcji co zmiana stanu), `task_shortages`, `import_supplier_prices` (cena ≤ 2 miejsca po przecinku, dopasowanie nazw bez rozróżniania wielkości liter, unikalne znormalizowane nazwy), `low_stock_report`, `enqueue_notifications`, kolejka `slack_outbox`, `claim_deliveries` (dzierżawa 2 min, lista dozwolonych adresów w SQL, limit liczony po filtrach), `mark_delivered`, `mark_failed` (odstęp 2, 4, 8... min, rezygnacja po 8 próbach). Migracje 009–012, testy `007`–`010`.
+- **Workflowy:** `03-team-tasks` (linki GET z przyciskiem i formularze POST; logowanie Basic operatora; odrzucanie formularzy `Sec-Fetch-Site: cross-site`), `04-stock-prices` (codziennie 7:00, cenniki `data/suppliers/*.csv`, ścisły parser CSV), `05-deliver` (co minutę: Slack przez Incoming Webhook, maile przez Gmail SMTP, domyślnie wyłączone i tylko na adresy z `EMAIL_ALLOWLIST`).
+- **Bezpieczeństwo:** webhooki testowe (`/sweep`, `/stock-report`, `/deliver`) działają tylko z `ALLOW_LLM_MOCK=1`, a `/deliver` wymaga dokładnie jednego lokalnego odbiornika i dostarcza wtedy wyłącznie wiadomości testowe; klucz Supabase czytany z `$env` i nieobecny w danych; błędne wykonania nie zapisują danych (`saveDataErrorExecution: none`); `scripts/n8n.sh` generuje hasło operatora w `.env.local`.
+- **Testy:** `scripts/test-tasks.sh` (47), `test-stock.sh` (17), `test-deliver.sh` (23), 52 testy jednostkowe w Node (`node --test n8n/test/`), 64 testy SQL.
 
-**Interfaces:**
-- Consumes: `create_task`, `complete_task`, `low_stock`, `supplier_prices`.
-- Produces: `GET /webhook/approve?order_id=&assignee=` ustawia status `approved`, wywołuje `create_task` i wysyła Slack do wykonawcy. Przy `INSUFFICIENT_STOCK` wysyła do właściciela listę braków z najlepszym dostawcą.
-- Produces: `POST /webhook/task-done {task_id}` wywołuje `complete_task`, a potem mail do klienta „zamówienie gotowe”.
-- Produces: cron codziennie o 7:00 wczytuje 3 CSV, robi upsert do `supplier_prices` (`updated_at = now()`), czyta `low_stock` i wysyła jedną zbiorczą wiadomość „do zamówienia: materiał, ilość, hurtownia, cena”.
-
-- [ ] **Step 1: Napisz `scripts/test-tasks.sh`:** approve zamówienia z seedu daje `in_progress` i rosnące `reserved` (sprawdzane przez REST), dwa approve na materiał na granicy stanu dają drugą odpowiedź `INSUFFICIENT_STOCK`, task-done zmniejsza `stock`, ręczny run workflow 04 aktualizuje `updated_at` cen i zwraca listę `low_stock`.
-- [ ] **Step 2: Uruchom.** Expected: FAIL (404).
-- [ ] **Step 3: Zbuduj i wyeksportuj workflowy 02–04.**
-- [ ] **Step 4: Uruchom skrypt i skrypt z Task 3.** Expected: wszystko OK.
-- [ ] **Step 5: Commit** `feat(n8n): approval, team tasks, stock and price alerts`.
+**Świadomie nie zrobione:** semantyka dostarczania to „co najmniej raz” (jeśli proces padnie po wysłaniu, a przed `mark_delivered`, wiadomość może pójść ponownie); testy integracyjne zakładają lokalną bazę bez innego ruchu (przywracają stany magazynowe po sobie); prawdziwa wysyłka Slack i SMTP wymaga zgody właściciela na wiadomość testową.
 
 ### Task 5: Kalkulator dla klienta i raport bestsellerów (czw.)
 
 **Files:**
 - Create: `web/index.html` (kalkulator: wybór produktu albo wymiary i materiał → wycena na żywo → „Zamów” wysyła na `/webhook/order`)
-- Create: `supabase/migrations/004_reports.sql`
+- Create: `supabase/migrations/007_reports.sql`
 - Create: `n8n/workflows/05-quote-preview.json`, `n8n/workflows/06-weekly-report.json`
-- Test: `supabase/tests/003_reports_test.sql`
+- Test: `supabase/tests/006_reports_test.sql`
 
 **Interfaces:**
 - Produces: `quote_preview(p jsonb) returns jsonb`. Ta sama logika co `estimate_quote`, ale bez zapisu. Refaktor: obie funkcje używają wspólnej `_quote_lines(items jsonb)`.
@@ -151,15 +142,15 @@ Social media są poza zakresem (pomysł na v2, opisany w README w sekcji „co d
 ### Task 7: Zamówienia do hurtowni, czyli auto-PO (pt. rano)
 
 **Files:**
-- Create: `supabase/migrations/005_purchasing.sql`
-- Test: `supabase/tests/004_purchasing_test.sql`
+- Create: `supabase/migrations/008_purchasing.sql`
+- Test: `supabase/tests/007_purchasing_test.sql`
 - Create: `n8n/workflows/08-purchase-orders.json`, `scripts/test-purchasing.sh`
 
 **Interfaces:**
 - Consumes: `low_stock`, `best_price`, `stock_movements` (Task 2), `suppliers.email`.
 - Produces, tabele: `purchase_orders(id uuid, supplier_id, status check in ('draft','sent','received','cancelled'), approve_token uuid unique default gen_random_uuid(), created_at, sent_at, received_at)`, `purchase_order_lines(po_id, material_id, qty numeric, unit_price numeric)`.
 - Produces: `create_purchase_orders() returns setof uuid`. Dla każdego materiału z `low_stock`, którego nie ma jeszcze w PO `draft` ani `sent`: `qty = ceil(2*min_stock - available)`. Materiały są grupowane po najtańszym dostawcy, jeden szkic PO na dostawcę. Materiał bez aktualnej ceny jest pomijany, a funkcja `low_stock_unpriced()` zwraca listę takich materiałów do alertu.
-- Produces: `approve_purchase_order(p_token uuid) returns uuid`. Zmienia status `draft` na `sent` i ustawia `sent_at`. Z innego statusu: `raise exception 'PO_NOT_DRAFT'`.
+- Produces: `approve_purchase_order(p_po_id uuid) returns jsonb` (zmiana względem pierwotnego planu: link chroni logowanie Basic, a nie osobny token; wynik `{ok, error}` jak w `approve_order`). Zmienia status `draft` na `sent` i ustawia `sent_at`. Z innego statusu: `raise exception 'PO_NOT_DRAFT'`.
 - Produces: `receive_delivery(p_po_id uuid) returns void`. Tylko ze statusu `sent`, inaczej `raise exception 'PO_NOT_SENT'`. Dla każdej linii `stock += qty` i ruch `kind='receive'`, status `received`.
 - Workflow 08: cron codziennie o 7:15 (po workflow 04) → `create_purchase_orders` → dla każdego PO wiadomość do właściciela z tabelą i linkiem `GET /webhook/po-approve?token=` → po akceptacji mail do hurtowni z tabelą pozycji. `GET /webhook/po-received?po_id=` wywołuje `receive_delivery`.
 
@@ -172,8 +163,8 @@ Social media są poza zakresem (pomysł na v2, opisany w README w sekcji „co d
 ### Task 8: Follow-up wycen (pt. po południu)
 
 **Files:**
-- Create: `supabase/migrations/006_followup.sql`
-- Test: `supabase/tests/005_followup_test.sql`
+- Create: `supabase/migrations/009_followup.sql`
+- Test: `supabase/tests/008_followup_test.sql`
 - Create: `n8n/workflows/09-quote-followup.json`, `n8n/fixtures/llm-followup.json`, `scripts/test-followup.sh`
 
 **Interfaces:**
@@ -193,7 +184,7 @@ Social media są poza zakresem (pomysł na v2, opisany w README w sekcji „co d
 ### Task 9: Triage skrzynki AI (weekend / pon. 9.11)
 
 **Files:**
-- Create: `supabase/migrations/007_inbox.sql`
+- Create: `supabase/migrations/010_inbox.sql`
 - Create: `n8n/workflows/10-inbox-triage.json`, `n8n/prompts/triage.md`, `data/faq.md`
 - Create: `n8n/fixtures/email-question.txt`, `email-complaint.txt`, `email-spam.txt` oraz `llm-triage-{order,question,complaint,spam,uncertain}.json`
 - Create: `scripts/test-triage.sh`
@@ -214,8 +205,8 @@ Social media są poza zakresem (pomysł na v2, opisany w README w sekcji „co d
 ### Task 10: Statusy zamówień i prośba o opinię (pon. 9.11)
 
 **Files:**
-- Create: `supabase/migrations/008_status.sql`
-- Test: `supabase/tests/006_status_test.sql`
+- Create: `supabase/migrations/011_status.sql`
+- Test: `supabase/tests/009_status_test.sql`
 - Create: `n8n/workflows/11-status-notify.json`, `n8n/workflows/12-review-request.json`, `web/status.html`, `scripts/test-status.sh`
 
 **Interfaces:**
@@ -260,9 +251,9 @@ Ograniczenia: nikt poza Claude nie dostaje kluczy ani `.env`. Wyniki recenzji Ge
 Decyzja z 2026-11-02: **lokalnie przez `agy`**, bez klucza API. Konsekwencje i sposób wykonania:
 
 - **Jeden punkt wymiany.** Wszystkie wywołania LLM idą przez sub-workflow `n8n/workflows/00-llm.json` (wejście `{prompt, mode}`, wyjście `{text}`). Workflowy 01, 06 i 07 wołają go przez `Execute Workflow`. Zmiana na API w przyszłości to podmiana jednego node'a, co warto opisać w README jako świadomą decyzję.
-- **Wewnątrz sub-workflow:** `Write Files to Disk` (prompt do `tmp/llm/<uuid>.txt`) → `Execute Command`: `scripts/llm.sh tmp/llm/<uuid>.txt` → Code node usuwa ewentualne bloki ```json i zwraca tekst.
-- **`scripts/llm.sh`** (Task 3): `agy --model gemini-3.8-flash-medium --print-timeout 90s --print "$(cat "$1")"`, usuwa plik po wywołaniu. Przy `LLM_MOCK=<plik>` zwraca zawartość fixture'a bez wołania `agy`; tego trybu używają skrypty testowe, żeby nie zużywać limitu.
-- **n8n:** start przez `NODES_EXCLUDE="[]" npx n8n` (node `Execute Command` jest domyślnie wyłączony) z `N8N_RESTRICT_FILE_ACCESS_TO=<projekt>/tmp/llm`.
+- **Wewnątrz sub-workflow:** Code (prompt → base64) → `Execute Command`: `printf %s '<base64>' | base64 -d | LLM_MOCK='<nazwa>' "$PROJECT_DIR/scripts/llm.sh"` → Code (wynik albo pusty tekst przy błędzie). Walidacja odpowiedzi (wycięcie bloku ```json, mapowanie nazw na id) jest po stronie wywołującego.
+- **`scripts/llm.sh`** (Task 3): czyta prompt ze stdin i woła `agy --model gemini-3.8-flash-medium --print-timeout 90s --print`. Przy `LLM_MOCK=<nazwa>` (tylko z `ALLOW_LLM_MOCK=1`, nazwa `^[a-z0-9-]+$`) zwraca zawartość fixture'a bez wołania `agy`; tego trybu używają skrypty testowe, żeby nie zużywać limitu.
+- **n8n:** start przez `NODES_EXCLUDE="[]" npx n8n` (node `Execute Command` jest domyślnie wyłączony) oraz `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, bo workflowy czytają konfigurację przez `$env`. Wszystko ustawia `scripts/n8n.sh`.
 - **Ograniczenia:** odpowiedź trwa 10–30 s, więc intake odpowiada na webhook od razu (`status: processing`), a wycena idzie mailem. Kalkulator nie korzysta z LLM (`quote_preview` to czysty SQL), więc działa natychmiast. Wywołania zużywają limit Google AI Pro, a system działa tylko przy włączonym komputerze.
 
 ## Co jest potrzebne od Ciebie (ok. 1–2 h w tygodniu)
