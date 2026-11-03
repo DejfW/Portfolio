@@ -8,6 +8,7 @@ const codeDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'code');
 
 export function runCode(file, { nodes = {}, input = [{}] } = {}) {
   const source = readFileSync(join(codeDir, `${file}.js`), 'utf8')
+    .replace(/^\/\/@include (\w[\w-]*)\s*$/gm, (_, lib) => readFileSync(join(codeDir, 'lib', `${lib}.js`), 'utf8'))
     // build-prompt.js ma w szablonie znacznik podmieniany przez build.mjs
     .replace('__PROMPT_TEMPLATE__', JSON.stringify('{{PRODUCTS}}|{{MATERIALS}}|{{MESSAGE}}'));
   const wrap = (arr) => ({ first: () => ({ json: arr[0] }), all: () => arr.map((json) => ({ json })) });

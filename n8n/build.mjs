@@ -8,12 +8,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)));
-const code = (name) => readFileSync(join(root, 'code', `${name}.js`), 'utf8');
+// Linia `//@include nazwa` jest zastępowana plikiem n8n/code/lib/nazwa.js (wspólne pomocniki węzłów Code).
+const code = (name) => readFileSync(join(root, 'code', `${name}.js`), 'utf8')
+  .replace(/^\/\/@include (\w[\w-]*)\s*$/gm, (_, lib) => readFileSync(join(root, 'code', 'lib', `${lib}.js`), 'utf8'));
 const prompt = (name) => readFileSync(join(root, 'prompts', `${name}.md`), 'utf8');
 
 const LLM_WORKFLOW_ID = 'llm0000000000001';
 const INTAKE_WORKFLOW_ID = 'intake000000001';
 const SWEEPER_WORKFLOW_ID = 'sweeper00000001';
+const TEAM_WORKFLOW_ID = 'team00000000001';
 
 // --- pomocnicze konstruktory węzłów -----------------------------------------------------------
 
@@ -68,10 +71,10 @@ const boolIf = (name, position, expr, expected = true) =>
   });
 
 // Ustawienia niebędące sekretami. INTAKE_TOKEN jest porównywany tutaj, a do danych trafia tylko wynik.
-const configNode = (position) => {
+const configNode = (position, name = 'Config') => {
   const env = (name, fallback) => `={{ $env.${name} || '${fallback}' }}`;
   const set = (name, value, type = 'string') => ({ id: `cfg-${name}`, name, value, type });
-  return node('Config', 'n8n-nodes-base.set', 3.4, position, {
+  return node(name, 'n8n-nodes-base.set', 3.4, position, {
     mode: 'manual',
     assignments: {
       assignments: [
@@ -79,6 +82,7 @@ const configNode = (position) => {
         set('allowMock', env('ALLOW_LLM_MOCK', '0')),
         set('ownerEmail', env('OWNER_EMAIL', 'owner@example.com')),
         set('publicUrl', env('PUBLIC_URL', 'http://localhost:5678')),
+        set('team', env('TEAM', 'Jan,Anna,Piotr')),
         set('authorized',
           `={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}`, 'boolean'),
       ],
@@ -221,6 +225,80 @@ function buildSweeper() {
   ]);
 }
 
+
+// --- 03-team-tasks ---------------------------------------------------------------------------
+// Linki z maila i ze Slacka: GET pokazuje stronę z przyciskiem (skanery linków w poczcie nie mogą
+// niczego zatwierdzić), a dopiero POST z formularza zmienia stan i dopisuje powiadomienia do kolejek.
+
+function buildTeamTasks() {
+  const forConfig = (src, cfgName) => src.split("$('Config')").join(`$('${cfgName}')`);
+  const hook = (name, method, path, y, id) =>
+    node(name, 'n8n-nodes-base.webhook', 2.1, [0, y], { httpMethod: method, path, responseMode: 'responseNode', options: {} },
+      { webhookId: id });
+
+  const nodes = [
+    // GET /approve?order_id=... -> strona z formularzem
+    hook('GET approve', 'GET', 'approve', 0, 'team-approve-get'),
+    configNode([220, 0], 'Config page'),
+    codeNode('Parse approve page', [440, 0], code('id-prep')),
+    boolIf('Approve link valid?', [660, 0], '$json.valid'),
+    rpc('Order context', [880, -60], 'notification_context', `{ p_order_id: $json.id }`),
+    codeNode('Approve page', [1100, -60], forConfig(code('approve-page'), 'Config page')),
+
+    // POST /approve -> zlecenie zadania
+    hook('POST approve', 'POST', 'approve', 260, 'team-approve-post'),
+    configNode([220, 260], 'Config POST'),
+    codeNode('Parse approve', [440, 260], code('id-prep')),
+    boolIf('Approve form valid?', [660, 260], '$json.valid'),
+    rpc('Approve order', [880, 200], 'approve_order', `{ p_order_id: $json.id, p_assignee: $json.assignee }`),
+    codeNode('Approve result', [1100, 200], forConfig(code('approve-result'), 'Config POST')),
+
+    // GET /task-done?task_id=... -> strona z przyciskiem
+    hook('GET task-done', 'GET', 'task-done', 520, 'team-done-get'),
+    codeNode('Parse done page', [440, 520], code('id-prep')),
+    codeNode('Done page', [660, 520], code('done-page')),
+
+    // POST /task-done -> zamknięcie zadania
+    hook('POST task-done', 'POST', 'task-done', 700, 'team-done-post'),
+    codeNode('Parse done', [440, 700], code('id-prep')),
+    boolIf('Done form valid?', [660, 700], '$json.valid'),
+    rpc('Task done', [880, 640], 'task_done', `{ p_task_id: $json.id }`),
+    codeNode('Done result', [1100, 640], code('done-result')),
+
+    // wspólny koniec łańcuchów POST i odpowiedzi
+    rpc('Queue notifications', [1320, 420], 'enqueue_notifications', `{ p: $json.notifications }`,
+      { onError: 'continueRegularOutput' }, { response: { response: { responseFormat: 'json' } } }),
+    codeNode('Final page', [1540, 420], code('final-page')),
+    codeNode('Bad link', [880, 460], code('bad-link')),
+    node('Respond page', 'n8n-nodes-base.respondToWebhook', 1.1, [1760, 260], {
+      respondWith: 'text',
+      responseBody: '={{ $json.html }}',
+      options: {
+        responseCode: '={{ $json.code }}',
+        responseHeaders: { entries: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }] },
+      },
+    }),
+  ];
+
+  return workflow(TEAM_WORKFLOW_ID, '03 Team tasks', nodes, [
+    ['GET approve', 'Config page'], ['Config page', 'Parse approve page'], ['Parse approve page', 'Approve link valid?'],
+    ['Approve link valid?', 'Order context', 0], ['Approve link valid?', 'Bad link', 1],
+    ['Order context', 'Approve page'], ['Approve page', 'Respond page'],
+
+    ['POST approve', 'Config POST'], ['Config POST', 'Parse approve'], ['Parse approve', 'Approve form valid?'],
+    ['Approve form valid?', 'Approve order', 0], ['Approve form valid?', 'Bad link', 1],
+    ['Approve order', 'Approve result'], ['Approve result', 'Queue notifications'],
+
+    ['GET task-done', 'Parse done page'], ['Parse done page', 'Done page'], ['Done page', 'Respond page'],
+
+    ['POST task-done', 'Parse done'], ['Parse done', 'Done form valid?'],
+    ['Done form valid?', 'Task done', 0], ['Done form valid?', 'Bad link', 1],
+    ['Task done', 'Done result'], ['Done result', 'Queue notifications'],
+
+    ['Queue notifications', 'Final page'], ['Final page', 'Respond page'], ['Bad link', 'Respond page'],
+  ]);
+}
+
 // --- zapis -------------------------------------------------------------------------------------
 
 const outDir = join(root, 'workflows');
@@ -229,6 +307,7 @@ for (const [file, wf] of [
   ['00-llm.json', buildLlm()],
   ['01-order-intake.json', buildIntake()],
   ['02-intake-sweeper.json', buildSweeper()],
+  ['03-team-tasks.json', buildTeamTasks()],
 ]) {
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);

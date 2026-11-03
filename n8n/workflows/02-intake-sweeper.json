@@ -77,6 +77,12 @@
               "type": "string"
             },
             {
+              "id": "cfg-team",
+              "name": "team",
+              "value": "={{ $env.TEAM || 'Jan,Anna,Piotr' }}",
+              "type": "string"
+            },
+            {
               "id": "cfg-authorized",
               "name": "authorized",
               "value": "={{ !$env.INTAKE_TOKEN || ($json.headers && $json.headers['x-intake-token'] === $env.INTAKE_TOKEN) }}",
