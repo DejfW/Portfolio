@@ -49,6 +49,10 @@ Kanały (formularz, poczta, kalkulator, tablet w salonie, strona statusu) wchodz
 
 Pliki `n8n/workflows/*.json` są **generowane** przez `n8n/build.mjs` z `n8n/code/*.js` i `n8n/prompts/*.md`. Edytuje się źródła, nie JSON.
 
+## Portfolio
+
+Strona portfolio w stylu n8n, na której ten system jest jednym z projektów, leży w [`portfolio/`](portfolio/README.md). Uruchomienie: `node scripts/serve-portfolio.mjs` (http://localhost:8090). Nowy projekt dodaje się folderem w `portfolio/projects/` i wpisem w manifeście.
+
 ## Decyzje projektowe
 
 - **Logika w SQL, nie w workflowach.** Wycena, rezerwacje i raporty to funkcje Postgresa z testami (`supabase/tests`). Workflow n8n tylko orkiestruje. Dzięki temu logikę da się testować bez uruchamiania n8n.
