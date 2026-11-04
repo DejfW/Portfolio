@@ -352,6 +352,140 @@
       ]
     },
     {
+      "type": "graph",
+      "title": "A swappable model layer",
+      "nodes": [
+        {
+          "id": "u1",
+          "label": "Order intake",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "u2",
+          "label": "Quote reminders",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "u3",
+          "label": "Weekly report",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "u4",
+          "label": "Inbox triage",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "llm",
+          "label": "00 LLM: one contract",
+          "layer": 1,
+          "kind": "workflow",
+          "icon": "n8n"
+        },
+        {
+          "id": "loc",
+          "label": "Local model (built)",
+          "layer": 2,
+          "kind": "ai"
+        },
+        {
+          "id": "api",
+          "label": "Any provider by API key",
+          "layer": 2,
+          "kind": "ai"
+        },
+        {
+          "id": "orc",
+          "label": "Model orchestrator per task",
+          "layer": 2,
+          "kind": "ai"
+        },
+        {
+          "id": "val",
+          "label": "Code validates the output",
+          "layer": 3,
+          "kind": "workflow",
+          "icon": "n8n"
+        }
+      ],
+      "edges": [
+        {
+          "from": "u1",
+          "to": "llm"
+        },
+        {
+          "from": "u2",
+          "to": "llm"
+        },
+        {
+          "from": "u3",
+          "to": "llm"
+        },
+        {
+          "from": "u4",
+          "to": "llm"
+        },
+        {
+          "from": "llm",
+          "to": "loc"
+        },
+        {
+          "from": "llm",
+          "to": "api"
+        },
+        {
+          "from": "llm",
+          "to": "orc"
+        },
+        {
+          "from": "loc",
+          "to": "val"
+        },
+        {
+          "from": "api",
+          "to": "val"
+        },
+        {
+          "from": "orc",
+          "to": "val"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Replacing or routing the model",
+      "columns": [
+        "Option",
+        "How",
+        "What stays the same",
+        "Status"
+      ],
+      "rows": [
+        [
+          "Local model (today)",
+          "scripts/llm.sh runs a local command-line model: prompt on stdin, answer on stdout. The LLM_MODEL variable picks the model. No API key is needed.",
+          "Every caller, prompt, validation and fallback",
+          "Built"
+        ],
+        [
+          "Any provider by API key",
+          "Replace the one command in llm.sh (or the Run llm.sh node in workflow 00) with a request to the provider's API. The key stays in the environment, never in the prompt.",
+          "The contract (text in, text out), all callers, validation and safe paths",
+          "Possible: one change point, not built yet"
+        ],
+        [
+          "Model orchestrator per task",
+          "Each caller passes a task name (order intake, reminder, report, triage) into workflow 00, and a router picks the model: for example a stronger model for order extraction, a cheaper one for reminder text, and a fallback chain when a model fails.",
+          "Validation remains the safety net, so a weaker or different model cannot save bad data",
+          "Possible: needs a task field and a router, not built yet. Related to the planned Agent Orchestrator project."
+        ]
+      ]
+    },
+    {
       "type": "diagram",
       "title": "Architecture",
       "src": "media/architecture.svg",

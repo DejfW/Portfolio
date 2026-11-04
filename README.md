@@ -57,6 +57,7 @@ Strona portfolio w stylu n8n, na której ten system jest jednym z projektów, le
 
 - **Logika w SQL, nie w workflowach.** Wycena, rezerwacje i raporty to funkcje Postgresa z testami (`supabase/tests`). Workflow n8n tylko orkiestruje. Dzięki temu logikę da się testować bez uruchamiania n8n.
 - **AI tylko tam, gdzie trzeba.** Model czyta tekst zamówienia i pisze podsumowanie raportu. Ceny, stany i decyzje liczy kod. Wynik modelu jest walidowany (kształt, produkty z katalogu, limity), a jego awaria nie gubi zamówienia ani raportu liczbowego.
+- **Model wymienny.** Każde wywołanie AI przechodzi przez jeden sub-workflow (`00-llm`) i `scripts/llm.sh` (prompt na wejściu, tekst na wyjściu), a odpowiedź zawsze waliduje kod. Dzięki temu lokalny model można zastąpić dowolnym dostawcą z kluczem API zmianą w jednym miejscu, a w przyszłości dodać router modeli per zadanie. Ani podmiana, ani router nie są jeszcze zaimplementowane.
 - **Człowiek zatwierdza.** Zamówienie z maila nie rezerwuje materiałów, dopóki właściciel nie kliknie linku zatwierdzenia.
 - **Idempotencja.** `upsert_order` i `calculator_order` działają po `external_id`, więc ponowienie żądania nie dubluje zamówienia. Klucz kalkulatora to skrót SHA-256 treści zamówienia.
 - **Outbox.** Maile i wiadomości Slacka trafiają najpierw do tabel `email_outbox` i `slack_outbox` z kluczem deduplikacji, a `05-deliver` je wysyła. Dostarczanie jest *at-least-once*: po awarii wiadomość może pójść ponownie, ale nie zginie.
