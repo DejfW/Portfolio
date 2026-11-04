@@ -143,7 +143,7 @@
 
 /* Graph */
 .graph-scroll { overflow-x: auto; padding: var(--spacing-24); border-radius: var(--radius-cardslarge); box-shadow: var(--shadow-subtle-2); }
-.graph-scroll svg { max-width: none; }
+.graph-scroll svg { width: 100%; height: auto; }
 .graph-edge { fill: none; stroke: url(#graph-grad); stroke-width: 2; stroke-linecap: round; }
 .graph-node rect { fill: var(--surface-elevated-surface); stroke: var(--color-border-smoke); stroke-width: 1; }
 .graph-node text { fill: var(--color-ash-text); font-size: 14px; font-family: var(--font-geomanist); }

@@ -110,6 +110,169 @@
       "caption": "Click to enlarge. Workflows only call SQL functions and queue notifications; decisions are made by the database."
     },
     {
+      "type": "prose",
+      "title": "How stock and purchasing work",
+      "paragraphs": [
+        "Stock is never edited by hand. Every change is a row in stock_movements (reserve, consume, receive), written in the same database transaction as the order, task or delivery it belongs to, so the numbers can always be traced.",
+        "A material counts as available when stock minus reserved is above its minimum. Below the minimum, the system finds the cheapest supplier with a price no older than 30 days and prepares a purchase order for the owner to approve with one click."
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Stock and purchasing flow",
+      "nodes": [
+        {
+          "id": "csv",
+          "label": "Supplier price lists (CSV), daily 7:00",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "appr",
+          "label": "Owner approves a customer order",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "imp",
+          "label": "04 Import prices",
+          "layer": 1,
+          "kind": "workflow"
+        },
+        {
+          "id": "task",
+          "label": "create_task: check and reserve",
+          "layer": 1,
+          "kind": "db"
+        },
+        {
+          "id": "prices",
+          "label": "supplier_prices: cheapest, max 30 days old",
+          "layer": 2,
+          "kind": "db"
+        },
+        {
+          "id": "mats",
+          "label": "materials: stock minus reserved",
+          "layer": 2,
+          "kind": "db"
+        },
+        {
+          "id": "low",
+          "label": "low_stock: below minimum",
+          "layer": 3,
+          "kind": "db"
+        },
+        {
+          "id": "po",
+          "label": "08 Purchase-order drafts, 7:15",
+          "layer": 4,
+          "kind": "workflow"
+        },
+        {
+          "id": "mail",
+          "label": "Owner approves, supplier is e-mailed",
+          "layer": 5,
+          "kind": "output"
+        },
+        {
+          "id": "recv",
+          "label": "Delivery received: stock goes up",
+          "layer": 6,
+          "kind": "db"
+        }
+      ],
+      "edges": [
+        {
+          "from": "csv",
+          "to": "imp"
+        },
+        {
+          "from": "appr",
+          "to": "task"
+        },
+        {
+          "from": "imp",
+          "to": "prices"
+        },
+        {
+          "from": "task",
+          "to": "mats"
+        },
+        {
+          "from": "prices",
+          "to": "low"
+        },
+        {
+          "from": "mats",
+          "to": "low"
+        },
+        {
+          "from": "low",
+          "to": "po"
+        },
+        {
+          "from": "po",
+          "to": "mail"
+        },
+        {
+          "from": "mail",
+          "to": "recv"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Stock lifecycle, step by step",
+      "columns": [
+        "Step",
+        "What happens",
+        "Where"
+      ],
+      "rows": [
+        [
+          "Price import",
+          "Daily at 7:00 the supplier CSV price lists are parsed and prices updated; unknown suppliers, unknown materials and bad rows are reported to the owner on Slack.",
+          "04-stock-prices"
+        ],
+        [
+          "Cheapest price",
+          "best_price returns the cheapest price above zero that is not older than 30 days. Old prices are ignored, so quotes never use stale data.",
+          "best_price (SQL)"
+        ],
+        [
+          "Approval and reservation",
+          "Approving an order locks the material rows in a fixed order, checks available stock and, if everything fits, reserves it and creates the team task. If anything is short, nothing is reserved and the owner is alerted with the cheapest supplier.",
+          "create_task (SQL)"
+        ],
+        [
+          "Task finished",
+          "The reservation becomes consumption: stock and reserved both go down and a 'consume' movement is written. The order moves to done.",
+          "complete_task (SQL)"
+        ],
+        [
+          "Below minimum",
+          "A material whose available stock is below its minimum appears in the low_stock view with its best supplier and price.",
+          "low_stock (SQL view)"
+        ],
+        [
+          "Purchase-order drafts",
+          "Daily at 7:15 one draft per cheapest supplier is created. The quantity tops stock up to twice the minimum. Materials already on an open order are skipped, and materials with no current price get a separate daily alert.",
+          "08-purchase-orders, create_purchase_orders"
+        ],
+        [
+          "Approval link",
+          "The owner gets the draft on Slack with an approval link. Approving marks it sent and queues the e-mail to the supplier in the same transaction.",
+          "approve_purchase_order (SQL)"
+        ],
+        [
+          "Delivery",
+          "The 'delivery arrived' link accepts only a sent order, raises stock by the ordered quantities and logs a 'receive' movement for every line.",
+          "receive_delivery (SQL)"
+        ]
+      ]
+    },
+    {
       "type": "graph",
       "title": "Dependencies",
       "nodes": [
@@ -384,6 +547,41 @@
           "caption": "Customer status page: stages and dates only, no e-mail or prices."
         }
       ]
+    },
+    {
+      "type": "gallery",
+      "title": "Slack and e-mail notifications",
+      "items": [
+        {
+          "type": "image",
+          "src": "media/slack-notifications.jpg",
+          "alt": "Slack messages from the orders bot: a new task for a team member with the quote, a completed task, and two purchase-order drafts to suppliers with approval links and line items.",
+          "caption": "Slack: new task, task completed, and purchase-order drafts created from low stock, each with a one-click approval link."
+        },
+        {
+          "type": "image",
+          "src": "media/email-order-approval.png",
+          "alt": "E-mail to the owner with the customer, the source, the preliminary quote of 2476.88 PLN and a link to approve and create a task.",
+          "caption": "Owner e-mail: a new order waiting for approval, with the approval link."
+        },
+        {
+          "type": "image",
+          "src": "media/email-quote.png",
+          "alt": "Customer e-mail with the quoted items, a preliminary quote of 2476.88 PLN and a note that the final price is confirmed after verification.",
+          "caption": "Customer e-mail: automatic preliminary quote."
+        },
+        {
+          "type": "image",
+          "src": "media/email-in-progress.png",
+          "alt": "Customer e-mail saying work on the order has started, with a link to the order status page.",
+          "caption": "Customer e-mail: work started, with a link to the status page."
+        }
+      ]
+    },
+    {
+      "type": "gallery",
+      "title": "Recordings",
+      "items": []
     }
   ]
 }

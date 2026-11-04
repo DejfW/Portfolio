@@ -2,9 +2,9 @@
 import { el, svg } from '../lib/dom.js';
 import { layoutGraph } from '../lib/graph-layout.js';
 
-const OPTS = { colWidth: 240, rowHeight: 84, nodeW: 180, nodeH: 56, pad: 16 };
+const OPTS = { colWidth: 204, rowHeight: 84, nodeW: 170, nodeH: 60, pad: 16 };
 
-function wrap(label, max = 22) {
+function wrap(label, max = 20) {
   if (label.length <= max) return [label];
   const mid = Math.floor(label.length / 2);
   let cut = label.lastIndexOf(' ', mid);
@@ -19,6 +19,8 @@ export function render(block) {
     return el('p', { class: 'notice', text: 'This graph could not be displayed.' });
   }
   const s = svg('svg', { viewBox: `0 0 ${g.width} ${g.height}`, width: g.width, height: g.height, role: 'img', 'aria-hidden': 'true', focusable: 'false' });
+  s.style.maxWidth = `${g.width}px`;
+  s.style.minWidth = `${Math.min(g.width, 880)}px`;
   s.append(svg('defs', {}, [svg('linearGradient', { id: 'graph-grad', gradientUnits: 'userSpaceOnUse', x1: 0, y1: 0, x2: g.width, y2: 0 }, [
     svg('stop', { offset: '0', class: 'cv-stop-a' }), svg('stop', { offset: '1', class: 'cv-stop-b' }),
   ])]));
