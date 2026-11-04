@@ -119,7 +119,7 @@
 .media { display: flex; flex-direction: column; gap: var(--spacing-8); }
 .media-open { display: block; width: 100%; padding: 0; border: 1px solid var(--color-line); border-radius: var(--radius-cards); overflow: hidden; background: var(--surface-void-base); cursor: zoom-in; }
 .media-open img { width: 100%; height: auto; }
-.diagram { max-width: 1000px; }
+.diagram { max-width: 1152px; }
 .diagram .media-open { background: var(--surface-deep-panel); }
 .diagram .media-open img { aspect-ratio: auto; object-fit: contain; }
 .media-video { width: 100%; aspect-ratio: 16 / 10; border-radius: var(--radius-cards); border: 1px solid var(--color-line); background: var(--surface-void-base); }

@@ -103,6 +103,13 @@
       ]
     },
     {
+      "type": "diagram",
+      "title": "The whole system on one map",
+      "src": "media/system-map.svg",
+      "alt": "System map. People and channels (calculator and showroom tablet, Gmail inbox, owner approval links, supplier CSV price lists, customer status page) feed 14 n8n workflows. The workflows call SQL functions in Supabase (PostgreSQL), the single source of truth, and call a local AI model whose output is validated. Notifications are queued in the database and delivered to Gmail and Slack by workflow 05.",
+      "caption": "Blue: input channels. Orange: n8n workflows. Violet: database. Red: AI. Grey: outputs. Click to enlarge."
+    },
+    {
       "type": "graph",
       "nodes": [
         {
