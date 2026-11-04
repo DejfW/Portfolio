@@ -5,8 +5,10 @@ import { render as list } from './list.js';
 import { render as table } from './table.js';
 import { render as gallery } from './gallery.js';
 import { render as diagram } from './diagram.js';
+import { render as chart } from './chart.js';
+import { render as graph } from './graph.js';
 
-export const RENDERERS = { prose, list, table, gallery, diagram };
+export const RENDERERS = { prose, list, table, gallery, diagram, chart, graph };
 
 export function renderBlock(block, ctx) {
   const fn = RENDERERS[block.type];

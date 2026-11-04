@@ -47,6 +47,109 @@
       "type": "gallery",
       "title": "Recordings and screenshots",
       "items": []
+    },
+    {
+      "type": "chart",
+      "title": "Test coverage (temp)",
+      "unit": "files",
+      "bars": [
+        {
+          "label": "SQL tests",
+          "value": 18
+        },
+        {
+          "label": "n8n unit tests",
+          "value": 11
+        },
+        {
+          "label": "e2e scripts",
+          "value": 9
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Dependencies (temp)",
+      "nodes": [
+        {
+          "id": "f",
+          "label": "Form and e-mail",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "k",
+          "label": "Calculator",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "t",
+          "label": "Showroom tablet",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "w",
+          "label": "n8n workflows",
+          "layer": 1,
+          "kind": "workflow"
+        },
+        {
+          "id": "db",
+          "label": "Supabase SQL functions",
+          "layer": 2,
+          "kind": "db"
+        },
+        {
+          "id": "ob",
+          "label": "Outbox and delivery",
+          "layer": 3,
+          "kind": "workflow"
+        },
+        {
+          "id": "sl",
+          "label": "Slack",
+          "layer": 4,
+          "kind": "output"
+        },
+        {
+          "id": "em",
+          "label": "Customer e-mail",
+          "layer": 4,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "f",
+          "to": "w"
+        },
+        {
+          "from": "k",
+          "to": "w"
+        },
+        {
+          "from": "t",
+          "to": "w"
+        },
+        {
+          "from": "w",
+          "to": "db"
+        },
+        {
+          "from": "db",
+          "to": "ob"
+        },
+        {
+          "from": "ob",
+          "to": "sl"
+        },
+        {
+          "from": "ob",
+          "to": "em"
+        }
+      ]
     }
   ]
 }
