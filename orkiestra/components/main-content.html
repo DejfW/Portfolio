@@ -1,0 +1,41 @@
+<main class="main-content" id="main-content" tabindex="-1">
+  <section class="main-content__section" id="overview" aria-labelledby="overview-title">
+    <div class="main-content__intro">
+      <p class="main-content__eyebrow">Your workspace at a glance</p>
+      <h1 id="overview-title">Overview</h1>
+      <p class="main-content__lead">Keep your team moving forward. Explore current projects and see what has changed.</p>
+    </div>
+    <dl class="main-content__stats" aria-label="Project summary">
+      <div class="main-content__stat"><dt>Total projects</dt><dd>3</dd></div>
+      <div class="main-content__stat"><dt>In progress</dt><dd>2</dd></div>
+      <div class="main-content__stat"><dt>Ready for review</dt><dd>1</dd></div>
+    </dl>
+  </section>
+
+  <section class="main-content__section" id="projects" aria-labelledby="projects-title">
+    <h2 id="projects-title">Projects</h2>
+    <p class="main-content__lead">A snapshot of the work taking shape. Expand a project for details.</p>
+    <div class="main-content__projects">
+      <details class="project-card">
+        <summary><span class="project-card__name">Workspace experience</span><span class="project-card__status">In progress</span></summary>
+        <div class="project-card__body"><p>Bring navigation, project summaries, and team updates into one shared workspace.</p><p class="main-content__muted">Next step: review the main interface components.</p></div>
+      </details>
+      <details class="project-card">
+        <summary><span class="project-card__name">Design foundations</span><span class="project-card__status">Ready for review</span></summary>
+        <div class="project-card__body"><p>Establish consistent colors, typography, and spacing for the team’s interface.</p><p class="main-content__muted">Next step: check the components in light and dark mode.</p></div>
+      </details>
+      <details class="project-card">
+        <summary><span class="project-card__name">Getting started</span><span class="project-card__status">In progress</span></summary>
+        <div class="project-card__body"><p>Help new teammates find their projects and understand the workspace.</p><p class="main-content__muted">Next step: review the onboarding content.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="main-content__section" id="activity" aria-labelledby="activity-title">
+    <h2 id="activity-title">Recent activity</h2>
+    <ul class="main-content__activity">
+      <li><h3>Design foundations is ready for review</h3><p>The shared styles are ready to use across the workspace.</p></li>
+      <li><h3>Workspace experience is in progress</h3><p>The team is building the header, navigation, and project overview.</p></li>
+    </ul>
+  </section>
+</main>

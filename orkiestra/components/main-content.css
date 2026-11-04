@@ -1,0 +1,180 @@
+.main-content {
+  display: flex;
+  flex: 1 1 var(--component-content-width);
+  flex-direction: column;
+  gap: var(--layout-section-gap, var(--space-6));
+  min-inline-size: 0;
+  padding: var(--space-4) var(--layout-gutter, var(--space-4));
+  background: var(--color-bg);
+  overflow-wrap: anywhere;
+}
+
+.main-content__section {
+  scroll-margin-block-start: var(--space-5);
+}
+
+.main-content__eyebrow,
+.main-content__lead,
+.main-content__muted {
+  color: var(--color-text-muted);
+}
+
+.main-content__eyebrow {
+  margin-block-end: var(--space-2);
+  font-weight: var(--font-weight-medium);
+}
+
+.main-content__lead,
+.project-card__body p {
+  max-inline-size: var(--component-reading-width);
+  line-height: var(--line-height-loose);
+}
+
+.main-content__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) var(--space-0) var(--space-0);
+}
+
+.main-content__stat {
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.main-content__stat dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.main-content__stat dd {
+  margin: var(--space-2) var(--space-0) var(--space-0);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.main-content__projects {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.project-card {
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.project-card summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-block-size: var(--component-target-size);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.project-card summary:hover {
+  background: var(--color-surface);
+}
+
+.project-card__name {
+  font-weight: var(--font-weight-medium);
+}
+
+.project-card__status {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.project-card__body {
+  padding: var(--space-4);
+  border-block-start: var(--component-border-width) solid var(--color-border);
+}
+
+.project-card__body p:last-child {
+  margin-block-end: var(--space-0);
+}
+
+.main-content__activity {
+  display: grid;
+  gap: var(--space-5);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.main-content__activity li {
+  padding-inline-start: var(--space-4);
+  border-inline-start: var(--space-1) solid var(--color-border);
+}
+
+.main-content__activity h3 {
+  margin-block-end: var(--space-2);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+}
+
+.main-content__activity p {
+  margin: var(--space-0);
+  color: var(--color-text-muted);
+  max-inline-size: var(--component-reading-width);
+}
+
+@media (max-width: 360px) {
+  .main-content__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .main-content {
+    padding: var(--space-5) var(--layout-gutter, var(--space-5));
+  }
+
+  .main-content__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-block-start: var(--space-5);
+  }
+
+  .main-content__projects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    align-items: start;
+  }
+}
+
+@media (min-width: 1024px) {
+  .main-content {
+    padding: var(--space-6) var(--layout-gutter, var(--space-6));
+  }
+
+  .main-content__stats {
+    gap: var(--space-5);
+  }
+
+  .main-content__projects {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .main-content__projects {
+    grid-template-columns: repeat(auto-fit, minmax(calc(var(--space-8) * 4), 1fr));
+  }
+
+  .main-content__activity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

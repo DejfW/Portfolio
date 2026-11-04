@@ -1,0 +1,748 @@
+@import "../components/components.css";
+
+/* ==========================================================================
+   Responsive Design System & Layout Variations
+   Uses tokens from ../styles/variables.css and ../components/components.css
+   ========================================================================== */
+
+:root {
+  --layout-gutter: var(--space-4);
+  --layout-section-gap: var(--space-6);
+  --layout-card-gap: var(--space-3);
+  --layout-sidebar-rail: calc(var(--space-8) * 3 + var(--space-7));
+  --layout-max-width: calc(var(--space-8) * 22 + var(--space-6));
+  --layout-tabbar-height: calc(var(--space-8) + var(--space-3));
+}
+
+/* --------------------------------------------------------------------------
+   Shared Responsive Primitives & Status Patterns
+   -------------------------------------------------------------------------- */
+
+.responsive-container {
+  inline-size: 100%;
+  max-inline-size: var(--layout-max-width);
+  margin-inline: auto;
+}
+
+.variation-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--layout-gutter);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.variation-switcher__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.variation-switcher__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.variation-switcher__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--component-target-size);
+  padding: var(--space-2) var(--space-3);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.variation-switcher__link:hover,
+.variation-switcher__link[aria-current="page"] {
+  border-color: var(--component-accent);
+  color: var(--component-accent);
+  text-decoration: underline;
+}
+
+.variation-switcher__link[aria-current="page"] {
+  background: var(--color-surface);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Active viewport breakpoint indicator (pure CSS via media queries) */
+.breakpoint-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--layout-gutter);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+}
+
+.breakpoint-banner__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.breakpoint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+/* Status pills (color + icon symbol + text label per WCAG AA) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.status-pill--info {
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.status-pill--warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.status-pill--success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.status-pill--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* Progress track & fill */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.progress-track {
+  flex: 1;
+  block-size: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: var(--component-border-width) solid var(--color-border);
+  overflow: hidden;
+}
+
+.progress-fill {
+  block-size: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-link);
+}
+
+.progress-fill--half {
+  inline-size: 50%;
+}
+
+.progress-fill--three-quarters {
+  inline-size: 75%;
+}
+
+.progress-fill--full {
+  inline-size: 100%;
+  background: var(--color-success);
+}
+
+.progress-label {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+/* Needs attention callout card */
+.attention-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.attention-card__info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.attention-card__icon {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  border: var(--component-border-width) solid var(--color-warning);
+  border-radius: var(--radius-full);
+  color: var(--color-warning);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.attention-card__title {
+  margin: var(--space-0) var(--space-0) var(--space-1);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.attention-card__meta {
+  margin: var(--space-0);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* Surface panel card */
+.surface-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.surface-card__title {
+  margin: var(--space-0);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.surface-card__subtitle {
+  margin: var(--space-0);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Variation 1: Mobile Layout Variation (.layout-mobile & .app-tabbar)
+   Compact header, 16px gutters, 2x2 KPI grid, stacked cards, bottom tab bar
+   -------------------------------------------------------------------------- */
+
+.layout-mobile {
+  padding-block-end: var(--layout-tabbar-height);
+}
+
+.layout-mobile .app-sidebar {
+  display: none;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) var(--space-0) var(--space-0);
+}
+
+.kpi-card {
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.kpi-card dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.kpi-card dd {
+  margin: var(--space-2) var(--space-0) var(--space-0);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.kpi-card__delta {
+  display: block;
+  margin-block-start: var(--space-2);
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.kpi-card__meta {
+  display: block;
+  margin-block-start: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* Sticky / fixed bottom tab bar for mobile layout variation */
+.app-tabbar {
+  position: fixed;
+  inset-inline: var(--space-0);
+  inset-block-end: var(--space-0);
+  z-index: 10;
+  border-block-start: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+  padding: var(--space-2) var(--layout-gutter);
+}
+
+.app-tabbar__list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.app-tabbar__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-block-size: var(--component-target-size);
+  min-inline-size: var(--component-target-size);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.app-tabbar__link:hover,
+.app-tabbar__link[aria-current="page"] {
+  background: var(--color-bg);
+  color: var(--component-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.app-tabbar__icon {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+}
+
+/* --------------------------------------------------------------------------
+   Variation 2: Tablet Layout Variation (.layout-tablet & .app-subnav)
+   Horizontal sub-navigation bar, 24px gutters, 2-column balanced grids
+   -------------------------------------------------------------------------- */
+
+.app-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--layout-gutter);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.app-subnav__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.app-subnav__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--component-target-size);
+  padding: var(--space-2) var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.app-subnav__link:hover,
+.app-subnav__link[aria-current="page"] {
+  border-color: var(--component-accent);
+  color: var(--component-accent);
+  text-decoration: underline;
+}
+
+.app-subnav__link[aria-current="page"] {
+  font-weight: var(--font-weight-bold);
+}
+
+.tablet-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+/* --------------------------------------------------------------------------
+   Variation 3: Desktop & Wide Split Layout (.layout-desktop & .workspace-split)
+   Persistent sidebar, 4-col KPI strip, 2-col asymmetric split, responsive table
+   -------------------------------------------------------------------------- */
+
+.workspace-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* Responsive table that transforms into stacked cards on mobile (< 768px) */
+.run-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.run-table th,
+.run-table td {
+  padding: var(--space-3) var(--space-4);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  text-align: start;
+  vertical-align: middle;
+}
+
+.run-table th {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+}
+
+.run-table__branch {
+  display: block;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+/* --------------------------------------------------------------------------
+   Variation 4: Master-Detail Split Layout (.layout-split-detail & .split-pane)
+   Task list + live output pane (stacks on mobile/tablet, side-by-side desktop)
+   -------------------------------------------------------------------------- */
+
+.split-pane {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.task-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.task-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  min-block-size: var(--component-target-size);
+  padding: var(--space-3) var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.task-list__item:hover,
+.task-list__item[aria-current="true"] {
+  border-color: var(--component-accent);
+  background: var(--color-surface);
+}
+
+.task-list__meta {
+  display: block;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.terminal-output {
+  margin: var(--space-0);
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-loose);
+  overflow-x: auto;
+}
+
+/* Layout preview grid for responsive/index.html */
+.variation-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+/* ==========================================================================
+   Media Queries across Screen Sizes & User Preferences
+   ========================================================================== */
+
+/* 1. Narrow Mobile (<= 360px): single-column KPI cards & full-width actions */
+@media (max-width: 360px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-tabbar__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 2. Small Mobile (<= 480px): compact spacing & full-width attention buttons */
+@media (max-width: 480px) {
+  .breakpoint-badge--xs {
+    border-color: var(--component-accent);
+    color: var(--component-accent);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .attention-card__action {
+    inline-size: 100%;
+  }
+
+  .attention-card__action .ui-link {
+    inline-size: 100%;
+  }
+}
+
+/* 3. All Mobile (< 768px): responsive table-to-card transformation & bottom bar */
+@media (max-width: 767px) {
+  .breakpoint-badge--mobile {
+    border-color: var(--component-accent);
+    color: var(--component-accent);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .run-table thead {
+    display: none;
+  }
+
+  .run-table,
+  .run-table tbody,
+  .run-table tr,
+  .run-table td {
+    display: block;
+    inline-size: 100%;
+  }
+
+  .run-table tr {
+    margin-block-end: var(--space-3);
+    padding: var(--space-3);
+    border: var(--component-border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .run-table td {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-0);
+    border-block-end: var(--component-border-width) solid var(--color-border);
+  }
+
+  .run-table td:last-child {
+    border-block-end: none;
+  }
+
+  .run-table td::before {
+    content: attr(data-label);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+  }
+}
+
+/* 4. Tablet (768px to 1023px): 24px gutters, 2-col grids, horizontal sub-nav */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .breakpoint-badge--tablet {
+    border-color: var(--component-accent);
+    color: var(--component-accent);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --layout-gutter: var(--space-5);
+    --layout-section-gap: var(--space-7);
+    --layout-card-gap: var(--space-4);
+  }
+
+  .surface-card {
+    padding: var(--space-5);
+  }
+
+  .tablet-grid-2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .variation-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Hide mobile bottom tabbar on tablet and desktop unless forced in mobile preview */
+  .app-shell:not(.layout-mobile) .app-tabbar {
+    display: none;
+  }
+}
+
+/* 5. Desktop (>= 1024px): 32px gutters, persistent 240px sidebar, split views */
+@media (min-width: 1024px) {
+  :root {
+    --layout-gutter: var(--space-6);
+    --layout-card-gap: var(--space-5);
+  }
+
+  .breakpoint-badge--desktop {
+    border-color: var(--component-accent);
+    color: var(--component-accent);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .kpi-grid--4col {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  .workspace-split {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .split-pane {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--space-5);
+  }
+
+  .split-pane__master {
+    position: sticky;
+    inset-block-start: var(--space-5);
+  }
+}
+
+/* 6. Wide Desktop (>= 1280px): expanded sidebar & 4-col preview grid */
+@media (min-width: 1280px) {
+  .breakpoint-badge--wide {
+    border-color: var(--component-accent);
+    color: var(--component-accent);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .variation-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6);
+  }
+}
+
+/* 7. Coarse Pointer / Touch Devices: comfortable spacing between touch targets */
+@media (hover: none) and (pointer: coarse) {
+  .app-sidebar__nav,
+  .task-list {
+    gap: var(--space-3);
+  }
+}
+
+/* 8. Reduced Motion: disable smooth scroll and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* 9. Print Media Query: clean printable report layout */
+@media print {
+  .variation-switcher,
+  .breakpoint-banner,
+  .app-tabbar,
+  .app-subnav,
+  .app-sidebar,
+  .app-header__actions,
+  .skip-link {
+    display: none !important;
+  }
+
+  .app-shell,
+  .app-layout,
+  .workspace-split,
+  .split-pane {
+    display: block;
+    padding: var(--space-0);
+  }
+
+  .surface-card,
+  .project-card,
+  .kpi-card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}

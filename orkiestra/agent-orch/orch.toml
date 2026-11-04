@@ -1,0 +1,100 @@
+model = "qwen3:8b"      # local dispatcher/planner/judge (Ollama)
+max_parallel = 3
+max_attempts = 3        # first try + up to 2 escalations
+
+# Profiles = agent CLI + model + effort. The router picks the cheapest profile that is
+# strong enough (tier) and good at the task category; failures escalate to higher tiers.
+# Categories: implement refactor debug tests ui review simple
+# `pool` (optional, default = agent) groups profiles that share one usage limit: one task per pool
+# runs at a time, and a limit hit takes the whole pool out of the run. Verified 2026-10-28:
+#   claude  - one 5h + weekly window for all models (stream `rate_limit_event`, no Opus-only window)
+#   codex   - one limit (`limit_id: codex`) for sol/astra/luna/terra
+#   agy     - `agy -p /usage`: "Gemini Models" (Flash, Pro), "Claude and GPT models" (Opus, Sonnet,
+#             GPT-OSS) and a separate "Gemini 4 Argon" weekly limit -> pools agy-gemini, agy-3p, agy-argon.
+#             agy-3p is Claude capacity on top of the claude CLI's own limit.
+# Starting heuristics, not measured benchmarks: tune tier/cost/good for your own workload.
+
+[profiles.claude-haiku-low]
+agent = "claude"
+model = "haiku"
+effort = ""
+tier = 1
+cost = 1
+good = ["simple"]
+
+[profiles.claude-sonnet-med]
+agent = "claude"
+model = "sonnet"
+effort = "medium"
+tier = 3
+cost = 3
+good = ["implement", "tests", "refactor", "debug"]
+
+[profiles.claude-opus-high]
+agent = "claude"
+model = "opus"
+effort = "high"
+tier = 4
+cost = 5
+good = ["refactor", "debug", "review", "implement"]
+
+[profiles.codex-luna-low]
+agent = "codex"
+model = "gpt-6-luna"
+effort = "low"
+tier = 1
+cost = 1
+good = ["simple", "tests"]
+
+[profiles.codex-sol-med]
+agent = "codex"
+model = "gpt-6.1-sol"
+effort = "medium"
+tier = 3
+cost = 3
+good = ["implement", "tests", "review"]
+
+[profiles.codex-astra-high]
+agent = "codex"
+model = "gpt-6-astra"
+effort = "high"
+tier = 4
+cost = 5
+good = ["implement", "debug", "refactor"]
+
+[profiles.agy-flash-med]
+agent = "agy"
+model = "gemini-3.8-flash-medium"
+effort = ""
+pool = "agy-gemini"
+tier = 3
+cost = 2
+good = ["ui", "implement", "simple", "tests"]
+
+[profiles.agy-argon-high]
+agent = "agy"
+model = "gemini-4-argon-high"
+effort = ""
+pool = "agy-argon"
+tier = 4
+cost = 4
+good = ["ui", "debug", "review", "implement"]
+
+# Claude models served by agy: same models as the claude CLI, but billed to agy's Claude/GPT pool
+[profiles.agy-sonnet-med]
+agent = "agy"
+model = "claude-sonnet-5-5-medium"
+effort = ""
+pool = "agy-3p"
+tier = 3
+cost = 3
+good = ["implement", "tests", "refactor", "debug"]
+
+[profiles.agy-opus-high]
+agent = "agy"
+model = "claude-opus-5-5-high"
+effort = ""
+pool = "agy-3p"
+tier = 4
+cost = 5
+good = ["refactor", "debug", "review", "implement"]

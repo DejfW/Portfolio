@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Responsive design &amp; layout variations · Orkiestra</title>
+  <link rel="stylesheet" href="./responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="skip-link ui-link" href="#main-content">Skip to main content</a>
+      <a class="app-header__brand" href="#overview" aria-label="Orkiestra responsive workspace">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+      <span class="app-header__context">Responsive UI &amp; layout variations</span>
+      <nav class="app-header__actions" aria-label="Quick links">
+        <a class="ui-link" href="../components/index.html">Component shell</a>
+      </nav>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Layout variations">
+      <span class="variation-switcher__label">Layout variation:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html" aria-current="page">All variations</a></li>
+        <li><a class="variation-switcher__link" href="./mobile.html">Mobile</a></li>
+        <li><a class="variation-switcher__link" href="./tablet.html">Tablet</a></li>
+        <li><a class="variation-switcher__link" href="./desktop.html">Desktop</a></li>
+        <li><a class="variation-switcher__link" href="./split-detail.html">Split detail</a></li>
+      </ul>
+    </nav>
+
+    <div class="breakpoint-banner" role="status" aria-label="Active CSS media query breakpoint">
+      <span><strong>Active breakpoint tier</strong> (resize browser to test media queries):</span>
+      <div class="breakpoint-banner__badges">
+        <span class="breakpoint-badge breakpoint-badge--xs">&lt;= 480px Small mobile</span>
+        <span class="breakpoint-badge breakpoint-badge--mobile">&lt; 768px Mobile</span>
+        <span class="breakpoint-badge breakpoint-badge--tablet">768px–1023px Tablet</span>
+        <span class="breakpoint-badge breakpoint-badge--desktop">&gt;= 1024px Desktop</span>
+        <span class="breakpoint-badge breakpoint-badge--wide">&gt;= 1280px Wide</span>
+      </div>
+    </div>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-labelledby="workspace-title">
+        <div class="app-sidebar__workspace">
+          <h2 class="app-sidebar__title" id="workspace-title">Responsive UI</h2>
+          <p class="app-sidebar__description">Adapts from mobile bottom-tab and stacked cards to desktop multi-column splits.</p>
+        </div>
+        <nav aria-label="Responsive sections">
+          <ul class="app-sidebar__nav">
+            <li><a class="app-sidebar__link" href="#overview" aria-current="page">Overview</a></li>
+            <li><a class="app-sidebar__link" href="#variations">Layout variations</a></li>
+            <li><a class="app-sidebar__link" href="#runs">Adaptive run table</a></li>
+            <li><a class="app-sidebar__link" href="#projects">Projects</a></li>
+          </ul>
+        </nav>
+        <div class="app-sidebar__note">
+          <p class="app-sidebar__note-title">Token-driven breakpoints</p>
+          <p>All spacing, typography, colors, and 44px+ touch targets derive from <code>styles/variables.css</code>.</p>
+        </div>
+      </aside>
+
+      <main class="main-content" id="main-content" tabindex="-1">
+        <section class="main-content__section" id="overview" aria-labelledby="overview-title">
+          <div class="main-content__intro">
+            <p class="main-content__eyebrow">Responsive workspace overview</p>
+            <h1 id="overview-title">Adaptive layout system</h1>
+            <p class="main-content__lead">The interface responds across phone, tablet, desktop, and wide viewports using CSS media queries, fluid grids, and dedicated layout variations.</p>
+          </div>
+
+          <dl class="kpi-grid kpi-grid--4col" aria-label="Responsive summary">
+            <div class="kpi-card">
+              <dt>Layout variations</dt>
+              <dd>4</dd>
+              <span class="kpi-card__meta">Mobile, Tablet, Desktop, Split</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Viewport tiers</dt>
+              <dd>5</dd>
+              <span class="kpi-card__meta">360px, 480px, 768px, 1024px, 1280px</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Min touch target</dt>
+              <dd>48px</dd>
+              <span class="kpi-card__delta">✓ Exceeds 44×44px WCAG target</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Reading measure</dt>
+              <dd>65ch</dd>
+              <span class="kpi-card__meta">16px base body minimum</span>
+            </div>
+          </dl>
+        </section>
+
+        <section class="main-content__section" id="variations" aria-labelledby="variations-title">
+          <h2 id="variations-title">Layout variations in <code>responsive/</code></h2>
+          <p class="main-content__lead">Open any variation standalone to inspect its layout pattern or resize this window to watch the shell adapt dynamically.</p>
+
+          <div class="variation-preview-grid">
+            <article class="surface-card">
+              <div class="surface-card__header">
+                <h3 class="surface-card__title">1. Mobile layout (<code>mobile.html</code>)</h3>
+                <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> &lt; 768px</span>
+              </div>
+              <p class="surface-card__subtitle">16px side gutters, 2×2 KPI summary grid (1-column below 360px), stacked cards, and a fixed bottom tab bar replacing the sidebar.</p>
+              <div>
+                <a class="ui-link" href="./mobile.html">Open mobile layout</a>
+              </div>
+            </article>
+
+            <article class="surface-card">
+              <div class="surface-card__header">
+                <h3 class="surface-card__title">2. Tablet layout (<code>tablet.html</code>)</h3>
+                <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> 768px–1023px</span>
+              </div>
+              <p class="surface-card__subtitle">24px side gutters, horizontal sub-navigation bar across the top, and balanced 2-column grids for project and activity cards.</p>
+              <div>
+                <a class="ui-link" href="./tablet.html">Open tablet layout</a>
+              </div>
+            </article>
+
+            <article class="surface-card">
+              <div class="surface-card__header">
+                <h3 class="surface-card__title">3. Desktop layout (<code>desktop.html</code>)</h3>
+                <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> &gt;= 1024px</span>
+              </div>
+              <p class="surface-card__subtitle">32px side gutters, persistent 240px sidebar navigation, 64px top header bar, 4-column KPI strip, and 2:1 asymmetric workspace split.</p>
+              <div>
+                <a class="ui-link" href="./desktop.html">Open desktop layout</a>
+              </div>
+            </article>
+
+            <article class="surface-card">
+              <div class="surface-card__header">
+                <h3 class="surface-card__title">4. Split-detail layout (<code>split-detail.html</code>)</h3>
+                <span class="status-pill status-pill--warning"><span aria-hidden="true">!</span> Master-detail</span>
+              </div>
+              <p class="surface-card__subtitle">Sticky 1:2 master-detail split pane on desktop for inspecting run tasks alongside live agent output; stacks vertically on tablet and mobile.</p>
+              <div>
+                <a class="ui-link" href="./split-detail.html">Open split-detail layout</a>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="main-content__section surface-card" id="runs" aria-labelledby="adaptive-table-title">
+          <div class="surface-card__header">
+            <div>
+              <h2 class="surface-card__title" id="adaptive-table-title">Adaptive run table / card list</h2>
+              <p class="surface-card__subtitle">Renders as a multi-column table at 768px+ and transforms into labeled cards below 768px</p>
+            </div>
+          </div>
+
+          <table class="run-table" aria-label="Workspace runs">
+            <thead>
+              <tr>
+                <th scope="col">Run</th>
+                <th scope="col">Status</th>
+                <th scope="col">Progress</th>
+                <th scope="col">Viewport behavior</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Run">
+                  <strong>Round 2 · Design phase</strong>
+                  <span class="run-table__branch">orkiestrA · main</span>
+                </td>
+                <td data-label="Status">
+                  <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> Running</span>
+                </td>
+                <td data-label="Progress">
+                  <div class="progress-row">
+                    <div class="progress-track"><div class="progress-fill progress-fill--three-quarters"></div></div>
+                    <span class="progress-label">3 / 4</span>
+                  </div>
+                </td>
+                <td data-label="Behavior">2:1 split on desktop · stacked on mobile</td>
+              </tr>
+              <tr>
+                <td data-label="Run">
+                  <strong>Round 1 · Foundations</strong>
+                  <span class="run-table__branch">orkiestrA · main</span>
+                </td>
+                <td data-label="Status">
+                  <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Completed</span>
+                </td>
+                <td data-label="Progress">
+                  <div class="progress-row">
+                    <div class="progress-track"><div class="progress-fill progress-fill--full"></div></div>
+                    <span class="progress-label">4 / 4</span>
+                  </div>
+                </td>
+                <td data-label="Behavior">Full table row on desktop · card on mobile</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="main-content__section" id="projects" aria-labelledby="projects-title">
+          <h2 id="projects-title">Projects</h2>
+          <p class="main-content__lead">Expandable disclosure cards adapt from 1 column on phones to 2 columns on tablets and multi-column grids on wide desktops.</p>
+          <div class="main-content__projects">
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Workspace experience</span>
+                <span class="project-card__status">In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Bring navigation, project summaries, and team updates into one shared workspace.</p>
+                <p class="main-content__muted">Next step: review the main interface components.</p>
+              </div>
+            </details>
+            <details class="project-card">
+              <summary>
+                <span class="project-card__name">Design foundations</span>
+                <span class="project-card__status">Ready for review</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Establish consistent colors, typography, and spacing for the team’s interface.</p>
+                <p class="main-content__muted">Next step: check the components in light and dark mode.</p>
+              </div>
+            </details>
+            <details class="project-card">
+              <summary>
+                <span class="project-card__name">Getting started</span>
+                <span class="project-card__status">In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Help new teammates find their projects and understand the workspace.</p>
+                <p class="main-content__muted">Next step: review the onboarding content.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="app-tabbar" aria-label="Mobile bottom navigation">
+      <ul class="app-tabbar__list">
+        <li>
+          <a class="app-tabbar__link" href="#overview" aria-current="page">
+            <span class="app-tabbar__icon" aria-hidden="true">⊞</span>
+            <span>Overview</span>
+          </a>
+        </li>
+        <li>
+          <a class="app-tabbar__link" href="#variations">
+            <span class="app-tabbar__icon" aria-hidden="true">◫</span>
+            <span>Layouts</span>
+          </a>
+        </li>
+        <li>
+          <a class="app-tabbar__link" href="#runs">
+            <span class="app-tabbar__icon" aria-hidden="true">▶</span>
+            <span>Runs</span>
+          </a>
+        </li>
+        <li>
+          <a class="app-tabbar__link" href="#projects">
+            <span class="app-tabbar__icon" aria-hidden="true">◈</span>
+            <span>Projects</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</body>
+</html>

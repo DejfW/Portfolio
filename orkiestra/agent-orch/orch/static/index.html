@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>orkiestrA · Agent Orchestrator</title>
+<style>
+/* Tokens: dark by default (deep navy + orange), light via prefers-color-scheme. */
+:root {
+  color-scheme: dark;
+  --bg: #060a13;
+  --surface: #0b1220;
+  --surface-2: #0f1828;
+  --surface-3: #152036;
+  --border: #1b2740;
+  --border-strong: #2b3b5a;
+  --text: #e8edf7;
+  --text-2: #b8c3d8;
+  --muted: #8b98b1;
+  --accent: #f7931a;
+  --accent-hover: #ffa83f;
+  --on-accent: #1a0f02;
+  --accent-text: #ffaa4a;
+  --focus: #ffb65c;
+  --ok: #3fd07a;
+  --run: #4d9dff;
+  --bad: #ff6464;
+  --pend: #8e9ab0;
+  --warn: #f5b93a;
+  --plan: #b197fc;
+  --violet: #a78bfa;
+  --log-bg: #050911;
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.35);
+  --scrim: rgba(2,5,12,.7);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --side-w: 236px;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f2f5fa;
+    --surface: #ffffff;
+    --surface-2: #f8fafd;
+    --surface-3: #eef2f8;
+    --border: #dde3ee;
+    --border-strong: #c3cddd;
+    --text: #0d1526;
+    --text-2: #33415a;
+    --muted: #556279;
+    --accent: #f08a14;
+    --accent-hover: #e07b06;
+    --on-accent: #1a0f02;
+    --accent-text: #a94f00;
+    --focus: #a94f00;
+    --ok: #157a3c;
+    --run: #1d5fd1;
+    --bad: #c42727;
+    --pend: #5f6d84;
+    --warn: #9a5800;
+    --plan: #6a3fd0;
+    --violet: #6a3fd0;
+    --log-bg: #f4f6fa;
+    --shadow: 0 1px 2px rgba(15,23,42,.06), 0 4px 14px rgba(15,23,42,.05);
+    --scrim: rgba(15,23,42,.45);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; }
+body { overflow-x: clip; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 22px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; }
+h2 { font-size: 15px; line-height: 1.3; font-weight: 650; }
+h3 { font-size: 14px; font-weight: 650; }
+a { color: var(--accent-text); }
+ul { margin: 0; padding: 0; list-style: none; }
+svg.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+[tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
+/* page/region targets focused on navigation (for screen readers) get no ring around the whole page */
+#main:focus, #run-view:focus, h1[tabindex="-1"]:focus { outline: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.mut { color: var(--muted); }
+.small { font-size: 12.5px; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.skip {
+  position: absolute; left: 12px; top: 12px; z-index: 100; padding: 10px 14px;
+  border-radius: var(--r-sm); background: var(--accent); color: var(--on-accent); font-weight: 600;
+  transform: translateY(-200%);
+}
+.skip:focus { transform: none; }
+
+/* Buttons and inputs */
+.btn, button {
+  font: inherit; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 36px; padding: 7px 14px; border-radius: 10px;
+  border: 1px solid var(--border-strong); background: var(--surface-3); color: var(--text);
+  text-decoration: none; white-space: nowrap; max-width: 100%;
+}
+.btn:hover, button:hover { border-color: var(--muted); }
+.btn.primary, button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover, button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.ghost, button.ghost { background: transparent; }
+.btn.danger, button.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--border)); background: transparent; }
+.btn.sm, button.sm { min-height: 30px; padding: 4px 10px; font-size: 12.5px; border-radius: 8px; }
+button:disabled { opacity: .55; cursor: progress; }
+input, textarea, select {
+  font: inherit; color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  padding: 8px 12px; min-height: 40px; width: 100%; min-width: 0;
+}
+textarea { display: block; resize: vertical; min-height: 110px; line-height: 1.5; }
+select { cursor: pointer; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { border-color: var(--focus); outline-offset: 0; }
+label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--text-2); }
+label .mut { font-weight: 400; }
+label.check, label.opt { display: flex; align-items: center; gap: 10px; font-weight: 500; color: var(--text); }
+label.check input, label.opt input { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--accent); flex: none; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* App frame */
+.app { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); min-height: 100vh; }
+.side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 18px;
+  padding: 18px 14px; border-right: 1px solid var(--border); background: var(--surface);
+}
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; padding: 4px 6px; border-radius: 10px; }
+.brand-mark {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px;
+  background: linear-gradient(140deg, #ffb24d, var(--accent) 55%, #d96a00); color: #1a0f02;
+}
+.brand-mark svg { width: 20px; height: 20px; stroke-width: 2.4; }
+.brand b { display: block; font-size: 17px; letter-spacing: -.01em; }
+.brand small { display: block; font-size: 11.5px; color: var(--muted); }
+.nav { display: grid; gap: 4px; }
+.nav a {
+  display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 8px 12px;
+  border-radius: 10px; border: 1px solid transparent; color: var(--text-2); text-decoration: none; font-weight: 550;
+}
+.nav a:hover { background: var(--surface-3); color: var(--text); }
+.nav a[aria-current="page"] {
+  color: var(--accent-text); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.nav .badge {
+  margin-left: auto; min-width: 22px; padding: 0 7px; border-radius: 999px; text-align: center;
+  font-size: 11.5px; line-height: 20px; background: color-mix(in srgb, var(--run) 18%, transparent); color: var(--run);
+}
+.side-box {
+  margin-top: auto; padding: 14px; border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 12%, var(--surface-2)), var(--surface-2));
+}
+.side-box h2 { font-size: 13.5px; display: flex; gap: 8px; align-items: center; color: var(--accent-text); }
+.side-box p { margin: 6px 0 10px; font-size: 12.5px; color: var(--text-2); }
+.meter { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.meter > span { display: block; height: 100%; border-radius: inherit; background: var(--c, var(--accent)); }
+.scrim { display: none; }
+
+.shell { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 14px; padding: 12px 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.iconbtn { width: 40px; height: 40px; padding: 0; min-height: 0; border-radius: 10px; flex: none; }
+.menu, .brand-top { display: none; }
+.search { position: relative; flex: 1; max-width: 560px; margin: 0 auto 0 0; }
+.search .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search input { padding-left: 38px; padding-right: 38px; background: var(--surface); border-color: var(--border); }
+.search kbd {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font: 11px var(--mono); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border-strong); color: var(--muted);
+}
+main { flex: 1; min-width: 0; padding: 22px 24px 28px; }
+main > section { min-width: 0; }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.page-head p { margin-top: 4px; }
+
+/* Cards */
+.card {
+  min-width: 0; padding: 18px; border-radius: var(--r-lg);
+  border: 1px solid var(--border); background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  box-shadow: var(--shadow);
+}
+.card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 14px; margin-bottom: 14px; }
+.card-head > div { min-width: 0; }
+.card-head h2 { display: flex; align-items: center; gap: 9px; }
+.card-head h2 .ic { color: var(--accent-text); }
+.card-head p { margin-top: 3px; overflow-wrap: anywhere; }
+.link { font-size: 13px; font-weight: 600; text-decoration: none; }
+.link:hover { text-decoration: underline; }
+.empty { padding: 22px 12px; text-align: center; color: var(--muted); border: 1px dashed var(--border-strong); border-radius: var(--r-md); }
+
+/* Status pills (always icon + text, never colour alone) */
+.t-ok { --c: var(--ok); } .t-run { --c: var(--run); } .t-bad { --c: var(--bad); }
+.t-pend { --c: var(--pend); } .t-warn { --c: var(--warn); } .t-plan { --c: var(--plan); } .t-acc { --c: var(--accent-text); }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; line-height: 20px; white-space: nowrap; color: var(--c);
+  background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
+}
+.pill b { font-weight: 800; font-size: 11px; }
+
+/* KPI cards */
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 14px; margin-bottom: 16px; }
+.kpi { position: relative; padding: 16px 16px 10px; overflow: hidden; }
+.kpi-top { display: flex; gap: 12px; align-items: center; }
+.kpi-icon {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; flex: none;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+}
+.kpi-icon .ic { width: 20px; height: 20px; }
+.kpi-label { font-size: 12.5px; font-weight: 550; color: var(--text-2); }
+.kpi-value { font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.kpi-value small { font-size: 14px; color: var(--muted); font-weight: 600; }
+.kpi-delta { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.kpi-delta.good b { color: var(--ok); } .kpi-delta.bad b { color: var(--bad); }
+.spark { display: block; width: 100%; height: 40px; margin-top: 6px; color: var(--c); overflow: visible; }
+.spark .ln { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.spark .hit { fill: transparent; }
+.spark .hit:hover { fill: color-mix(in srgb, currentColor 14%, transparent); }
+
+/* Overview grid */
+.ov-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); align-items: start; }
+
+/* Pipeline DAG */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.card-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.card-tools select { width: auto; max-width: 240px; min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.dag-scroll { overflow: auto; padding: 6px 4px 10px; margin: 0 -4px; }
+.dag { position: relative; margin: 0 auto; }
+.dag svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.edge { fill: none; stroke: var(--c); stroke-width: 2; opacity: .8; }
+.edge.t-pend { stroke-dasharray: 4 5; opacity: .6; }
+.edge.flow { stroke-dasharray: 6 6; animation: flow 1s linear infinite; }
+.edot { fill: var(--c); }
+@keyframes flow { to { stroke-dashoffset: -12; } }
+.node {
+  position: absolute; display: flex; gap: 10px; align-items: flex-start; padding: 10px 11px;
+  border-radius: 12px; color: var(--text); text-decoration: none; overflow: hidden;
+  background: var(--surface-2); border: 1px solid color-mix(in srgb, var(--c) 50%, var(--border));
+  box-shadow: inset 3px 0 0 var(--c);
+}
+.node:hover { background: var(--surface-3); }
+.node-icon {
+  position: relative; display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 8px;
+  color: var(--c); background: color-mix(in srgb, var(--c) 15%, transparent); font-weight: 800; font-size: 13px;
+}
+.node.t-run .node-icon::after {
+  content: ""; position: absolute; inset: -3px; border-radius: 10px; border: 2px solid var(--c); opacity: 0;
+  animation: pulse 1s ease-out infinite;
+}
+@keyframes pulse { 0% { opacity: .7; transform: scale(.85); } 100% { opacity: 0; transform: scale(1.25); } }
+.node-body { display: grid; gap: 1px; min-width: 0; }
+.node-title { font-weight: 650; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node-prof { font: 11.5px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node-meta b { color: var(--c); font-weight: 650; }
+.node.start { box-shadow: inset 3px 0 0 var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.node.start .node-icon { color: var(--accent-text); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+/* Suggestions */
+.sugg-list { display: grid; gap: 8px; }
+.sugg {
+  display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: var(--r-md);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.sugg-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+}
+.sugg-text { min-width: 0; flex: 1; }
+.sugg-title { font-weight: 600; font-size: 13.5px; overflow-wrap: anywhere; }
+.sugg-text p.mut { font-size: 12.5px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sugg .chev { color: var(--muted); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; flex: none; }
+.sugg .chev:hover { background: var(--surface-3); color: var(--text); }
+
+/* Runs table */
+.table-wrap { overflow-x: auto; min-width: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:hover td { background: color-mix(in srgb, var(--surface-3) 55%, transparent); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.goal-cell { min-width: 0; max-width: 0; width: 46%; }
+.run-link { display: flex; gap: 8px; align-items: baseline; color: var(--text); text-decoration: none; font-weight: 600; min-width: 0; }
+.run-link:hover .goal-text { text-decoration: underline; }
+.run-id { color: var(--accent-text); font-family: var(--mono); font-size: 12.5px; flex: none; }
+.goal-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.goal-cell .mono { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); margin-top: 2px; }
+.created { white-space: nowrap; }
+.tasks-cell { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tasks-cell .meter { width: 64px; margin-top: 5px; --c: var(--ok); }
+.actions { white-space: nowrap; text-align: right; }
+.actions .row { justify-content: flex-end; gap: 6px; flex-wrap: nowrap; }
+.table-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+.pager { display: flex; gap: 4px; flex-wrap: wrap; }
+.pager button { min-width: 32px; min-height: 32px; padding: 2px 8px; font-size: 12.5px; background: transparent; border-color: var(--border); }
+.pager button[aria-current="page"] { color: var(--accent-text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+/* Donut */
+.donut-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px 24px; }
+.donut { width: 170px; height: 170px; flex: none; }
+.donut circle { fill: none; }
+.donut .seg { stroke: var(--c); }
+.donut .seg:hover { stroke-width: 22; }
+.donut .track { stroke: var(--surface-3); }
+.donut text { fill: var(--text); text-anchor: middle; }
+.donut .big { font-size: 26px; font-weight: 700; }
+.donut .lbl { font-size: 11px; fill: var(--muted); }
+.dlegend { display: grid; gap: 8px; min-width: 180px; flex: 1; font-size: 13px; }
+.dlegend li { display: grid; grid-template-columns: 12px 1fr auto 48px; align-items: center; gap: 10px; }
+.dlegend i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.dlegend .num { color: var(--text-2); }
+.donut-note { margin-top: 14px; font-size: 12.5px; color: var(--muted); text-align: center; }
+.donut-note b { color: var(--ok); }
+
+/* Run detail */
+.crumbs { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.crumbs a { color: var(--muted); }
+.run-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.run-goal { margin-top: 8px; max-width: 90ch; font-size: 15px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.run-repo { margin-top: 6px; overflow-wrap: anywhere; }
+.run-actions { margin: 14px 0 18px; }
+.section-title { margin: 20px 0 12px; font-size: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; align-items: start; }
+.task-card h3 { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; font-size: 14.5px; overflow-wrap: anywhere; }
+.task-card .meta { margin-top: 6px; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.task-card .summary { margin-top: 8px; font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
+.task-card .idle { margin-top: 8px; font-size: 12.5px; color: var(--run); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.task-card:focus-visible { outline: 2px solid var(--focus); }
+pre {
+  margin: 12px 0 0; min-height: 56px; max-height: 260px; overflow: auto;
+  font: 12px/1.6 var(--mono); background: var(--log-bg); color: var(--text-2);
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+  white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2;
+}
+.qa { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-2); }
+.qa summary { cursor: pointer; font-weight: 600; }
+.qa dl { margin: 8px 0 0; }
+.qa dt { font-weight: 600; margin-top: 8px; color: var(--text-2); }
+.qa dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.qcard p { margin-bottom: 6px; }
+fieldset { min-width: 0; }
+.plan-card label:first-child { margin-top: 0; }
+.plan-card textarea { min-height: 160px; font-size: 13px; }
+.plan-card .deps { margin: 10px 0; font-size: 12.5px; }
+.form-actions { margin-top: 18px; }
+
+/* Agents & skills */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; align-items: start; }
+.prof h2 { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; overflow-wrap: anywhere; font-family: var(--mono); font-size: 14px; }
+.prof .reason { margin-top: 6px; color: var(--bad); font-size: 12.5px; overflow-wrap: anywhere; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 12px 0 0; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; overflow-wrap: anywhere; text-align: right; }
+.quota { margin-top: 12px; font-size: 12.5px; }
+.quota .row { justify-content: space-between; margin-bottom: 5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; max-width: 100%;
+  font-size: 12px; color: var(--text-2); background: var(--surface-3); border: 1px solid var(--border); overflow-wrap: anywhere;
+}
+.chip.t-ok, .chip.t-bad, .chip.t-warn { color: var(--c); border-color: color-mix(in srgb, var(--c) 40%, transparent); }
+.cap-sec { margin-top: 14px; }
+.cap-sec h3 { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--text-2); }
+.cap-sec h3 .count { color: var(--muted); font-weight: 500; }
+.summary-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.summary-strip .chip { font-size: 13px; padding: 4px 12px; }
+
+/* New project */
+.setup-form textarea { min-height: 110px; }
+.setup-form .form-actions { align-items: center; gap: 12px; flex-wrap: wrap; }
+.setup-grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; margin-top: 16px; align-items: start; }
+@media (max-width: 900px) { .setup-grid { grid-template-columns: minmax(0, 1fr); } }
+.setup-hist h2 { font-size: 14px; margin-bottom: 8px; }
+ul.plain { list-style: none; margin: 0; padding: 0; }
+.setup-hist li + li { border-top: 1px solid var(--border); }
+.setup-hist a { display: block; padding: 8px 4px; color: var(--text); text-decoration: none; font-size: 13px; overflow-wrap: anywhere; }
+.setup-hist a[aria-current] { color: var(--accent-text); font-weight: 600; }
+.setup-hist a:hover { color: var(--accent-text); }
+.setup-hist .mut { display: block; font-size: 11.5px; font-weight: 400; }
+.rec-sum { margin-bottom: 16px; }
+.rec-sum p { margin: 6px 0 0; white-space: pre-wrap; }
+.rec-group { margin-bottom: 18px; }
+.rec-group > h2 { display: flex; gap: 8px; align-items: center; font-size: 14px; margin: 0 0 10px; color: var(--text-2); }
+.rec-group > h2 .count { color: var(--muted); font-weight: 500; }
+.rec { display: grid; gap: 8px; }
+.rec h3 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14.5px; margin: 0; overflow-wrap: anywhere; }
+.rec .why { margin: 0; font-size: 13px; color: var(--text-2); white-space: pre-wrap; }
+.rec .cmdrow { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.cmd { margin: 0; flex: 1 1 260px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-3); border: 1px solid var(--border);
+  font: 12.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.rec .note { margin: 0; font-size: 12px; }
+.rec .out { margin: 0; max-height: 160px; overflow: auto; }
+#instdlg { max-width: min(560px, calc(100vw - 32px)); }
+
+/* Analytics */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { padding: 14px 16px; }
+.tile p:first-child { font-size: 12.5px; color: var(--text-2); }
+.tile p:last-child { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.an-grid .wide { grid-column: 1 / -1; }
+.chart { position: relative; }
+.chart .ymax { font-size: 11px; color: var(--muted); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 150px; border-bottom: 1px solid var(--border-strong); margin-top: 4px; }
+.bar { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column-reverse; gap: 2px; }
+.bar span { display: block; background: var(--c); }
+.bar span:last-child { border-radius: 4px 4px 0 0; }
+.bar:hover span { filter: brightness(1.15); }
+.xax { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.spark.lg { height: 150px; margin-top: 4px; border-bottom: 1px solid var(--border-strong); }
+details.data { margin-top: 16px; }
+details.data summary { cursor: pointer; font-weight: 600; color: var(--text-2); }
+
+/* Ask bar */
+.askbar {
+  position: sticky; bottom: 0; z-index: 15;
+  display: flex; align-items: center; gap: 14px; margin: 0 24px 16px; padding: 12px 12px 12px 16px;
+  border-radius: var(--r-lg); border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px);
+  box-shadow: 0 -6px 30px rgba(0,0,0,.25);
+}
+.ask-icon {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; flex: none;
+  color: var(--accent-text); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.ask-text { flex: 0 1 270px; min-width: 0; }
+.ask-text label { margin: 0; font-size: 14px; color: var(--text); }
+.ask-text p { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ask-text p.err { color: var(--bad); white-space: normal; }
+.askbar input { flex: 1; background: var(--surface-2); }
+.ask-links { display: flex; gap: 6px; }
+.ask-links a { font-size: 12.5px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-2); text-decoration: none; white-space: nowrap; }
+.ask-links a:hover { color: var(--text); border-color: var(--border-strong); }
+.askbar button[type="submit"] { width: 42px; height: 42px; padding: 0; flex: none; }
+
+/* New-run dialog */
+dialog {
+  width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+}
+dialog::backdrop { background: var(--scrim); backdrop-filter: blur(2px); }
+dialog form { padding: 20px; }
+dialog .dhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+dialog .dhead p { margin-top: 4px; }
+.err { color: var(--bad); margin-top: 12px; font-size: 13px; overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .side { transition: transform .2s ease, visibility .2s; }
+  .btn, button, .nav a, input, select, textarea { transition: background-color .15s, border-color .15s, color .15s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+@media (max-width: 1180px) {
+  .ov-grid { grid-template-columns: minmax(0, 1fr); }
+  .ask-links { display: none; }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side {
+    position: fixed; z-index: 40; top: 0; left: 0; bottom: 0; height: auto; width: min(280px, 86vw);
+    transform: translateX(-100%); visibility: hidden; box-shadow: 0 0 40px rgba(0,0,0,.5);
+  }
+  .side.open { transform: none; visibility: visible; }
+  .scrim.open { display: block; position: fixed; inset: 0; z-index: 30; background: var(--scrim); }
+  .menu { display: inline-flex; }
+  .brand-top { display: flex; }
+  .brand-top small { display: none; }
+  .topbar { flex-wrap: wrap; gap: 10px; padding: 10px 16px; }
+  .search { order: 3; flex: 1 1 100%; max-width: none; }
+  .search kbd { display: none; }
+  #newbtn { margin-left: auto; }
+  main { padding: 16px 16px 20px; }
+  .askbar { margin: 0 12px 12px; gap: 10px; padding: 8px 8px 8px 12px; }
+  .ask-icon { display: none; }
+  .ask-text { flex: 0 0 auto; }
+  .ask-text label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ask-text p:not(.err) { display: none; }
+  .ask-text p.err { position: absolute; bottom: calc(100% + 6px); left: 0; right: 0; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--bad); }
+}
+@media (max-width: 640px) {
+  h1 { font-size: 20px; }
+  .card { padding: 14px; border-radius: 14px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpis .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .kpi { padding: 12px 12px 8px; }
+  .kpi-icon { width: 32px; height: 32px; border-radius: 9px; }
+  .kpi-icon .ic { width: 17px; height: 17px; }
+  .kpi-top { gap: 9px; }
+  .kpi-value { font-size: 21px; }
+  .kpi-delta { font-size: 11.5px; }
+  .runs-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .runs-table, .runs-table tbody { display: block; }
+  .runs-table tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .runs-table td { display: block; padding: 0; border: 0; }
+  .runs-table tbody tr:hover td { background: none; }
+  .runs-table .goal-cell { flex: 1 1 100%; width: auto; max-width: 100%; }
+  .runs-table .actions { margin-left: auto; }
+  .runs-table td.empty-row { flex: 1 1 100%; }
+  .tasks-cell .meter { display: none; }
+  #newbtn span { display: none; }
+  #newbtn { width: 40px; height: 40px; padding: 0; }
+  .brand-top b { font-size: 16px; }
+}
+</style></head><body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+  <nav id="sidenav" class="side" aria-label="Main">
+    <a class="brand" href="#/overview">
+      <span class="brand-mark" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19V9M10 19V4M15 19V7M20 19v-6"/></svg></span>
+      <span><b>orkiestrA</b><small>Agent orchestrator</small></span>
+    </a>
+    <ul class="nav">
+      <li><a href="#/overview" data-nav="overview"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg><span>Overview</span></a></li>
+      <li><a href="#/runs" data-nav="runs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 5l2 1-2 1zM4 11l2 1-2 1zM4 17l2 1-2 1z"/></svg><span>Runs</span><span class="badge" id="nav-active" hidden></span></a></li>
+      <li><a href="#/agents" data-nav="agents"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8M5 8h14v11H5zM2 13h3M19 13h3M9.5 12.5v2M14.5 12.5v2"/></svg><span>Agents</span></a></li>
+      <li><a href="#/skills" data-nav="skills"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4H4z"/></svg><span>Skills &amp; plugins</span></a></li>
+      <li><a href="#/setup" data-nav="setup"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM4 20h16"/></svg><span>New project</span></a></li>
+      <li><a href="#/analytics" data-nav="analytics"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16v-5M11 16V6M16 16v-8M21 16v-3"/></svg><span>Analytics</span></a></li>
+    </ul>
+    <section class="side-box" aria-labelledby="sb-h">
+      <h2 id="sb-h"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8"/></svg>Agent profiles</h2>
+      <p id="sb-text">Checking which profiles can run…</p>
+      <div class="meter" id="sb-meter"><span style="width:0"></span></div>
+      <p style="margin:10px 0 0"><a class="link" href="#/agents">View agents →</a></p>
+    </section>
+  </nav>
+  <div class="scrim" id="scrim"></div>
+  <div class="shell">
+    <header class="topbar">
+      <button id="menubtn" class="iconbtn menu" type="button" aria-controls="sidenav" aria-expanded="false" aria-label="Open navigation"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <a class="brand brand-top" href="#/overview" aria-label="orkiestrA overview">
+        <span class="brand-mark" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M5 19V9M10 19V4M15 19V7M20 19v-6"/></svg></span>
+        <span><b>orkiestrA</b></span>
+      </a>
+      <form class="search" role="search" id="searchform">
+        <label for="search" class="sr-only">Search runs</label>
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4"/></svg>
+        <input id="search" type="search" placeholder="Search runs…" autocomplete="off">
+        <kbd aria-hidden="true">/</kbd>
+      </form>
+      <button id="newbtn" class="primary" type="button" aria-haspopup="dialog" data-act="new" aria-label="New run"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New run</span></button>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section data-page="overview" aria-labelledby="h-overview">
+        <div class="page-head"><div><h1 id="h-overview" tabindex="-1">Overview</h1><p class="mut">Runs, tasks and agents at a glance · trends compare the last 7 days with the 7 before</p></div></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="ov-grid">
+          <article class="card" aria-labelledby="h-pipe">
+            <header class="card-head">
+              <div><h2 id="h-pipe"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 9v3a3 3 0 0 0 3 3h6"/></svg>Orchestration pipeline</h2><p class="mut small" id="pipe-sub">Task graph of the selected run</p></div>
+              <div class="card-tools" id="pipe-tools"></div>
+            </header>
+            <div class="legend" aria-hidden="true" style="margin:-4px 0 10px">
+              <span class="t-ok"><i></i>Done</span><span class="t-run"><i></i>Running</span><span class="t-bad"><i></i>Failed</span><span class="t-pend"><i></i>Pending</span>
+            </div>
+            <div id="ov-pipe"><p class="empty">Loading…</p></div>
+          </article>
+          <article class="card" aria-labelledby="h-sugg">
+            <header class="card-head"><div><h2 id="h-sugg"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Suggestions</h2><p class="mut small">What needs your attention</p></div></header>
+            <ul class="sugg-list" id="suggestions"><li class="empty">Loading…</li></ul>
+          </article>
+          <article class="card" aria-labelledby="h-recent">
+            <header class="card-head"><div><h2 id="h-recent"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM3 10h18M9 10v9"/></svg>Recent runs</h2></div><a class="link" href="#/runs">View all</a></header>
+            <div id="recent"></div>
+          </article>
+          <article class="card" aria-labelledby="h-donut">
+            <header class="card-head"><div><h2 id="h-donut"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12A9 9 0 1 1 12 3v9z"/></svg>Executions by status</h2><p class="mut small">All tasks across runs</p></div></header>
+            <div id="donut"></div>
+          </article>
+        </div>
+      </section>
+
+      <section data-page="runs" aria-labelledby="h-runs" hidden>
+        <div class="page-head"><div><h1 id="h-runs" tabindex="-1">Runs</h1><p class="mut">Every orchestration run, newest first. Use the search box to filter.</p></div><button class="primary" type="button" data-act="new">New run</button></div>
+        <article class="card"><div id="allruns"></div></article>
+      </section>
+
+      <section data-page="run" aria-label="Run details" hidden><div id="run-view" tabindex="-1"></div></section>
+
+      <section data-page="agents" aria-labelledby="h-agents" hidden>
+        <div class="page-head"><div><h1 id="h-agents" tabindex="-1">Agents</h1><p class="mut">Configured profiles, whether they can run right now, their quota pools and how their work attempts went.</p></div></div>
+        <div id="agents"><p class="empty">Checking profiles…</p></div>
+      </section>
+
+      <section data-page="skills" aria-labelledby="h-skills" hidden>
+        <div class="page-head"><div><h1 id="h-skills" tabindex="-1">Skills &amp; plugins</h1><p class="mut">What each agent CLI can use on its own: skills, plugins and MCP servers.</p></div><button class="ghost" type="button" data-act="refresh-caps">Refresh</button></div>
+        <div id="caps"><p class="empty">Asking the agent CLIs… this can take a few seconds.</p></div>
+      </section>
+
+      <section data-page="setup" aria-labelledby="h-setup" hidden>
+        <div class="page-head"><div><h1 id="h-setup" tabindex="-1">New project</h1><p class="mut">Describe the project: an agent recommends the MCP servers, skills, plugins and programs to install, compared with what you already have.</p></div></div>
+        <form class="card setup-form" id="setupform" autocomplete="off">
+          <label for="setup-desc" style="margin-top:0">Project description</label>
+          <textarea id="setup-desc" required placeholder="e.g. A Next.js shop with Stripe payments, Postgres on Supabase, deployed to Cloudflare; E2E tests in Playwright"></textarea>
+          <p id="setup-err" class="err" role="alert" hidden></p>
+          <div class="row form-actions"><button id="setup-go" type="submit" class="primary">Recommend setup</button><span class="mut small">Runs one read-only agent (uses some quota); installing is always your call.</span></div>
+        </form>
+        <div class="setup-grid">
+          <div id="setup-view" aria-live="polite"></div>
+          <aside class="card setup-hist" aria-labelledby="h-setup-hist"><h2 id="h-setup-hist">Earlier projects</h2><ul id="setup-list" class="plain"><li class="mut small">None yet.</li></ul></aside>
+        </div>
+      </section>
+
+      <section data-page="analytics" aria-labelledby="h-analytics" hidden>
+        <div class="page-head"><div><h1 id="h-analytics" tabindex="-1">Analytics</h1><p class="mut">Daily activity, attempt outcomes and per-profile performance.</p></div>
+          <div><label for="an-days" style="margin-top:0">Range</label><select id="an-days" style="width:auto"><option value="7">Last 7 days</option><option value="14" selected>Last 14 days</option><option value="30">Last 30 days</option></select></div>
+        </div>
+        <div id="analytics"><p class="empty">Loading…</p></div>
+      </section>
+    </main>
+
+    <form class="askbar" id="askform" autocomplete="off">
+      <span class="ask-icon" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></span>
+      <div class="ask-text"><label for="askgoal">Ask your orchestrator</label><p id="ask-hint" class="mut" aria-live="polite">Type a goal to start a new run</p></div>
+      <input id="askgoal" aria-describedby="ask-hint" placeholder="Ask your orchestrator: describe a goal…">
+      <nav class="ask-links" aria-label="Shortcuts"><a href="#/runs">All runs</a><a href="#/agents">Agents</a><a href="#/skills">Skills</a></nav>
+      <button type="submit" class="primary" aria-label="Start run from this goal"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </form>
+  </div>
+</div>
+
+<dialog id="instdlg" aria-labelledby="inst-title">
+  <form method="dialog">
+    <div class="dhead"><div><h2 id="inst-title">Install <span id="inst-name"></span>?</h2><p class="mut small">This exact command runs on this machine, without a shell. It was suggested by an agent: check it first.</p></div></div>
+    <pre class="cmd" id="inst-cmd"></pre>
+    <div class="row form-actions" style="justify-content:flex-end"><button value="cancel" class="ghost">Cancel</button><button value="ok" class="primary" id="inst-ok">Install</button></div>
+  </form>
+</dialog>
+
+<dialog id="newrun" aria-labelledby="nr-title">
+  <form id="nrform">
+    <div class="dhead"><div><h2 id="nr-title">New run</h2><p class="mut small">The planner splits the goal into tasks you can review before anything runs.</p></div>
+      <button type="button" class="iconbtn ghost" data-act="close-new" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <label for="repo">Repository path</label><input id="repo" required placeholder="/home/me/project" class="mono">
+    <label for="goal">Goal</label><textarea id="goal" required placeholder="What should the agents build?"></textarea>
+    <label for="test">Test command <span class="mut">(optional)</span></label><input id="test" placeholder="npm test" class="mono">
+    <label class="check" for="ask"><input type="checkbox" id="ask"> Let the planner ask me questions first</label>
+    <p id="nr-err" class="err" role="alert" hidden></p>
+    <div class="row form-actions" style="justify-content:flex-end"><button type="button" class="ghost" data-act="close-new">Cancel</button><button id="new" type="submit" class="primary">Plan run</button></div>
+  </form>
+</dialog>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],
+ esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let cur=null,es=null,planFor=null,qFor=null,logs={},seen=0,PROFS=[],STATS=[],lastOut={},RUNS=[],OV=null,SUGG=null,CAPS=null,pipeSel=null;
+let route={name:'overview',id:null};
+const PAGE={recent:0,all:0},COUNTS={},ACTIVE=new Set(['running','planning','clarifying','questions','planned']);
+const api=(p,b)=>fetch('/api/'+p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{}).then(r=>r.json());
+const store={get(k){try{return localStorage.getItem(k)||''}catch{return ''}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+
+// ---------- small helpers ----------
+const ICON={
+ check:'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0zM8 12l3 3 5-6',alert:'M12 3 2 21h20zM12 10v5M12 18h.01',
+ clock:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 6v6l4 2',users:'M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8',
+ layers:'M12 2 2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5',gauge:'M12 14l4-4M3.3 19a10 10 0 1 1 17.4 0',
+ plug:'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4',refresh:'M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5',
+ bot:'M12 8V4H8M5 8h14v11H5zM2 13h3M19 13h3M9.5 12.5v2M14.5 12.5v2',chev:'M9 6l6 6-6 6',flag:'M5 21V4h12l-2 4 2 4H5'};
+const icon=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[n]}"/></svg>`;
+const TONE={done:'ok',running:'run',failed:'bad',cancelled:'warn',pending:'pend',planning:'plan',clarifying:'plan',questions:'plan',planned:'plan'};
+const GLYPH={done:'✓',running:'●',failed:'✕',cancelled:'⊘',pending:'○',planning:'…',clarifying:'…',questions:'?',planned:'!'};
+const tone=s=>TONE[s]||'pend';
+const pill=s=>`<span class="pill t-${tone(s)}"><b aria-hidden="true">${GLYPH[s]||'•'}</b>${esc(s)}</span>`;
+const trunc=(s,n)=>{s=String(s??'');return s.length>n?s.slice(0,n-1)+'…':s};
+const fmtDur=s=>{if(s==null||isNaN(s))return '—';s=Math.round(s);if(s<60)return s+'s';if(s<3600)return `${Math.floor(s/60)}m ${s%60}s`;return `${Math.floor(s/3600)}h ${Math.round(s%3600/60)}m`};
+const fmtNum=n=>new Intl.NumberFormat('en',{notation:n>=10000?'compact':'standard',maximumFractionDigits:1}).format(n||0);
+const ago=t=>{if(!t)return '—';const s=Date.now()/1000-t;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+' min ago';if(s<86400)return Math.floor(s/3600)+' h ago';if(s<86400*7)return Math.floor(s/86400)+' d ago';return new Date(t*1000).toLocaleDateString()};
+const when=t=>t?`<time datetime="${new Date(t*1000).toISOString()}" title="${esc(new Date(t*1000).toLocaleString())}">${ago(t)}</time>`:'—';
+const shortDay=d=>new Date(d+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
+const lastRepo=()=>RUNS[0]?.repo||store.get('orch.repo');
+
+// Replace an element's HTML only when it changed, keeping focus (data-fid) and scroll positions (data-sk).
+function swap(el,html){
+ if(!el||el._html===html)return false;
+ const a=document.activeElement,fid=a&&el.contains(a)?a.dataset.fid:null,sc={};
+ el.querySelectorAll('[data-sk]').forEach(s=>sc[s.dataset.sk]=[s.scrollLeft,s.scrollTop]);
+ el.innerHTML=html;el._html=html;
+ el.querySelectorAll('[data-sk]').forEach(s=>{const v=sc[s.dataset.sk];if(v){s.scrollLeft=v[0];s.scrollTop=v[1]}});
+ if(fid){const f=el.querySelector(`[data-fid="${CSS.escape(fid)}"]`);if(f)f.focus({preventScroll:true})}
+ return true}
+const quiet=f=>(...a)=>Promise.resolve().then(()=>f(...a)).catch(e=>console.warn(e));
+
+// ---------- routing ----------
+const PAGES={overview:'Overview',runs:'Runs',agents:'Agents',skills:'Skills & plugins',setup:'New project',analytics:'Analytics'};
+function parseRoute(){const m=location.hash.match(/^#\/(\w+)(?:\/(\d+))?/),name=m&&PAGES[m[1]]?m[1]:'overview';
+ return name==='runs'&&m[2]?{name:'run',id:+m[2]}:{name,id:name==='setup'&&m[2]?+m[2]:null}}
+function go(first){
+ route=parseRoute();
+ $$('[data-page]').forEach(s=>s.hidden=s.dataset.page!==route.name);
+ const navName=route.name==='run'?'runs':route.name;
+ $$('#sidenav a[data-nav]').forEach(a=>a.dataset.nav===navName?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
+ document.title=(route.name==='run'?`Run #${route.id}`:PAGES[route.name])+' · orkiestrA';
+ if(route.name==='run'){if(cur!==route.id||!es)open(route.id)}else closeStream();
+ setNav(false);
+ refreshPage();
+ if(first!==true){window.scrollTo(0,0);const h=route.name==='run'?$('#run-view'):$(`[data-page="${route.name}"] h1`);if(h)h.focus({preventScroll:true})}
+}
+function refreshPage(){
+ requestAnimationFrame(fitDags);
+ if(route.name==='overview'){quiet(refreshOverview)();quiet(refreshPipe)();renderRunTables()}
+ else if(route.name==='runs')renderRunTables();
+ else if(route.name==='agents')renderAgents();
+ else if(route.name==='skills')quiet(refreshCaps)();
+ else if(route.name==='setup')quiet(refreshSetup)();
+ else if(route.name==='analytics')quiet(refreshAnalytics)();
+}
+addEventListener('hashchange',()=>go());
+
+// ---------- mobile navigation ----------
+function setNav(open){$('#sidenav').classList.toggle('open',open);$('#scrim').classList.toggle('open',open);
+ $('#menubtn').setAttribute('aria-expanded',open);$('#menubtn').setAttribute('aria-label',open?'Close navigation':'Open navigation');
+ if(open)$('#sidenav a[aria-current]')?.focus()}
+$('#menubtn').onclick=()=>setNav(!$('#sidenav').classList.contains('open'));
+$('#scrim').onclick=()=>{setNav(false);$('#menubtn').focus()};
+addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&$('#sidenav').classList.contains('open')){setNav(false);$('#menubtn').focus()}
+ if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)&&!$('#newrun').open){e.preventDefault();$('#search').focus()}
+});
+
+// ---------- runs list, search and tables ----------
+async function refreshRuns(){RUNS=await api('runs');renderRunTables();renderPipeTools();
+ const n=RUNS.filter(r=>ACTIVE.has(r.status)).length,b=$('#nav-active');b.hidden=!n;b.innerHTML=`${n}<span class="sr-only"> active</span>`;
+ if(!$('#ask-hint').classList.contains('err'))$('#ask-hint').textContent=lastRepo()?`Starts a new run in ${lastRepo()}`:'Type a goal to start a new run'}
+function filtered(){const q=$('#search').value.trim().toLowerCase();
+ return q?RUNS.filter(r=>`#${r.id} ${r.goal} ${r.status} ${r.repo}`.toLowerCase().includes(q)):RUNS}
+$('#search').addEventListener('input',()=>{PAGE.recent=PAGE.all=0;if(!['overview','runs'].includes(route.name))location.hash='#/runs';renderRunTables()});
+$('#searchform').onsubmit=e=>{e.preventDefault();if(route.name!=='runs')location.hash='#/runs'};
+function renderRunTables(){swap($('#recent'),runTable('recent',5));if(route.name==='runs')swap($('#allruns'),runTable('all',10))}
+function runTable(key,per){
+ const list=filtered(),n=list.length,pages=Math.max(1,Math.ceil(n/per));PAGE[key]=Math.min(PAGE[key],pages-1);
+ const p=PAGE[key],rows=list.slice(p*per,p*per+per),q=$('#search').value.trim();needCounts(rows);
+ const body=rows.map(r=>{const c=COUNTS[r.id],repo=String(r.repo||'').split('/').filter(Boolean).pop()||r.repo;
+  return `<tr><td class="goal-cell"><a class="run-link" href="#/runs/${r.id}"><span class="run-id">#${r.id}</span><span class="goal-text" title="${esc(r.goal)}">${esc(r.goal)}</span></a><span class="mono" title="${esc(r.repo)}">${esc(repo)}</span></td>
+  <td>${pill(r.status)}</td>
+  <td class="tasks-cell">${c?`${c.done}/${c.total}<span class="sr-only"> tasks done</span><div class="meter" aria-hidden="true"><span style="width:${c.total?c.done/c.total*100:0}%"></span></div>`:'<span class="mut">—</span>'}</td>
+  <td class="mut created">${when(r.created)}</td>
+  <td class="actions"><div class="row">${r.status=='failed'?`<button class="sm" data-act="resume" data-run="${r.id}" data-fid="${key}-res-${r.id}">Resume</button>`:''}${['running','planned','questions'].includes(r.status)?`<button class="sm danger" data-act="cancel-run" data-run="${r.id}" data-fid="${key}-can-${r.id}">Cancel</button>`:''}<a class="btn sm ghost" href="#/runs/${r.id}" aria-label="Open run #${r.id}">Open</a></div></td></tr>`}).join('')
+  ||`<tr><td colspan="5" class="empty-row"><p class="empty">${q?`No runs match “${esc(q)}”.`:'No runs yet. Start one with <b>New run</b> or the ask bar below.'}</p></td></tr>`;
+ const nums=[...Array(pages).keys()].filter(i=>pages<=7||Math.abs(i-p)<=2||i==0||i==pages-1);
+ const pager=pages>1?`<nav class="pager" aria-label="${key=='recent'?'Recent runs':'Runs'} pages"><button data-act="page" data-key="${key}" data-p="${p-1}" data-fid="${key}-prev" ${p?'':'disabled'} aria-label="Previous page">‹</button>${nums.map((i,j)=>`${j&&i-nums[j-1]>1?'<span class="mut" aria-hidden="true">…</span>':''}<button data-act="page" data-key="${key}" data-p="${i}" data-fid="${key}-p${i}" ${i==p?'aria-current="page"':''} aria-label="Page ${i+1}">${i+1}</button>`).join('')}<button data-act="page" data-key="${key}" data-p="${p+1}" data-fid="${key}-next" ${p<pages-1?'':'disabled'} aria-label="Next page">›</button></nav>`:'';
+ return `<div class="table-wrap"><table class="runs-table"><caption class="sr-only">${key=='recent'?'Recent runs':'All runs'}${q?`, filtered by “${esc(q)}”`:''}</caption><thead><tr><th scope="col">Goal</th><th scope="col">Status</th><th scope="col">Tasks</th><th scope="col">Created</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${body}</tbody></table></div>
+ <div class="table-foot"><span>${n?`Showing ${p*per+1} to ${Math.min(n,p*per+per)} of ${n} runs`:''}</span>${pager}</div>`}
+let countsBusy=false;
+async function needCounts(rows){
+ const todo=rows.filter(r=>{const c=COUNTS[r.id];return !c||c.status!==r.status||ACTIVE.has(r.status)&&Date.now()-c.t>4000});
+ if(!todo.length||countsBusy)return;countsBusy=true;
+ try{await Promise.all(todo.map(async r=>{const s=await api('runs/'+r.id);if(s&&s.tasks)COUNTS[r.id]={status:r.status,t:Date.now(),done:s.tasks.filter(t=>t.status=='done').length,total:s.tasks.length}}))}catch(e){console.warn(e)}
+ countsBusy=false;renderRunTables()}
+
+// ---------- overview: KPIs, suggestions, donut ----------
+async function refreshOverview(){
+ const [ov,sg]=await Promise.allSettled([api('overview?days=14'),api('suggestions')]);
+ if(ov.status==='fulfilled'&&ov.value.kpis){OV=ov.value;renderKpis();renderDonut()}
+ if(sg.status==='fulfilled'&&Array.isArray(sg.value)){SUGG=sg.value;renderSuggestions()}}
+function spark(vals,days,fmt,{h=40,label=''}={}){
+ const W=200,P=3,n=vals.length,nums=vals.filter(v=>v!=null),max=Math.max(...nums,0),min=Math.min(...nums,0),span=max-min||1;
+ const x=i=>n<2?W/2:P+i*(W-2*P)/(n-1),y=v=>h-P-(v-min)/span*(h-2*P-6),id='g'+Math.random().toString(36).slice(2,8);
+ let line='',area='',seg=[];
+ const flush=()=>{if(!seg.length)return;if(seg.length===1)seg.push([seg[0][0]+.01,seg[0][1]]);line+=seg.map(([i,v],j)=>`${j?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  area+=`M${x(seg[0][0]).toFixed(1)},${h}`+seg.map(([i,v])=>`L${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('')+`L${x(seg.at(-1)[0]).toFixed(1)},${h}Z`;seg=[]};
+ vals.forEach((v,i)=>v==null?flush():seg.push([i,v]));flush();
+ const hit=vals.map((v,i)=>`<rect class="hit" x="${(n<2?0:x(i)-(W-2*P)/(n-1)/2).toFixed(1)}" y="0" width="${(n<2?W:(W-2*P)/(n-1)).toFixed(1)}" height="${h}"><title>${esc(days[i]?shortDay(days[i]):'')}: ${v==null?'no data':esc(fmt(v))}</title></rect>`).join('');
+ return `<svg class="spark${h>40?' lg':''}" viewBox="0 0 ${W} ${h}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}"><defs><linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".28"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#${id})"/><path class="ln" d="${line}" vector-effect="non-scaling-stroke"/>${hit}</svg>`}
+function delta(c,p,upGood,pts){
+ if(c==null||p==null||(!pts&&!p))return `<p class="kpi-delta">${c==null?'no data in the last 7 days':'no data in the 7 days before'}</p>`;
+ const d=pts?(c-p)*100:(c-p)/p*100;if(Math.abs(d)<0.5)return `<p class="kpi-delta">≈ unchanged vs prev. 7 days</p>`;
+ return `<p class="kpi-delta ${(d>0)===upGood?'good':'bad'}"><b><span aria-hidden="true">${d>0?'▲':'▼'}</span> ${d>0?'+':'−'}${Math.abs(d).toFixed(pts?1:0)}${pts?' pts':'%'}</b> vs prev. 7 days</p>`}
+function renderKpis(){
+ const k=OV.kpis,s=OV.series||[],days=s.map(d=>d.day),a=s.slice(-7),b=s.slice(-14,-7),sum=(arr,f)=>arr.reduce((t,d)=>t+(f(d)||0),0);
+ const rate=arr=>{const n=sum(arr,d=>d.attempts);return n?sum(arr,d=>d.accepted)/n:null};
+ const avg=arr=>{const n=sum(arr,d=>d.avg_seconds!=null?d.attempts:0);return n?sum(arr,d=>d.avg_seconds!=null?d.avg_seconds*d.attempts:0)/n:null};
+ const failedA=arr=>arr.length?sum(arr,d=>d.attempts-d.accepted):null;
+ const card=(c,ic,label,value,dl,sp)=>`<article class="card kpi t-${c}"><div class="kpi-top"><span class="kpi-icon">${icon(ic)}</span><div><h2 class="kpi-label">${label}</h2><p class="kpi-value">${value}</p></div></div>${dl}${sp}</article>`;
+ const total=PROFS.length;
+ swap($('#kpis'),[
+  card('acc','layers','Runs',fmtNum(k.runs_total),delta(sum(a,d=>d.runs),b.length?sum(b,d=>d.runs):null,true),spark(s.map(d=>d.runs),days,v=>v+' runs',{label:'Runs per day, last 14 days'})),
+  card('ok','check','Success rate',k.success_rate==null?'—':(k.success_rate*100).toFixed(1)+'%',delta(rate(a),rate(b),true,true),spark(s.map(d=>d.attempts?d.accepted/d.attempts:null),days,v=>(v*100).toFixed(0)+'% accepted',{label:'Share of work attempts accepted per day'})),
+  card('bad','alert','Failed tasks',fmtNum(k.tasks_failed),delta(failedA(a),failedA(b),false),spark(s.map(d=>d.attempts-d.accepted),days,v=>v+' rejected attempts',{label:'Rejected work attempts per day'})),
+  card('plan','clock','Avg attempt time',fmtDur(k.avg_attempt_seconds),delta(avg(a),avg(b),false),spark(s.map(d=>d.avg_seconds),days,fmtDur,{label:'Average work attempt duration per day'})),
+  card('run','users','Active profiles',`${k.active_profiles??'—'}${total?` <small>/ ${total}</small>`:''}`,`<p class="kpi-delta">profiles ready to run · attempts per day</p>`,spark(s.map(d=>d.attempts),days,v=>v+' attempts',{label:'Work attempts per day'})),
+ ].join(''))}
+const SUGG_TONE={profile:'bad',quota:'warn',mcp:'run',run:'acc'},SUGG_ICON={profile:'bot',quota:'gauge',mcp:'plug',run:'refresh'},SUGG_LINK={profile:'#/agents',quota:'#/agents',mcp:'#/skills'};
+function renderSuggestions(){
+ swap($('#suggestions'),SUGG.length?SUGG.map((s,i)=>{const a=s.action,link=a&&a.run!=null?`#/runs/${a.run}`:SUGG_LINK[s.kind];
+  const btn=a&&a.type==='resume'?`<button class="sm primary" data-act="resume" data-run="${a.run}" data-fid="sg-${i}">Resume</button>`:a&&a.type?`<a class="btn sm" href="${link||'#/runs'}">${esc(a.type[0].toUpperCase()+a.type.slice(1))}</a>`:'';
+  return `<li class="sugg t-${SUGG_TONE[s.kind]||'pend'}"><span class="sugg-icon">${icon(SUGG_ICON[s.kind]||'flag')}</span><div class="sugg-text"><p class="sugg-title">${esc(s.title)}</p><p class="mut" title="${esc(s.detail)}">${esc(s.detail)}</p></div>${btn}${link?`<a class="chev" href="${link}" aria-label="Details: ${esc(s.title)}">${icon('chev')}</a>`:''}</li>`}).join('')
+  :`<li class="empty">${icon('check')} Nothing needs your attention.</li>`)}
+function renderDonut(){
+ const ts=OV.task_status||{},order=[['done','Done','ok'],['running','Running','run'],['failed','Failed','bad'],['cancelled','Cancelled','warn'],['pending','Pending','pend']];
+ const total=order.reduce((t,[k])=>t+(ts[k]||0),0),R=60,C=2*Math.PI*R,live=order.filter(([k])=>ts[k]>0).length,gap=live>1?2:0;
+ let off=0;const segs=order.map(([k,l,c])=>{const v=ts[k]||0;if(!v)return '';const len=v/total*C,s=`<circle class="seg t-${c}" r="${R}" cx="80" cy="80" stroke-width="18" stroke-dasharray="${Math.max(0,len-gap).toFixed(2)} ${(C-Math.max(0,len-gap)).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"><title>${l}: ${v} (${(v/total*100).toFixed(1)}%)</title></circle>`;off+=len;return s}).join('');
+ const fin=(ts.done||0)+(ts.failed||0)+(ts.cancelled||0);
+ swap($('#donut'),`<div class="donut-wrap"><svg class="donut" viewBox="0 0 160 160" role="img" aria-label="${total} tasks: ${order.map(([k,l])=>`${l} ${ts[k]||0}`).join(', ')}"><circle class="track" r="${R}" cx="80" cy="80" stroke-width="18"/><g transform="rotate(-90 80 80)">${segs}</g><text class="big" x="80" y="84">${fmtNum(total)}</text><text class="lbl" x="80" y="102">Total tasks</text></svg>
+ <ul class="dlegend">${order.map(([k,l,c])=>`<li class="t-${c}"><i aria-hidden="true"></i><span>${l}</span><span class="num">${ts[k]||0}</span><span class="num mut">${total?((ts[k]||0)/total*100).toFixed(1):'0.0'}%</span></li>`).join('')}</ul></div>
+ <p class="donut-note">${fin?`<b>${((ts.done||0)/fin*100).toFixed(0)}%</b> of finished tasks were done`:'No finished tasks yet'}</p>`)}
+
+// ---------- pipeline DAG ----------
+function pipeline(run,tasks){
+ if(!tasks.length)return `<p class="empty">${['planning','clarifying','questions'].includes(run.status)?'The planner is still working on this run — tasks appear once the plan is ready.':'This run has no tasks.'}</p>`;
+ const by=Object.fromEntries(tasks.map(t=>[t.key,t])),depth={},deps=t=>(t.depends_on||[]).filter(d=>by[d]&&d!==t.key);
+ const dep=(k,path=new Set())=>{if(depth[k]!=null)return depth[k];if(path.has(k))return 0;path.add(k);const ds=deps(by[k]);const d=ds.length?1+Math.max(...ds.map(x=>dep(x,path))):0;path.delete(k);return depth[k]=d};
+ tasks.forEach(t=>dep(t.key));
+ const cols=[];tasks.forEach(t=>(cols[depth[t.key]]??=[]).push(t));
+ const rowPos={};cols.forEach((c,ci)=>{if(ci){const bary=t=>{const ds=deps(t);return ds.length?ds.reduce((s,d)=>s+rowPos[d],0)/ds.length:0};c.sort((a,b)=>bary(a)-bary(b))}c.forEach((t,i)=>rowPos[t.key]=i-(c.length-1)/2)});
+ const SW=150,W=184,H=76,GX=42,GY=14,maxRows=Math.max(1,...cols.map(c=>c?c.length:0)),height=maxRows*H+(maxRows-1)*GY,width=SW+cols.length*(W+GX);
+ const pos={},place=(k,ci,i,len)=>pos[k]={x:ci?SW+GX+(ci-1)*(W+GX):0,y:(height-(len*H+(len-1)*GY))/2+i*(H+GY),w:ci?W:SW};
+ place('@start',0,0,1);cols.forEach((c,ci)=>c.forEach((t,i)=>place(t.key,ci+1,i,c.length)));
+ const startTone=run.status==='failed'?'bad':['running','done','cancelled'].includes(run.status)?'ok':'pend';
+ const edges=[];tasks.forEach(t=>{const ds=deps(t);(ds.length?ds:['@start']).forEach(d=>edges.push([d,t.key,d==='@start'?startTone:tone(by[d].status),t.status==='running']))});
+ const svg=edges.map(([a,b,c,flow])=>{const s=pos[a],e=pos[b],x1=s.x+s.w,y1=s.y+H/2,x2=e.x,y2=e.y+H/2,mx=(x1+x2)/2;
+  return `<path class="edge t-${c}${flow?' flow':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2-4},${y2}"/><circle class="edot t-${c}" cx="${x1}" cy="${y1}" r="3.5"/><circle class="edot t-${c}" cx="${x2-3}" cy="${y2}" r="3.5"/>`}).join('');
+ const node=(k,cls,glyph,title,sub,meta,label)=>`<a class="node ${cls}" href="#/runs/${run.id}" ${k?`data-k="${esc(k)}"`:''} style="left:${pos[k||'@start'].x}px;top:${pos[k||'@start'].y}px;width:${pos[k||'@start'].w}px;height:${H}px" aria-label="${esc(label)}"><span class="node-icon" aria-hidden="true">${glyph}</span><span class="node-body"><span class="node-title">${esc(title)}</span><span class="node-prof">${esc(sub)}</span><span class="node-meta">${meta}</span></span></a>`;
+ const nodes=node(null,'start t-'+tone(run.status),'▶',`Run #${run.id}`,`${tasks.length} task${tasks.length==1?'':'s'}`,`<b>${esc(run.status)}</b>`,`Run #${run.id}, ${run.status}: ${run.goal}`)
+  +tasks.map(t=>node(t.key,'t-'+tone(t.status),GLYPH[t.status]||'•',t.title,t.profile||t.agent||'',`<b>${esc(t.status)}</b> · ${t.attempts} attempt${t.attempts==1?'':'s'}`,`Task ${t.title}, ${t.status}, profile ${t.profile||t.agent}, ${t.attempts} attempts${deps(t).length?', after '+deps(t).join(', '):''}`)).join('');
+ return `<div class="dag-scroll" data-sk="dag" tabindex="0" role="group" aria-label="Task pipeline of run #${run.id}, ${tasks.length} tasks in ${cols.length} stages"><div class="dag" style="width:${width}px;height:${height}px"><svg width="${width}" height="${height}" aria-hidden="true">${svg}</svg>${nodes}</div></div>`}
+const pipeId=()=>pipeSel??cur??RUNS[0]?.id??null;
+function renderPipeTools(){
+ const id=pipeId();if(id==null)return swap($('#pipe-tools'),'');
+ swap($('#pipe-tools'),`<label for="pipe-run" class="sr-only">Run shown in the pipeline</label><select id="pipe-run" data-fid="pipe-run">${RUNS.slice(0,40).map(r=>`<option value="${r.id}" ${r.id==id?'selected':''}>#${r.id} · ${esc(trunc(r.goal,34))}</option>`).join('')}</select><a class="btn sm" href="#/runs/${id}">Open run</a>`)}
+async function refreshPipe(){
+ const id=pipeId();renderPipeTools();
+ if(id==null)return swap($('#ov-pipe'),'<p class="empty">No runs yet. Start one with <b>New run</b> and its task graph shows up here.</p>');
+ const s=await api('runs/'+id);if(pipeId()!==id||!s||!s.run)return;
+ $('#pipe-sub').textContent=`Run #${id} · ${trunc(s.run.goal,90)}`;
+ if(swap($('#ov-pipe'),pipeline(s.run,s.tasks)))fitDags()}
+// Shrink a slightly-too-wide graph to fit its card; wider graphs keep their size and scroll inside the card.
+function fitDags(){$$('.dag-scroll').forEach(sc=>{const d=sc.firstElementChild;d.style.zoom='';const f=sc.clientWidth/d.offsetWidth;if(f<1&&f>=.78)d.style.zoom=f.toFixed(3)})}
+addEventListener('resize',()=>{clearTimeout(fitDags.t);fitDags.t=setTimeout(fitDags,100)});
+document.addEventListener('change',e=>{if(e.target.id==='pipe-run'){pipeSel=+e.target.value;refreshPipe()}if(e.target.id==='an-days')refreshAnalytics()});
+
+// ---------- run detail (live stream) ----------
+// Agents print stream-json; a raw line can hold a whole written file. Show one short readable line instead
+// (null = noise worth dropping), so a big run's log stays small enough to render.
+const LOG_LINE=300;
+function logText(raw){let j;try{j=JSON.parse(raw)}catch{return trunc(raw,LOG_LINE)}
+ if(!j||typeof j!=='object')return trunc(raw,LOG_LINE);
+ const short=(s)=>trunc(String(s??'').replace(/\s+/g,' ').trim(),LOG_LINE);
+ const tool=(name,inp)=>{inp=inp||{};const a=inp.command||inp.CommandLine||inp.file_path||inp.path||inp.Path||inp.pattern||inp.url||inp.description||inp.skill||'';return `▸ ${name}${a?' '+short(a):''}`};
+ if(j.event==='step_update'){const u=j.step_update||{};if(u.state!=='DONE')return null;
+  if(u.step_type==='tool')return tool(u.tool_name||'tool',(u.tool_info||{}).parameters);return null}
+ if(j.event==='result'){const r=j.result||{};return r.error?`✕ ${short(r.error)}`:`✓ ${short(r.response||r.status)}`}
+ if(j.event==='init')return '· session started';
+ switch(j.type){
+  case 'system':return j.subtype==='init'?`· session started (${j.model||''}, ${j.permissionMode||''})`:null;
+  case 'rate_limit_event':return null;
+  case 'assistant':{const c=(j.message||{}).content||[];const out=c.map(x=>x.type==='text'?short(x.text):x.type==='tool_use'?tool(x.name,x.input):null).filter(Boolean);return out.length?out.join('\n'):null}
+  case 'user':return null; // tool results: the tool call line above already says what ran
+  case 'result':return j.is_error?`✕ ${short(j.result)}`:`✓ ${short(j.result)}`;
+  case 'item.completed':{const it=j.item||{};if(it.type==='agent_message'||it.type==='reasoning')return short(it.text);
+   if(it.type==='command_execution')return `▸ ${short(it.command)}${it.exit_code?` (exit ${it.exit_code})`:''}`;
+   if(it.type==='file_change')return `▸ edit ${short((it.changes||[]).map(c=>c.path).join(', '))}`;return null}
+  case 'item.started':case 'thread.started':case 'turn.started':case 'turn.completed':return null;
+  case 'error':return `✕ ${short(j.message)}`}
+ return trunc(raw,LOG_LINE)}
+function closeStream(){if(es){es.close();es=null}planFor=null;qFor=null}
+function open(id){cur=id;planFor=null;qFor=null;logs={};lastOut={};seen=0;render._sig=null;if(es)es.close();
+ const v=$('#run-view');v._html=v._skel=null;v.innerHTML=`<p class="crumbs"><a href="#/runs">Runs</a> / Run #${id}</p><p class="empty">Loading run #${id}…</p>`;
+ es=new EventSource(`/api/runs/${id}/stream`);es.onmessage=e=>render(JSON.parse(e.data))}
+function setView(html){const v=$('#run-view');v._skel=null;swap(v,html)}
+function render({state,events}){if(!state){if(route.name==='run')setView(`<nav class="crumbs" aria-label="Breadcrumb"><a href="#/runs">Runs</a> / Run #${cur}</nav><p class="empty">Run #${cur} was not found.</p>`);return}const {run,tasks}=state;
+ let fresh=false;
+ for(const ev of events){if(ev.id<=seen)continue;seen=ev.id;fresh=true;if(ev.task_key){lastOut[ev.task_key]=ev.ts;const line=ev.kind=='out'?logText(ev.text):`[${ev.kind}] ${trunc(ev.text,LOG_LINE)}`;if(line!=null){(logs[ev.task_key]??=[]).push(line);logs[ev.task_key]=logs[ev.task_key].slice(-200)}}}
+ if(route.name!=='run'||route.id!==run.id)return;
+ // the stream ticks every second: skip the rebuild when nothing changed (running tasks still tick their idle text)
+ const sig=JSON.stringify(state);if(!fresh&&sig===render._sig&&!tasks.some(t=>t.status==='running'))return;render._sig=sig;
+ const r0=RUNS.find(x=>x.id===run.id);if(r0&&r0.status!==run.status){Object.assign(r0,run);renderRunTables()}
+ const head=`<nav class="crumbs" aria-label="Breadcrumb"><a href="#/runs">Runs</a> / Run #${run.id}</nav><div class="run-title"><h1>Run #${run.id}</h1>${pill(run.status)}</div><p class="run-goal">${esc(run.goal)}</p><p class="run-repo mut mono">${esc(run.repo)} ${run.summary?'· '+esc(run.summary):''}</p>`
+  +(run.status=='failed'?`<div class="row run-actions"><button class="primary" data-act="resume" data-run="${run.id}" data-fid="rv-resume" title="Keep finished tasks, continue the rest">Resume</button><button data-act="resume" data-fresh="1" data-run="${run.id}" data-fid="rv-retry" title="Redo unfinished tasks from their first profile">Retry unfinished from scratch</button></div>`:'')
+  +(['running','planned','questions'].includes(run.status)?`<div class="row run-actions"><button class="danger" data-act="cancel-run" data-run="${run.id}" data-fid="rv-cancel" title="Kill running agents and start nothing new; finished tasks stay merged and the run can be resumed">Cancel run</button></div>`:'<div style="height:16px"></div>');
+ const qa=JSON.parse(run.questions||'[]'),answered=qa.filter(q=>q.answer);
+ const qaBox=answered.length?`<details class="qa"><summary>Your answers (${answered.length})</summary><dl>${answered.map(q=>`<dt>${esc(q.question)}</dt><dd>${esc(q.answer)}</dd>`).join('')}</dl></details>`:'';
+ if(run.status=='questions'){if(qFor!=run.id){qFor=run.id;setView(head+questionForm(qa))}return}
+ qFor=null;
+ if(run.status=='clarifying'){setView(head+'<p class="empty">The planner is preparing questions…</p>');return}
+ if(run.status=='planned'){if(planFor!=run.id){planFor=run.id;setView(head+qaBox+planEditor(tasks))}return}
+ planFor=null;
+ const v=$('#run-view'),skel=head+qaBox+`<article class="card" aria-labelledby="h-rdag"><header class="card-head"><div><h2 id="h-rdag">${icon('layers')}Pipeline</h2><p class="mut small">Tasks placed by dependency depth. Select a task to jump to its log.</p></div><div class="legend" aria-hidden="true"><span class="t-ok"><i></i>Done</span><span class="t-run"><i></i>Running</span><span class="t-bad"><i></i>Failed</span><span class="t-pend"><i></i>Pending</span></div></header><div id="run-dag"></div></article><h2 class="section-title">Tasks</h2><div class="grid" id="run-tasks"></div>`;
+ if(v._skel!==skel){const a=document.activeElement,fid=a&&v.contains(a)?a.dataset.fid:null;v.innerHTML=skel;v._skel=skel;v._html=null;if(fid)v.querySelector(`[data-fid="${CSS.escape(fid)}"]`)?.focus({preventScroll:true})}
+ if(swap($('#run-dag'),pipeline(run,tasks)))fitDags();
+ const box=$('#run-tasks'),keep=[...box.querySelectorAll('pre[data-k]')].reduce((a,p)=>(a[p.dataset.k]=p.scrollTop+p.clientHeight>=p.scrollHeight-8,a),{});
+ swap(box,tasks.map(t=>`<article class="card task-card" id="task-${esc(t.key)}" tabindex="-1"><h3><span>${esc(t.title)}</span>${pill(t.status)}</h3>
+ <p class="meta"><span class="mono">${esc(t.key)}</span> · ${esc(t.profile||t.agent)} · ${esc(t.category)}/${esc(t.difficulty)} · attempts ${t.attempts}${t.depends_on.length?' · after '+esc(t.depends_on.join(', ')):''}</p>
+ ${t.summary?`<p class="summary">${esc(t.summary).slice(0,300)}</p>`:''}
+ ${t.status=='running'?`<div class="idle"><span>${idle(t.key)}</span><button class="sm danger" data-act="cancel-task" data-k="${esc(t.key)}" data-fid="ct-${esc(t.key)}">Cancel</button></div>`:''}
+ <pre data-k="${esc(t.key)}" data-sk="log-${esc(t.key)}" tabindex="0" aria-label="Log of ${esc(t.title)}">${esc((logs[t.key]||[]).join('\n'))}</pre></article>`).join(''));
+ box.querySelectorAll('pre[data-k]').forEach(p=>{if(keep[p.dataset.k]!==false)p.scrollTop=p.scrollHeight})}
+function questionForm(qa){return `<h2 class="section-title">The planner has questions</h2><p class="mut" style="margin-bottom:14px">Answers become binding instructions for the plan. Leave a question empty to let the planner decide.</p><div class="grid" id="qs">${qa.map((q,i)=>`<fieldset class="card qcard" style="margin:0" aria-labelledby="ql${i}"><p id="ql${i}"><b>${esc(q.question)}</b></p>
+ ${q.options.map((o,j)=>`<label class="opt" for="q${i}o${j}"><input type="radio" id="q${i}o${j}" name="q${i}" value="${esc(o)}"> ${esc(o)}</label>`).join('')}
+ <label for="qt${i}">${q.options.length?'Other / details':'Answer'}</label><input id="qt${i}" class="qt"></fieldset>`).join('')}</div>
+ <div class="row form-actions"><button class="primary" data-act="answer">Send answers &amp; plan</button><button data-act="skip">Skip questions</button></div>`}
+async function answer(skip){const answers=[...document.querySelectorAll('#qs .card')].map(f=>{const t=f.querySelector('.qt').value.trim(),r=f.querySelector('input[type=radio]:checked');return [r?r.value:'',t].filter(Boolean).join(' — ')});
+ const r=await api(`runs/${cur}/answers`,{answers,skip});if(r.error)alert(r.error)}
+function planEditor(tasks){return `<h2 class="section-title">Review plan</h2><p class="mut" style="margin-bottom:14px">Edit titles, prompts and acceptance criteria, pick a profile per task or remove tasks, then approve.</p><div class="grid" id="plan">${tasks.map((t,i)=>`<article class="card plan-card" data-key="${esc(t.key)}" data-cat="${esc(t.category)}" data-diff="${esc(t.difficulty)}" data-dep="${esc(JSON.stringify(t.depends_on))}" aria-label="Task ${esc(t.key)}">
+ <label for="pt${i}">Title</label><input id="pt${i}" class="ti" value="${esc(t.title)}"><label for="pa${i}">Profile <span class="mut">(${esc(t.category)} / ${esc(t.difficulty)})</span></label><select id="pa${i}" class="ag" data-prof="${esc(t.profile)}">${profOptions(t.profile)}</select>
+ <label for="pp${i}">Prompt</label><textarea id="pp${i}" class="pr">${esc(t.prompt)}</textarea><label for="pc${i}">Acceptance</label><input id="pc${i}" class="ac" value="${esc(t.acceptance)}">
+ <p class="deps mut"><span class="mono">${esc(t.key)}</span> · depends on: ${esc(t.depends_on.join(', ')||'—')}</p><button class="sm danger" data-act="remove-task">Remove</button></article>`).join('')}</div>
+ <div class="row form-actions"><button class="primary" data-act="approve">Approve &amp; run</button></div>`}
+// Profiles may arrive after the plan editor rendered; options are filled in then (see refreshProfiles).
+const profOptions=sel=>(PROFS.some(p=>p.name==sel)||!sel?'':`<option value="${esc(sel)}" selected>${esc(sel)}</option>`)+PROFS.map(p=>`<option value="${esc(p.name)}" ${p.name==sel?'selected':''}>${esc(p.name)}${p.ok?'':' — '+esc(p.reason)}</option>`).join('');
+async function approve(){const tasks=[...document.querySelectorAll('#plan .card')].map(c=>({key:c.dataset.key,title:c.querySelector('.ti').value,profile:c.querySelector('.ag').value,category:c.dataset.cat,difficulty:c.dataset.diff,prompt:c.querySelector('.pr').value,acceptance:c.querySelector('.ac').value,depends_on:JSON.parse(c.dataset.dep)}));
+ const r=await api(`runs/${cur}/approve`,{tasks});if(r&&r.error)alert(r.error)}
+const idle=k=>{const a=Math.round(Date.now()/1000-(lastOut[k]||0));return !lastOut[k]?'starting…':a<10?'● working':a<120?`last output ${a}s ago`:`last output ${a}s ago — still running, the model may be thinking`};
+const cancel=k=>api(`runs/${cur}/cancel/${k}`,{});
+const cancelRun=async id=>{if(!confirm(`Cancel run #${id}?`))return;const r=await api(`runs/${id}/cancel`,{});if(r.error)alert(r.error);quiet(refreshRuns)()};
+const resume=async(id,fresh)=>{const r=await api(`runs/${id}/resume`,{fresh});if(r.error)return alert(r.error);quiet(refreshRuns)();if(route.name==='overview')quiet(refreshOverview)()};
+
+// ---------- agents ----------
+async function refreshProfiles(){
+ const [p,s]=await Promise.allSettled([api('profiles'),api('stats')]);
+ if(p.status==='fulfilled'&&Array.isArray(p.value))PROFS=p.value;if(s.status==='fulfilled'&&Array.isArray(s.value))STATS=s.value;
+ const ok=PROFS.filter(x=>x.ok).length;$('#sb-text').textContent=PROFS.length?`${ok} of ${PROFS.length} profiles can run right now.`:'No profiles configured.';
+ $('#sb-meter span').style.width=PROFS.length?ok/PROFS.length*100+'%':'0';
+ $$('#plan select.ag').forEach(x=>{if(x.options.length<=1&&PROFS.length)x.innerHTML=profOptions(x.value||x.dataset.prof)});
+ if(route.name==='agents')renderAgents();if(OV&&route.name==='overview')renderKpis()}
+function statsByProfile(){const st={};for(const r of STATS){const a=st[r.profile]??={n:0,ok:0,s:0,tok:0,usd:0};a.n+=r.n;a.ok+=r.accepted||0;a.s+=(r.avg_s||0)*r.n;a.tok+=(r.avg_out_tokens||0)*r.n;a.usd+=r.usd||0}return st}
+function renderAgents(){
+ if(!PROFS.length)return swap($('#agents'),'<p class="empty">Checking profiles…</p>');
+ const st=statsByProfile(),ok=PROFS.filter(p=>p.ok).length,pools={};
+ PROFS.forEach(p=>{if(p.quota_left!=null&&(pools[p.pool]==null||p.quota_left<pools[p.pool]))pools[p.pool]=p.quota_left});
+ const sorted=[...PROFS].sort((a,b)=>(b.ok-a.ok)||String(a.agent).localeCompare(b.agent)||a.tier-b.tier);
+ swap($('#agents'),`<div class="summary-strip"><span class="chip t-ok">✓ ${ok} available</span>${PROFS.length-ok?`<span class="chip t-bad">✕ ${PROFS.length-ok} unavailable</span>`:''}${Object.entries(pools).map(([k,v])=>`<span class="chip ${v<.2?'t-warn':''}">${esc(k)} · ${Math.round(v*100)}% quota left</span>`).join('')}</div>
+ <div class="cards">${sorted.map(p=>{const a=st[p.name],q=p.quota_left;return `<article class="card prof"><h2><span>${esc(p.name)}</span>${p.ok?'<span class="pill t-ok"><b aria-hidden="true">✓</b>available</span>':'<span class="pill t-bad"><b aria-hidden="true">✕</b>unavailable</span>'}</h2>
+  ${p.ok?'':`<p class="reason">${esc(p.reason)}</p>`}
+  <dl class="kv"><dt>Agent</dt><dd>${esc(p.agent)}</dd><dt>Model</dt><dd class="mono">${esc(p.model)}</dd><dt>Tier · cost</dt><dd>t${esc(p.tier)} · c${esc(p.cost)}</dd><dt>Pool</dt><dd>${esc(p.pool)}</dd>
+  <dt>Accepted</dt><dd>${a?`${a.ok}/${a.n} <span class="mut">(${Math.round(a.ok/a.n*100)}%)</span>`:'<span class="mut">no attempts yet</span>'}</dd>${a?`<dt>Avg attempt</dt><dd>~${fmtDur(a.s/a.n)}</dd><dt>Avg output</dt><dd>${fmtNum(Math.round(a.tok/a.n))} tokens</dd>${a.usd?`<dt>Spent</dt><dd>$${a.usd.toFixed(2)}</dd>`:''}`:''}</dl>
+  ${q!=null?`<div class="quota"><div class="row"><span class="mut">Quota left</span><b>${Math.round(q*100)}%</b></div><div class="meter" role="img" aria-label="${Math.round(q*100)}% quota left"><span style="width:${Math.max(0,Math.min(1,q))*100}%;--c:var(--${q<.2?'bad':q<.5?'warn':'ok'})"></span></div></div>`:''}
+  ${(p.good||[]).length?`<div class="chips" aria-label="Good at">${p.good.map(g=>`<span class="chip">${esc(g)}</span>`).join('')}</div>`:''}</article>`}).join('')}</div>`)}
+
+// ---------- skills & plugins ----------
+async function refreshCaps(){if(CAPS)renderCaps();const c=await api('capabilities');if(c&&typeof c==='object'){CAPS=c;if(route.name==='skills')renderCaps()}}
+function capChip(x){if(typeof x==='string')return `<span class="chip">${esc(x)}</span>`;const st=x.status!=null?String(x.status):x.enabled===false?'disabled':x.enabled?'enabled':'';
+ const t=/connected|enabled|ok|ready/i.test(st)?'t-ok':/auth|login|pending/i.test(st)?'t-warn':/fail|error|disabled/i.test(st)?'t-bad':'';
+ return `<span class="chip ${t}">${esc(x.name||JSON.stringify(x))}${st?` <span class="mut">· ${esc(st)}</span>`:''}</span>`}
+function renderCaps(){
+ const LBL={skills:'Skills',plugins:'Plugins',mcp_servers:'MCP servers'};
+ swap($('#caps'),`<div class="cards">${Object.entries(CAPS).map(([agent,c])=>`<article class="card"><header class="card-head"><div><h2>${icon('bot')}${esc(agent)}</h2>${c&&c.permissionMode?`<p class="mut small">permission mode: <span class="mono">${esc(c.permissionMode)}</span></p>`:''}</div></header>
+  ${c&&c.error?`<p class="empty">${esc(c.error)}</p>`:Object.entries(LBL).filter(([k])=>c&&Array.isArray(c[k])).map(([k,l])=>`<section class="cap-sec"><h3>${l} <span class="count">${c[k].length}</span></h3>${c[k].length?`<div class="chips">${c[k].map(capChip).join('')}</div>`:'<p class="mut small" style="margin-top:6px">None found.</p>'}</section>`).join('')}</article>`).join('')}</div>`)}
+
+// ---------- new project: recommended MCP servers, skills, plugins, programs ----------
+let PROJ=null,projTimer=null;
+const KIND_LBL={mcp:'MCP servers',skill:'Skills',plugin:'Plugins',program:'Programs'},KIND_ICON={mcp:'plug',skill:'flag',plugin:'layers',program:'bot'};
+async function refreshSetup(){
+ clearTimeout(projTimer);
+ const list=await api('projects');
+ if(Array.isArray(list))swap($('#setup-list'),list.length?list.map(p=>`<li><a href="#/setup/${p.id}" ${p.id===route.id?'aria-current="page"':''} data-fid="pl-${p.id}">${esc(trunc(p.description,90))}<span class="mut">#${p.id} · ${esc(p.status)} · ${ago(p.created)}</span></a></li>`).join(''):'<li class="mut small">None yet.</li>');
+ if(route.name!=='setup')return;
+ if(route.id==null){PROJ=null;swap($('#setup-view'),'');return}
+ PROJ=await api('projects/'+route.id);renderProject();
+ const busy=PROJ&&(PROJ.status==='running'||(PROJ.report?.items||[]).some(i=>i.install?.status==='running'));
+ if(busy)projTimer=setTimeout(quiet(refreshSetup),2000)}
+function recCard(it,i){
+ const inst=it.install||{},st=inst.status;
+ const state=it.installed?'<span class="pill t-ok"><b aria-hidden="true">✓</b>installed</span>':st==='running'?'<span class="pill t-run"><b aria-hidden="true">●</b>installing</span>':st==='failed'?'<span class="pill t-bad"><b aria-hidden="true">✕</b>install failed</span>':'<span class="pill t-pend"><b aria-hidden="true">○</b>not installed</span>';
+ const btn=it.command&&!it.installed?(it.allowed?`<button class="sm primary" data-act="install" data-i="${i}" data-fid="in-${i}" ${st==='running'?'disabled':''}>${st==='failed'?'Retry':'Install'}</button>`:''):'';
+ return `<article class="card rec"><h3><span>${esc(it.name)}</span><span class="chip">${esc(it.agent)}</span>${state}</h3>
+  ${it.why?`<p class="why">${esc(it.why)}</p>`:''}
+  ${it.command?`<div class="cmdrow"><pre class="cmd">${esc(it.command)}</pre><button class="sm ghost" data-act="copy" data-i="${i}" data-fid="cp-${i}">Copy</button>${btn}</div>`:''}
+  ${it.command&&!it.allowed&&!it.installed?`<p class="note mut">Not run from here (${esc(it.refused)}): copy it and run it yourself.</p>`:''}
+  ${it.docs?`<p class="note"><a class="link" href="${esc(it.docs)}" target="_blank" rel="noopener noreferrer">Docs ↗</a></p>`:''}
+  ${inst.output&&st!=='running'?`<details><summary class="small">Install output${inst.exit!=null?` (exit ${inst.exit})`:''}</summary><pre class="cmd out" data-sk="io-${i}">${esc(inst.output)}</pre></details>`:''}</article>`}
+function renderProject(){
+ const p=PROJ,v=$('#setup-view');
+ if(!p||p.error)return swap(v,'<p class="empty">No such project.</p>');
+ const head=`<article class="card rec-sum"><h2>Project #${p.id}</h2><p class="mut small">${esc(p.description)}</p>`;
+ if(p.status==='running')return swap(v,head+`<p>${esc(p.profile)} is looking at what this project needs… this usually takes a minute or two.</p></article>`);
+ if(p.status==='failed'||!p.report?.items)return swap(v,head+`<p class="err">${esc(p.report?.error||'failed')}</p></article>`);
+ const items=p.report.items.map((it,i)=>({...it,i}));
+ const todo=items.filter(it=>!it.installed).length;
+ swap(v,head+`<p>${esc(p.report.summary)}</p><p class="mut small">${items.length} recommendations · ${todo} still to install · by ${esc(p.profile)}</p></article>`
+  +Object.keys(KIND_LBL).map(k=>{const g=items.filter(it=>it.kind===k);return g.length?`<section class="rec-group"><h2>${icon(KIND_ICON[k])}${KIND_LBL[k]} <span class="count">${g.length}</span></h2><div class="cards">${g.map(it=>recCard(it,it.i)).join('')}</div></section>`:''}).join('')
+  ||'<p class="empty">The agent found nothing to add.</p>')}
+$('#setupform').onsubmit=async e=>{e.preventDefault();const btn=$('#setup-go'),err=$('#setup-err');btn.disabled=true;err.hidden=true;
+ try{const r=await api('projects',{description:$('#setup-desc').value});if(r.error)throw new Error(r.error);$('#setup-desc').value='';location.hash='#/setup/'+r.id}
+ catch(x){err.textContent=x.message;err.hidden=false}finally{btn.disabled=false}};
+function askInstall(i){const it=PROJ.report.items[i],d=$('#instdlg');$('#inst-name').textContent=it.name;$('#inst-cmd').textContent=it.command;
+ d.returnValue='';d.showModal();$('#inst-ok').focus();
+ d.onclose=async()=>{if(d.returnValue!=='ok')return;const r=await api(`projects/${PROJ.id}/install/${i}`,{});if(r.error)alert(r.error);quiet(refreshSetup)()}}
+
+// ---------- analytics ----------
+function bars(series,keys,label){
+ const tot=series.map(d=>keys.reduce((s,k)=>s+(d[k.k]||0),0)),max=Math.max(1,...tot);
+ return `<div class="chart"><span class="ymax">${fmtNum(max)}</span><div class="bars" role="img" aria-label="${esc(label)}">${series.map(d=>`<div class="bar" title="${esc(shortDay(d.day))}: ${keys.map(k=>`${k.label} ${d[k.k]||0}`).join(', ')}">${keys.filter(k=>d[k.k]>0).map(k=>`<span class="t-${k.c}" style="height:calc(${(d[k.k]/max*100).toFixed(2)}% - 2px)"></span>`).join('')}</div>`).join('')}</div><div class="xax"><span>${shortDay(series[0].day)}</span><span>${shortDay(series.at(-1).day)}</span></div></div>`}
+async function refreshAnalytics(){
+ const days=+$('#an-days').value||14,[ov]=await Promise.all([api('overview?days='+days),STATS.length?null:refreshProfiles()]);
+ if(!ov||!ov.kpis)return;const k=ov.kpis,s=ov.series.map(d=>({...d,rejected:d.attempts-d.accepted}));
+ const tile=(l,v)=>`<div class="card tile"><p>${l}</p><p>${v}</p></div>`;
+ const rows=[...STATS].sort((a,b)=>b.n-a.n);
+ swap($('#analytics'),`<div class="tiles">${tile('Runs done',fmtNum(k.runs_done))+tile('Runs failed',fmtNum(k.runs_failed))+tile('Work attempts',fmtNum(k.attempts_total))+tile('Accepted attempts',fmtNum(k.attempts_accepted))+tile('Output tokens',fmtNum(k.tokens_out))+tile('Cost','$'+(k.cost_usd||0).toFixed(2))}</div>
+ <div class="an-grid">
+  <article class="card"><header class="card-head"><h2>Runs per day</h2></header>${bars(s,[{k:'runs',label:'runs',c:'acc'}],`Runs per day over the last ${days} days`)}</article>
+  <article class="card"><header class="card-head"><h2>Work attempts per day</h2><div class="legend"><span class="t-ok"><i></i>Accepted</span><span class="t-bad"><i></i>Rejected</span></div></header>${bars(s,[{k:'accepted',label:'accepted',c:'ok'},{k:'rejected',label:'rejected',c:'bad'}],`Accepted and rejected work attempts per day over the last ${days} days`)}</article>
+  <article class="card t-plan"><header class="card-head"><h2>Average attempt time</h2></header><div class="chart"><span class="ymax">${fmtDur(Math.max(0,...s.map(d=>d.avg_seconds||0)))}</span>${spark(s.map(d=>d.avg_seconds),s.map(d=>d.day),fmtDur,{h:150,label:`Average work attempt duration per day over the last ${days} days`})}<div class="xax"><span>${shortDay(s[0].day)}</span><span>${shortDay(s.at(-1).day)}</span></div></div></article>
+  <article class="card wide"><header class="card-head"><div><h2>Profile performance</h2><p class="mut small">Work attempts per profile × category × difficulty</p></div></header>${rows.length?`<div class="table-wrap" data-sk="stats" tabindex="0" role="region" aria-label="Profile performance table"><table><thead><tr><th scope="col">Profile</th><th scope="col">Category</th><th scope="col">Difficulty</th><th scope="col" class="num">Attempts</th><th scope="col" class="num">Accepted</th><th scope="col" class="num">Avg time</th><th scope="col" class="num">Avg tokens</th><th scope="col" class="num">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="mono">${esc(r.profile)}</td><td>${esc(r.category)}</td><td>${esc(r.difficulty)}</td><td class="num">${r.n}</td><td class="num">${r.accepted||0} <span class="mut">(${Math.round((r.accepted||0)/r.n*100)}%)</span></td><td class="num">${fmtDur(r.avg_s)}</td><td class="num">${fmtNum(r.avg_out_tokens)}</td><td class="num">${r.usd?'$'+r.usd.toFixed(2):'—'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">No work attempts recorded yet.</p>'}</article>
+ </div>
+ <details class="data card" style="margin-top:16px"><summary>Daily data table</summary><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th scope="col">Day</th><th scope="col" class="num">Runs</th><th scope="col" class="num">Attempts</th><th scope="col" class="num">Accepted</th><th scope="col" class="num">Avg time</th></tr></thead><tbody>${s.map(d=>`<tr><td>${esc(d.day)}</td><td class="num">${d.runs}</td><td class="num">${d.attempts}</td><td class="num">${d.accepted}</td><td class="num">${fmtDur(d.avg_seconds)}</td></tr>`).join('')}</tbody></table></div></details>`)}
+
+// ---------- new run dialog and ask bar ----------
+function openNew(goal){const d=$('#newrun');if(!$('#repo').value)$('#repo').value=lastRepo();if(goal)$('#goal').value=goal;$('#nr-err').hidden=true;
+ d.showModal();($('#repo').value?$('#goal'):$('#repo')).focus()}
+async function startRun(body){const r=await api('runs',body);if(r.error)throw new Error(r.error);store.set('orch.repo',body.repo);await quiet(refreshRuns)();location.hash='#/runs/'+r.id;return r}
+$('#nrform').onsubmit=async e=>{e.preventDefault();const btn=$('#new');btn.disabled=true;$('#nr-err').hidden=true;
+ try{await startRun({repo:$('#repo').value,goal:$('#goal').value,test_cmd:$('#test').value,ask_questions:$('#ask').checked});$('#goal').value='';$('#newrun').close()}
+ catch(err){$('#nr-err').textContent=err.message;$('#nr-err').hidden=false}finally{btn.disabled=false}};
+$('#askform').onsubmit=async e=>{e.preventDefault();const goal=$('#askgoal').value.trim(),hint=$('#ask-hint');if(!goal)return $('#askgoal').focus();
+ const repo=lastRepo();if(!repo)return openNew(goal);
+ const btn=e.target.querySelector('button[type=submit]');btn.disabled=true;hint.classList.remove('err');
+ try{await startRun({repo,goal,test_cmd:'',ask_questions:false});$('#askgoal').value='';hint.textContent=`Started a new run in ${repo}`}
+ catch(err){hint.classList.add('err');hint.textContent=err.message}finally{btn.disabled=false}};
+$('#askgoal').addEventListener('input',()=>{const h=$('#ask-hint');if(h.classList.contains('err')){h.classList.remove('err');h.textContent=lastRepo()?`Starts a new run in ${lastRepo()}`:'Type a goal to start a new run'}});
+
+// ---------- delegated actions ----------
+document.addEventListener('click',e=>{
+ const n=e.target.closest('.node[data-k]');
+ if(n&&route.name==='run'){e.preventDefault();const c=document.getElementById('task-'+n.dataset.k);if(c){c.scrollIntoView({block:'start'});c.focus({preventScroll:true})}return}
+ const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,run=+(b.dataset.run||cur);
+ if(a==='new')openNew();
+ else if(a==='close-new')$('#newrun').close();
+ else if(a==='resume')resume(run,b.dataset.fresh==='1');
+ else if(a==='cancel-run')cancelRun(run);
+ else if(a==='cancel-task')cancel(b.dataset.k);
+ else if(a==='answer')answer(false);
+ else if(a==='skip')answer(true);
+ else if(a==='approve')approve();
+ else if(a==='remove-task')b.closest('.card').remove();
+ else if(a==='page'){PAGE[b.dataset.key]=+b.dataset.p;renderRunTables()}
+ else if(a==='install')askInstall(+b.dataset.i);
+ else if(a==='copy'){navigator.clipboard?.writeText(PROJ.report.items[+b.dataset.i].command).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)},()=>{})}
+ else if(a==='refresh-caps'){CAPS=null;swap($('#caps'),'<p class="empty">Asking the agent CLIs…</p>');quiet(refreshCaps)()}
+});
+
+go(true);
+quiet(refreshProfiles)();quiet(refreshRuns)().then(()=>{if(route.name==='overview')quiet(refreshPipe)()});
+setInterval(quiet(refreshProfiles),60000);setInterval(quiet(refreshRuns),5000);
+setInterval(()=>{if(route.name==='overview')quiet(refreshOverview)()},10000);
+setInterval(()=>{if(route.name==='overview')quiet(refreshPipe)()},4000);
+</script></body></html>

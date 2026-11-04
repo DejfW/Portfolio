@@ -1,0 +1,827 @@
+@import "../responsive/responsive.css";
+
+/* ==========================================================================
+   Accessibility Features: Semantic HTML, ARIA Widgets & Keyboard Navigation
+   Built strictly on tokens from ../styles/variables.css & ../components/components.css
+   ========================================================================== */
+
+:root {
+  --a11y-focus-width: calc(var(--component-border-width) * 2);
+  --a11y-focus-ring-width: var(--space-1);
+  --a11y-focus-ring-color: var(--color-primary-100);
+  --a11y-dialog-max-width: calc(var(--space-8) * 9);
+  --a11y-input-height: var(--component-target-size);
+  --a11y-switch-width: calc(var(--space-7) + var(--space-1));
+  --a11y-switch-height: calc(var(--space-5) + var(--space-1));
+  --a11y-switch-thumb: var(--space-4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --a11y-focus-ring-color: var(--color-primary-900);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   1. Screen-Reader Only & Visually Hidden Utilities
+   -------------------------------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: var(--space-0);
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: var(--space-0);
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. Skip Links & Bypass Blocks (WCAG 2.4.1)
+   -------------------------------------------------------------------------- */
+
+.skip-links {
+  position: relative;
+  z-index: 100;
+}
+
+.skip-links__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.skip-links .skip-link {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  z-index: 100;
+  transform: translateY(calc(-100% - var(--space-6)));
+  box-shadow: var(--shadow-md);
+}
+
+.skip-links .skip-link:focus,
+.skip-links .skip-link:focus-visible {
+  position: static;
+  transform: none;
+  margin: var(--space-2) var(--space-0) var(--space-2) var(--space-3);
+}
+
+/* --------------------------------------------------------------------------
+   3. Enhanced Keyboard Focus Indicators (WCAG 2.4.7 & 2.4.11)
+   -------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: var(--a11y-focus-width) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+
+.a11y-input:focus-visible,
+.a11y-select:focus-visible,
+.a11y-btn:focus-visible,
+.a11y-radio-card:focus-visible,
+.a11y-tab:focus-visible,
+.a11y-switch:focus-visible {
+  outline: var(--a11y-focus-width) solid var(--color-focus);
+  outline-offset: calc(var(--space-1) / 2);
+  box-shadow: 0 0 0 var(--a11y-focus-ring-width) var(--a11y-focus-ring-color);
+}
+
+main:focus {
+  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   4. Semantic Header Search, Breadcrumbs & Account Menu
+   -------------------------------------------------------------------------- */
+
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 calc(var(--space-8) * 4);
+  max-inline-size: calc(var(--space-8) * 6);
+}
+
+.header-search__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+}
+
+.header-search__input {
+  inline-size: 100%;
+  min-block-size: var(--a11y-input-height);
+  padding: var(--space-2) var(--space-7) var(--space-2) var(--space-3);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+}
+
+.header-search__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.header-search__shortcut {
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  pointer-events: none;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--space-5);
+  padding: calc(var(--space-1) / 2) var(--space-2);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+/* Breadcrumb navigation */
+.breadcrumb-bar {
+  padding: var(--space-3) var(--layout-gutter);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.breadcrumb-list__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.breadcrumb-list__item + .breadcrumb-list__item::before {
+  content: "/";
+  color: var(--color-text-muted);
+}
+
+.breadcrumb-list__link {
+  color: var(--color-link);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.breadcrumb-list__link:hover {
+  text-decoration: underline;
+  background: var(--color-surface);
+}
+
+.breadcrumb-list__current {
+  color: var(--color-text-muted);
+  padding: var(--space-1) var(--space-2);
+}
+
+/* Accessible Dropdown Menu Button */
+.menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-popup {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-2));
+  inset-inline-end: var(--space-0);
+  z-index: 50;
+  min-inline-size: calc(var(--space-8) * 3 + var(--space-5));
+  margin: var(--space-0);
+  padding: var(--space-2);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+}
+
+.menu-popup[hidden] {
+  display: none;
+}
+
+.menu-popup__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  inline-size: 100%;
+  min-block-size: var(--component-target-size);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu-popup__item:hover,
+.menu-popup__item:focus-visible {
+  background: var(--color-surface);
+  color: var(--color-link);
+}
+
+/* --------------------------------------------------------------------------
+   5. Buttons & Roving Tabindex Toolbar
+   -------------------------------------------------------------------------- */
+
+.a11y-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-block-size: var(--component-target-size);
+  min-inline-size: var(--component-target-size);
+  padding: var(--space-2) var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.a11y-btn:hover {
+  background: var(--color-surface);
+}
+
+.a11y-btn--primary {
+  border-color: var(--color-primary-600);
+  background: var(--color-primary-600);
+  color: var(--color-neutral-0);
+}
+
+.a11y-btn--primary:hover {
+  border-color: var(--color-primary-700);
+  background: var(--color-primary-700);
+}
+
+.a11y-btn--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.a11y-btn--danger:hover {
+  background: var(--color-surface);
+}
+
+.a11y-btn[aria-pressed="true"] {
+  border-color: var(--component-accent);
+  background: var(--color-surface);
+  color: var(--component-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-btn[disabled],
+.a11y-btn[aria-disabled="true"] {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.a11y-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* --------------------------------------------------------------------------
+   6. WAI-ARIA Tabs Widget (role="tablist", role="tab", role="tabpanel")
+   -------------------------------------------------------------------------- */
+
+.a11y-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.a11y-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  padding-block-end: var(--space-2);
+}
+
+.a11y-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--component-target-size);
+  padding: var(--space-2) var(--space-4);
+  border: var(--component-border-width) solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.a11y-tab:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.a11y-tab[aria-selected="true"] {
+  border-color: var(--component-accent);
+  background: var(--color-surface);
+  color: var(--component-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--space-5);
+  padding: calc(var(--space-1) / 2) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  border: var(--component-border-width) solid var(--color-border);
+  font-size: var(--font-size-xs);
+}
+
+.a11y-tabpanel[hidden] {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   7. Sortable Accessible Data Table (aria-sort, caption, scope)
+   -------------------------------------------------------------------------- */
+
+.a11y-table-caption {
+  padding-block-end: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: start;
+}
+
+.a11y-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--component-target-size);
+  padding: var(--space-1) var(--space-2);
+  margin: calc(var(--space-1) * -1) calc(var(--space-2) * -1);
+  border: var(--component-border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.a11y-sort-btn:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.a11y-sort-icon {
+  font-family: var(--font-mono);
+  color: var(--component-accent);
+}
+
+.run-table th[scope="row"] {
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   8. Accessible Forms, Radio Cards, Steppers, Switch & Validation
+   -------------------------------------------------------------------------- */
+
+.a11y-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.a11y-fieldset {
+  margin: var(--space-0);
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.a11y-legend {
+  padding: var(--space-0) var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.a11y-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.a11y-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.a11y-required {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-hint {
+  margin: var(--space-0);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.a11y-error-msg {
+  margin: var(--space-0);
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.a11y-error-msg[hidden] {
+  display: none;
+}
+
+.a11y-input,
+.a11y-select {
+  inline-size: 100%;
+  min-block-size: var(--a11y-input-height);
+  padding: var(--space-2) var(--space-3);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+}
+
+.a11y-input[aria-invalid="true"],
+.a11y-select[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  border-width: calc(var(--component-border-width) * 2);
+}
+
+.password-group {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Error Summary Alert Box */
+.a11y-error-summary {
+  padding: var(--space-4);
+  border: calc(var(--component-border-width) * 2) solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.a11y-error-summary[hidden] {
+  display: none;
+}
+
+.a11y-error-summary__title {
+  margin: var(--space-0) var(--space-0) var(--space-2);
+  color: var(--color-danger);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-error-summary__list {
+  margin: var(--space-0);
+  padding-inline-start: var(--space-5);
+  font-size: var(--font-size-sm);
+}
+
+/* Custom WAI-ARIA Radio Cards (Default Agent selection) */
+.a11y-radiogroup {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+.a11y-radio-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: var(--component-target-size);
+  padding: var(--space-4);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.a11y-radio-card:hover {
+  background: var(--color-surface);
+}
+
+.a11y-radio-card[aria-checked="true"] {
+  border-color: var(--component-accent);
+  border-width: calc(var(--component-border-width) * 2);
+  background: var(--color-surface);
+}
+
+.a11y-radio-card__title {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-radio-card__meta {
+  display: block;
+  margin-block-start: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.a11y-radio-indicator {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+}
+
+.a11y-radio-card[aria-checked="true"] .a11y-radio-indicator {
+  border-color: var(--component-accent);
+  background: var(--component-accent);
+  color: var(--color-neutral-0);
+}
+
+/* Accessible Stepper Spinbutton Group */
+.a11y-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.a11y-stepper__btn {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--component-target-size);
+  min-block-size: var(--component-target-size);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+}
+
+.a11y-stepper__btn:hover {
+  background: var(--color-surface);
+}
+
+.a11y-stepper__value {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--component-target-size);
+  min-block-size: var(--component-target-size);
+  padding: var(--space-0) var(--space-3);
+  border-inline: var(--component-border-width) solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+}
+
+/* WAI-ARIA Switch Control (role="switch") */
+.a11y-switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.a11y-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  inline-size: var(--a11y-switch-width);
+  block-size: var(--a11y-switch-height);
+  padding: var(--space-1);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.a11y-switch[aria-checked="true"] {
+  border-color: var(--color-primary-600);
+  background: var(--color-primary-600);
+}
+
+.a11y-switch__thumb {
+  inline-size: var(--a11y-switch-thumb);
+  block-size: var(--a11y-switch-thumb);
+  border-radius: var(--radius-full);
+  background: var(--color-text);
+  transition: transform 0.15s ease;
+}
+
+.a11y-switch[aria-checked="true"] .a11y-switch__thumb {
+  background: var(--color-neutral-0);
+  transform: translateX(var(--space-4));
+}
+
+/* --------------------------------------------------------------------------
+   9. Accessible Modal Dialog (<dialog> / role="dialog" aria-modal="true")
+   -------------------------------------------------------------------------- */
+
+.a11y-dialog {
+  inline-size: calc(100% - var(--space-6));
+  max-inline-size: var(--a11y-dialog-max-width);
+  margin: auto;
+  padding: var(--space-0);
+  border: var(--component-border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+
+.a11y-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.a11y-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+}
+
+.a11y-dialog__title {
+  margin: var(--space-0) var(--space-0) var(--space-1);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.a11y-dialog__body {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.a11y-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-block-start: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+  border-end-start-radius: var(--radius-lg);
+  border-end-end-radius: var(--radius-lg);
+}
+
+/* --------------------------------------------------------------------------
+   10. Live Status Bar & Semantic Footer
+   -------------------------------------------------------------------------- */
+
+.a11y-status-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--layout-gutter);
+  border-block-end: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+}
+
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--layout-gutter);
+  border-block-start: var(--component-border-width) solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* --------------------------------------------------------------------------
+   11. Responsive & Accessibility Media Queries
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 768px) {
+  .a11y-form-grid--2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .a11y-radiogroup {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --a11y-focus-width: calc(var(--space-1) * 0.75);
+  }
+
+  .status-pill,
+  .a11y-btn,
+  .a11y-input,
+  .a11y-select,
+  .a11y-radio-card,
+  .a11y-tab[aria-selected="true"] {
+    border-width: calc(var(--component-border-width) * 1.5);
+  }
+}
+
+@media (forced-colors: active) {
+  .a11y-tab[aria-selected="true"],
+  .a11y-radio-card[aria-checked="true"],
+  .a11y-switch[aria-checked="true"],
+  .a11y-btn[aria-pressed="true"] {
+    outline: 2px solid Highlight;
+    forced-color-adjust: auto;
+  }
+
+  .progress-fill {
+    background: Highlight;
+  }
+}

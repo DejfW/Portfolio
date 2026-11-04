@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Accessible Forms, Auth &amp; Modal Dialogs · Orkiestra</title>
+  <link rel="stylesheet" href="./accessibility.css">
+  <script src="./keyboard-navigation.js" defer></script>
+</head>
+<body>
+  <div id="a11y-live-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="a11y-alert-announcer" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <div class="app-shell">
+    <nav class="skip-links" aria-label="Skip links">
+      <ul class="skip-links__list">
+        <li><a class="skip-link ui-link" href="#main-content">Skip to main content</a></li>
+        <li><a class="skip-link ui-link" href="#signin-section">Skip to sign-in form</a></li>
+        <li><a class="skip-link ui-link" href="#new-run-form-section">Skip to run configuration form</a></li>
+      </ul>
+    </nav>
+
+    <header class="app-header">
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra accessibility home">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+      <span class="app-header__context">Accessible Forms, Validation &amp; Dialogs</span>
+      <div class="app-header__actions a11y-toolbar" role="toolbar" aria-label="Dialog triggers">
+        <button
+          class="a11y-btn a11y-btn--primary"
+          type="button"
+          data-dialog-open="new-run-dialog"
+          aria-haspopup="dialog"
+        >
+          <span aria-hidden="true">+</span>
+          <span>Open New Run Modal</span>
+        </button>
+      </div>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Accessibility views">
+      <span class="variation-switcher__label">Accessibility suite:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html">Run &amp; ARIA hub</a></li>
+        <li><a class="variation-switcher__link" href="./forms-and-dialogs.html" aria-current="page">Forms, auth &amp; modal dialogs</a></li>
+        <li><a class="variation-switcher__link" href="./landmarks-and-navigation.html">Semantic landmarks &amp; live logs</a></li>
+        <li><a class="variation-switcher__link" href="../components/index.html">Component shell</a></li>
+        <li><a class="variation-switcher__link" href="../responsive/index.html">Responsive layouts</a></li>
+      </ul>
+    </nav>
+
+    <nav class="breadcrumb-bar" aria-label="Breadcrumb">
+      <ol class="breadcrumb-list">
+        <li class="breadcrumb-list__item"><a class="breadcrumb-list__link" href="./index.html">Accessibility</a></li>
+        <li class="breadcrumb-list__item"><span class="breadcrumb-list__current" aria-current="page">Forms, Auth &amp; Modal Dialogs</span></li>
+      </ol>
+    </nav>
+
+    <div class="a11y-status-banner" role="region" aria-label="Screen reader live announcement monitor">
+      <span>
+        <strong>ARIA live region output:</strong>
+        <span id="a11y-last-announcement">Submit a form with empty fields to test accessible error summaries and aria-invalid states.</span>
+      </span>
+    </div>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-labelledby="forms-sidebar-title">
+        <div class="app-sidebar__workspace">
+          <h2 class="app-sidebar__title" id="forms-sidebar-title">Form Patterns</h2>
+          <p class="app-sidebar__description">WCAG 3.3.1, 3.3.2, 3.3.3 &amp; 4.1.2 compliant controls.</p>
+        </div>
+        <nav aria-label="Form sections">
+          <ul class="app-sidebar__nav" data-roving-nav>
+            <li><a class="app-sidebar__link" href="#signin-section" aria-current="page">Sign in (01-sign-in)</a></li>
+            <li><a class="app-sidebar__link" href="#new-run-form-section">Run config (05-modal)</a></li>
+            <li><a class="app-sidebar__link" href="#action-states-section">Disabled &amp; action states</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="main-content" id="main-content" tabindex="-1">
+        <section class="main-content__section" aria-labelledby="page-heading">
+          <p class="main-content__eyebrow">WCAG 2.1 AA Form &amp; Dialog Accessibility</p>
+          <h1 id="page-heading">Accessible Forms, Error Recovery &amp; Dialogs</h1>
+          <p class="main-content__lead">Every input is explicitly paired with a <code>&lt;label&gt;</code>, linked to helper and validation messages via <code>aria-describedby</code>, and reports errors to a focusable <code>role="alert"</code> summary.</p>
+        </section>
+
+        <div class="workspace-split">
+          <!-- 1. Sign-in Form (from mockups/01-sign-in.svg) -->
+          <section class="surface-card" id="signin-section" aria-labelledby="signin-heading">
+            <div class="surface-card__header">
+              <div>
+                <h2 class="surface-card__title" id="signin-heading">Sign in to Orkiestra</h2>
+                <p class="surface-card__subtitle">Coordinate AI agents across your repositories (accessible implementation of <code>01-sign-in.svg</code>).</p>
+              </div>
+            </div>
+
+            <div>
+              <button class="a11y-btn" type="button" aria-label="Continue with GitHub">
+                <span aria-hidden="true">🐙</span>
+                <span>Continue with GitHub</span>
+              </button>
+            </div>
+
+            <form class="a11y-form" data-a11y-validate aria-label="Sign in with email and password" novalidate>
+              <div class="a11y-error-summary" role="alert" tabindex="-1" hidden>
+                <h3 class="a11y-error-summary__title">There is a problem with your sign-in details:</h3>
+                <ul class="a11y-error-summary__list"></ul>
+              </div>
+
+              <fieldset class="a11y-fieldset">
+                <legend class="a11y-legend">Account credentials</legend>
+                <div class="a11y-form-grid">
+                  <div class="a11y-field">
+                    <label class="a11y-label" for="signin-email">
+                      <span>Work email <span class="a11y-required" aria-hidden="true">*</span></span>
+                    </label>
+                    <input
+                      class="a11y-input"
+                      id="signin-email"
+                      name="email"
+                      type="email"
+                      autocomplete="email"
+                      placeholder="you@company.com"
+                      required
+                      aria-required="true"
+                      aria-invalid="false"
+                      aria-describedby="signin-email-hint signin-email-error"
+                      data-error-id="signin-email-error"
+                    >
+                    <p class="a11y-hint" id="signin-email-hint">Enter the email address associated with your workspace.</p>
+                    <p class="a11y-error-msg" id="signin-email-error" hidden></p>
+                  </div>
+
+                  <div class="a11y-field">
+                    <div class="a11y-label">
+                      <label for="signin-password">
+                        Password <span class="a11y-required" aria-hidden="true">*</span>
+                      </label>
+                      <a href="#signin-section">Forgot password?</a>
+                    </div>
+                    <div class="password-group">
+                      <input
+                        class="a11y-input"
+                        id="signin-password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        minlength="8"
+                        required
+                        aria-required="true"
+                        aria-invalid="false"
+                        aria-describedby="signin-password-hint signin-password-error"
+                        data-error-id="signin-password-error"
+                      >
+                      <button
+                        class="a11y-btn"
+                        type="button"
+                        data-password-toggle
+                        aria-controls="signin-password"
+                        aria-pressed="false"
+                        aria-label="Show password"
+                      >Show</button>
+                    </div>
+                    <p class="a11y-hint" id="signin-password-hint">Minimum 8 characters. Use the Show button to verify what you typed.</p>
+                    <p class="a11y-error-msg" id="signin-password-error" hidden></p>
+                  </div>
+
+                  <div class="a11y-switch-row">
+                    <input
+                      id="keep-signed-in"
+                      name="remember"
+                      type="checkbox"
+                      checked
+                    >
+                    <label for="keep-signed-in">Keep me signed in on this device</label>
+                  </div>
+                </div>
+              </fieldset>
+
+              <div>
+                <button class="a11y-btn a11y-btn--primary" type="submit">Sign in</button>
+              </div>
+            </form>
+          </section>
+
+          <!-- 2. Disabled & Action States with aria-describedby (from mockups/04-task-detail.svg) -->
+          <aside class="surface-card" id="action-states-section" aria-labelledby="actions-heading">
+            <div class="surface-card__header">
+              <div>
+                <h2 class="surface-card__title" id="actions-heading">Task review actions</h2>
+                <p class="surface-card__subtitle">Accessible disabled state pattern from <code>04-task-detail.svg</code></p>
+              </div>
+            </div>
+
+            <p class="a11y-hint" id="merge-disabled-reason">
+              <strong>Approve and merge</strong> is unavailable until the current agent attempt finishes verification.
+            </p>
+
+            <div class="a11y-form-grid">
+              <button
+                class="a11y-btn"
+                type="button"
+                aria-disabled="true"
+                aria-describedby="merge-disabled-reason"
+              >
+                Approve and merge
+              </button>
+
+              <div class="a11y-toolbar" role="toolbar" aria-label="Attempt recovery controls">
+                <button class="a11y-btn" type="button">
+                  <span aria-hidden="true">↻</span>
+                  <span>Retry attempt</span>
+                </button>
+                <button class="a11y-btn a11y-btn--danger" type="button">
+                  <span aria-hidden="true">■</span>
+                  <span>Stop attempt</span>
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- 3. Inline New Run Configuration Form -->
+        <section class="main-content__section surface-card" id="new-run-form-section" aria-labelledby="inline-new-run-heading">
+          <div class="surface-card__header">
+            <div>
+              <h2 class="surface-card__title" id="inline-new-run-heading">New run configuration (semantic fieldsets &amp; ARIA controls)</h2>
+              <p class="surface-card__subtitle">Also available as a focus-trapped modal dialog via the "Open New Run Modal" button in the header.</p>
+            </div>
+          </div>
+
+          <form class="a11y-form" data-a11y-validate aria-label="Configure new run" novalidate>
+            <div class="a11y-error-summary" role="alert" tabindex="-1" hidden>
+              <h3 class="a11y-error-summary__title">Please review the highlighted configuration fields:</h3>
+              <ul class="a11y-error-summary__list"></ul>
+            </div>
+
+            <fieldset class="a11y-fieldset">
+              <legend class="a11y-legend">Repository &amp; plan</legend>
+              <div class="a11y-form-grid a11y-form-grid--2col">
+                <div class="a11y-field">
+                  <label class="a11y-label" for="config-run-name">
+                    <span>Run name <span class="a11y-required" aria-hidden="true">*</span></span>
+                  </label>
+                  <input
+                    class="a11y-input"
+                    id="config-run-name"
+                    name="runName"
+                    type="text"
+                    value="Round 3 · Build phase"
+                    required
+                    aria-required="true"
+                    aria-describedby="config-run-name-error"
+                    data-error-id="config-run-name-error"
+                  >
+                  <p class="a11y-error-msg" id="config-run-name-error" hidden></p>
+                </div>
+
+                <div class="a11y-field">
+                  <label class="a11y-label" for="config-task-plan">
+                    <span>Task plan file <span class="a11y-required" aria-hidden="true">*</span></span>
+                  </label>
+                  <input
+                    class="a11y-input"
+                    id="config-task-plan"
+                    name="taskPlan"
+                    type="text"
+                    value="tasks/round-3.yaml"
+                    required
+                    aria-required="true"
+                    aria-describedby="config-plan-hint config-plan-error"
+                    data-error-id="config-plan-error"
+                  >
+                  <p class="a11y-hint" id="config-plan-hint">6 tasks · 4 dependencies · validated</p>
+                  <p class="a11y-error-msg" id="config-plan-error" hidden></p>
+                </div>
+              </div>
+            </fieldset>
+
+            <div>
+              <button class="a11y-btn a11y-btn--primary" type="submit">Validate &amp; start run</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <footer class="app-footer">
+      <div><strong>Orkiestra Accessibility Suite</strong> · Forms, Validation &amp; Modal Dialogs</div>
+      <nav aria-label="Footer links">
+        <a class="breadcrumb-list__link" href="./index.html">ARIA Hub</a>
+        <a class="breadcrumb-list__link" href="./landmarks-and-navigation.html">Landmarks &amp; Live Logs</a>
+      </nav>
+    </footer>
+  </div>
+
+  <!-- Focus-trapped New Run Modal Dialog -->
+  <dialog
+    class="a11y-dialog"
+    id="new-run-dialog"
+    aria-labelledby="dialog-run-title"
+    aria-describedby="dialog-run-desc"
+  >
+    <form class="a11y-form" data-a11y-validate aria-label="Modal new run" novalidate>
+      <div class="a11y-dialog__header">
+        <div>
+          <h2 class="a11y-dialog__title" id="dialog-run-title">New run</h2>
+          <p class="surface-card__subtitle" id="dialog-run-desc">Focus is trapped inside this modal until you press Escape or activate Cancel.</p>
+        </div>
+        <button class="a11y-btn" type="button" data-dialog-close aria-label="Close dialog">✕</button>
+      </div>
+      <div class="a11y-dialog__body">
+        <div class="a11y-field">
+          <label class="a11y-label" for="dialog-run-name-input">
+            <span>Run name <span class="a11y-required" aria-hidden="true">*</span></span>
+          </label>
+          <input
+            class="a11y-input"
+            id="dialog-run-name-input"
+            name="runName"
+            type="text"
+            value="Round 3 · Build phase"
+            required
+            aria-required="true"
+            autofocus
+          >
+        </div>
+      </div>
+      <div class="a11y-dialog__footer">
+        <button class="a11y-btn" type="button" data-dialog-close>Cancel</button>
+        <button class="a11y-btn a11y-btn--primary" type="submit">Start run</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

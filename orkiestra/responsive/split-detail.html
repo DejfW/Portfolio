@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Split-detail layout variation · Orkiestra</title>
+  <link rel="stylesheet" href="./responsive.css">
+</head>
+<body>
+  <div class="app-shell layout-split-detail">
+    <header class="app-header">
+      <a class="skip-link ui-link" href="#main-content">Skip to main content</a>
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra responsive overview">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+      <span class="app-header__context">Run #2 · Round 2 Design Phase</span>
+      <nav class="app-header__actions" aria-label="Quick links">
+        <a class="ui-link" href="./desktop.html">Back to dashboard</a>
+      </nav>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Layout variations">
+      <span class="variation-switcher__label">Layout variation:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html">All variations</a></li>
+        <li><a class="variation-switcher__link" href="./mobile.html">Mobile</a></li>
+        <li><a class="variation-switcher__link" href="./tablet.html">Tablet</a></li>
+        <li><a class="variation-switcher__link" href="./desktop.html">Desktop</a></li>
+        <li><a class="variation-switcher__link" href="./split-detail.html" aria-current="page">Split detail</a></li>
+      </ul>
+    </nav>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-labelledby="split-workspace-title">
+        <div class="app-sidebar__workspace">
+          <h2 class="app-sidebar__title" id="split-workspace-title">Run #2</h2>
+          <p class="app-sidebar__description">Master-detail split pane variation.</p>
+        </div>
+        <nav aria-label="Run sections">
+          <ul class="app-sidebar__nav">
+            <li><a class="app-sidebar__link" href="#task-list">Task list (4/4)</a></li>
+            <li><a class="app-sidebar__link" href="#task-output" aria-current="page">Live output</a></li>
+            <li><a class="app-sidebar__link" href="#acceptance">Acceptance criteria</a></li>
+          </ul>
+        </nav>
+        <div class="app-sidebar__note">
+          <p class="app-sidebar__note-title">Adaptive split view</p>
+          <p>Side-by-side 1:2 master-detail panes at 1024px+; stacks vertically on tablets and phones.</p>
+        </div>
+      </aside>
+
+      <main class="main-content" id="main-content" tabindex="-1">
+        <section class="main-content__section" aria-labelledby="split-title">
+          <p class="main-content__eyebrow">Master-detail layout variation (sticky task list + live detail pane)</p>
+          <h1 id="split-title">Task t3 · Responsive Design</h1>
+          <p class="main-content__lead">Inspect individual tasks in a two-pane split on desktop or a stacked progressive disclosure flow on smaller screens.</p>
+        </section>
+
+        <div class="split-pane">
+          <section class="split-pane__master surface-card" id="task-list" aria-labelledby="master-list-title">
+            <div class="surface-card__header">
+              <h2 class="surface-card__title" id="master-list-title">Run tasks</h2>
+              <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> 3 / 4 done</span>
+            </div>
+            <ul class="task-list" aria-label="Tasks in Run 2">
+              <li>
+                <a class="task-list__item" href="#task-output">
+                  <div>
+                    <strong>t1 · Design System Setup</strong>
+                    <span class="task-list__meta">styles/variables.css · base.css</span>
+                  </div>
+                  <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                </a>
+              </li>
+              <li>
+                <a class="task-list__item" href="#task-output">
+                  <div>
+                    <strong>t2 · Main UI Components</strong>
+                    <span class="task-list__meta">components/*.html · *.css</span>
+                  </div>
+                  <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                </a>
+              </li>
+              <li>
+                <a class="task-list__item" href="#task-output" aria-current="true">
+                  <div>
+                    <strong>t3 · Responsive Design</strong>
+                    <span class="task-list__meta">responsive/*.html · responsive.css</span>
+                  </div>
+                  <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> Running</span>
+                </a>
+              </li>
+              <li>
+                <a class="task-list__item" href="#task-output">
+                  <div>
+                    <strong>t5 · Visual Design Mockups</strong>
+                    <span class="task-list__meta">mockups/01..06.svg</span>
+                  </div>
+                  <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <section class="split-pane__detail surface-card" id="task-output" aria-labelledby="detail-pane-title">
+            <div class="surface-card__header">
+              <div>
+                <h2 class="surface-card__title" id="detail-pane-title">Live task output &amp; verification</h2>
+                <p class="surface-card__subtitle">Branch: <code>orch/r2-t3-a2</code> · Media queries &amp; layout variations</p>
+              </div>
+              <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Ready</span>
+            </div>
+
+            <pre class="terminal-output" tabindex="0" aria-label="Agent verification log"><code>[06:40:12] Checking design tokens in styles/variables.css... OK
+[06:41:05] Applying @media breakpoints to components/ (360px, 480px, 768px, 1024px, 1280px)... OK
+[06:42:30] Building layout variations in responsive/:
+           - responsive/mobile.html       (Bottom tab bar + 2x2 KPI grid)
+           - responsive/tablet.html       (Horizontal sub-nav + 2-column grid)
+           - responsive/desktop.html      (Persistent 240px sidebar + 2:1 split + responsive table)
+           - responsive/split-detail.html (Sticky 1:2 master-detail split pane)
+[06:43:15] Verifying touch targets (&gt;= 44x44px) and WCAG AA contrast... PASS</code></pre>
+
+            <div id="acceptance">
+              <h3>Acceptance criteria checklist</h3>
+              <ul class="main-content__activity">
+                <li>
+                  <h3>Media queries across screen sizes</h3>
+                  <p>Implemented for narrow mobile (<code>&lt;= 360px</code>), mobile (<code>&lt;= 480px</code>, <code>&lt; 768px</code>), tablet (<code>768px–1023px</code>), desktop (<code>&gt;= 1024px</code>), wide desktop (<code>&gt;= 1280px</code>), plus dark mode, reduced motion, high contrast, coarse pointer, and print.</p>
+                </li>
+                <li>
+                  <h3>Layout variations in <code>responsive/</code> directory</h3>
+                  <p>Standalone and combined layout variations available in <code>responsive/index.html</code>, <code>mobile.html</code>, <code>tablet.html</code>, <code>desktop.html</code>, and <code>split-detail.html</code>.</p>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

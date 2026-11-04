@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Accessibility, ARIA &amp; Keyboard Navigation · Orkiestra</title>
+  <link rel="stylesheet" href="./accessibility.css">
+  <script src="./keyboard-navigation.js" defer></script>
+</head>
+<body>
+  <!-- Screen-reader live regions for polite and assertive announcements -->
+  <div id="a11y-live-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="a11y-alert-announcer" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <div class="app-shell">
+    <!-- Multi-target bypass blocks (WCAG 2.4.1) -->
+    <nav class="skip-links" aria-label="Skip links">
+      <ul class="skip-links__list">
+        <li><a class="skip-link ui-link" href="#main-content">Skip to main content</a></li>
+        <li><a class="skip-link ui-link" href="#sidebar-nav">Skip to workspace navigation</a></li>
+        <li><a class="skip-link ui-link" href="#workspace-search-input">Skip to workspace search</a></li>
+        <li><a class="skip-link ui-link" href="#run-tablist">Skip to run tabs</a></li>
+      </ul>
+    </nav>
+
+    <header class="app-header">
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra accessibility home">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+
+      <!-- Semantic search landmark (role="search") with / keyboard shortcut -->
+      <form class="header-search" role="search" aria-label="Workspace search" action="#panel-tasks" method="get">
+        <label class="sr-only" for="workspace-search-input">Search runs, tasks, or branches (press slash to focus)</label>
+        <div class="header-search__field">
+          <input
+            class="header-search__input a11y-input"
+            id="workspace-search-input"
+            name="q"
+            type="search"
+            placeholder="Search runs, tasks, branches…"
+            aria-keyshortcuts="/"
+            aria-describedby="search-shortcut-hint"
+          >
+          <kbd class="kbd header-search__shortcut" id="search-shortcut-hint" aria-hidden="true">/</kbd>
+        </div>
+      </form>
+
+      <div class="app-header__actions a11y-toolbar" role="toolbar" aria-label="Workspace quick actions">
+        <button
+          class="a11y-btn"
+          type="button"
+          data-dialog-open="shortcuts-dialog"
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Shift+Slash"
+        >
+          <span aria-hidden="true">⌨</span>
+          <span>Shortcuts</span>
+          <kbd class="kbd" aria-hidden="true">?</kbd>
+        </button>
+
+        <button
+          class="a11y-btn a11y-btn--primary"
+          type="button"
+          data-dialog-open="new-run-dialog"
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Alt+N"
+        >
+          <span aria-hidden="true">+</span>
+          <span>New run</span>
+        </button>
+
+        <!-- WAI-ARIA Menu Button Pattern -->
+        <div class="menu-wrapper">
+          <button
+            class="a11y-btn"
+            id="account-menu-button"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-controls="account-menu"
+            aria-label="Account menu for DW"
+          >
+            <span aria-hidden="true">DW</span>
+            <span class="sr-only">Account and accessibility preferences</span>
+            <span aria-hidden="true">▾</span>
+          </button>
+          <ul class="menu-popup" id="account-menu" role="menu" aria-labelledby="account-menu-button" hidden>
+            <li role="none">
+              <button class="menu-popup__item" type="button" role="menuitem">
+                <span>Profile &amp; workspace</span>
+              </button>
+            </li>
+            <li role="none">
+              <button class="menu-popup__item" type="button" role="menuitem" data-dialog-open="shortcuts-dialog">
+                <span>Keyboard shortcuts</span>
+                <kbd class="kbd" aria-hidden="true">?</kbd>
+              </button>
+            </li>
+            <li role="none">
+              <a class="menu-popup__item" role="menuitem" href="./forms-and-dialogs.html">
+                <span>Sign-in &amp; form validation</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- Accessibility Suite Navigation -->
+    <nav class="variation-switcher" aria-label="Accessibility views">
+      <span class="variation-switcher__label">Accessibility suite:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html" aria-current="page">Run &amp; ARIA hub</a></li>
+        <li><a class="variation-switcher__link" href="./forms-and-dialogs.html">Forms, auth &amp; modal dialogs</a></li>
+        <li><a class="variation-switcher__link" href="./landmarks-and-navigation.html">Semantic landmarks &amp; live logs</a></li>
+        <li><a class="variation-switcher__link" href="../components/index.html">Component shell</a></li>
+        <li><a class="variation-switcher__link" href="../responsive/index.html">Responsive layouts</a></li>
+      </ul>
+    </nav>
+
+    <!-- Semantic Breadcrumb Landmark -->
+    <nav class="breadcrumb-bar" aria-label="Breadcrumb">
+      <ol class="breadcrumb-list">
+        <li class="breadcrumb-list__item"><a class="breadcrumb-list__link" href="../components/index.html">Workspace</a></li>
+        <li class="breadcrumb-list__item"><a class="breadcrumb-list__link" href="./index.html">Runs</a></li>
+        <li class="breadcrumb-list__item"><span class="breadcrumb-list__current" aria-current="page">Round 2 · Design phase (Accessible view)</span></li>
+      </ol>
+    </nav>
+
+    <!-- Visible Live Region Inspector for keyboard & assistive technology verification -->
+    <div class="a11y-status-banner" role="region" aria-label="Screen reader live announcement monitor">
+      <span>
+        <strong>ARIA live region output:</strong>
+        <span id="a11y-last-announcement">Ready. Use Tab, Arrow keys, /, ?, or Alt+N to navigate.</span>
+      </span>
+      <span>
+        <kbd class="kbd">/</kbd> Search · <kbd class="kbd">?</kbd> Shortcuts · <kbd class="kbd">Alt+N</kbd> New run · <kbd class="kbd">←</kbd><kbd class="kbd">→</kbd> Tabs &amp; Radios
+      </span>
+    </div>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-labelledby="workspace-sidebar-title">
+        <div class="app-sidebar__workspace">
+          <h2 class="app-sidebar__title" id="workspace-sidebar-title">Workspace</h2>
+          <p class="app-sidebar__description">Navigate with Tab or Arrow keys (Up/Down/Home/End).</p>
+        </div>
+
+        <nav id="sidebar-nav" aria-label="Workspace sections">
+          <ul class="app-sidebar__nav" data-roving-nav>
+            <li><a class="app-sidebar__link" href="#run-overview" aria-current="page">Run overview</a></li>
+            <li><a class="app-sidebar__link" href="#run-tablist">Tasks &amp; live log</a></li>
+            <li><a class="app-sidebar__link" href="#projects-section">Workspace projects</a></li>
+            <li><a class="app-sidebar__link" href="./forms-and-dialogs.html">Sign-in &amp; dialogs</a></li>
+            <li><a class="app-sidebar__link" href="./landmarks-and-navigation.html">Landmarks &amp; audit</a></li>
+          </ul>
+        </nav>
+
+        <div class="app-sidebar__note">
+          <p class="app-sidebar__note-title">WCAG 2.1 AA built in</p>
+          <p>Every interactive element meets the 44×44px target minimum, provides visible <code>:focus-visible</code> rings, and pairs color with icons and text.</p>
+        </div>
+      </aside>
+
+      <main class="main-content" id="main-content" tabindex="-1">
+        <!-- Section 1: Run Header & Accessible Progress Summary -->
+        <section class="main-content__section" id="run-overview" aria-labelledby="run-title">
+          <div class="surface-card__header">
+            <div class="main-content__intro">
+              <p class="main-content__eyebrow">Semantic HTML5 + WAI-ARIA + Keyboard Navigation</p>
+              <h1 id="run-title">Round 2 · Design phase</h1>
+              <p class="main-content__lead">
+                Repository <code>orkiestrA</code> · Base branch <code>main</code> · Started today at <time datetime="2026-10-28T06:29:00+01:00">06:29</time> · Up to 3 tasks in parallel.
+              </p>
+            </div>
+            <div class="a11y-toolbar" role="toolbar" aria-label="Run state controls">
+              <button class="a11y-btn" type="button" aria-label="Pause Round 2 Design phase run">
+                <span aria-hidden="true">⏸</span>
+                <span>Pause run</span>
+              </button>
+              <button class="a11y-btn a11y-btn--danger" type="button" aria-label="Cancel Round 2 Design phase run">
+                <span aria-hidden="true">✕</span>
+                <span>Cancel run</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="surface-card" aria-labelledby="run-progress-heading">
+            <div class="surface-card__header">
+              <h2 class="surface-card__title" id="run-progress-heading">Overall run progress: 4 of 5 tasks completed (80%)</h2>
+              <span class="status-pill status-pill--info">
+                <span aria-hidden="true">●</span>
+                <span>Running</span>
+                <span class="sr-only">(1 task currently active)</span>
+              </span>
+            </div>
+
+            <div
+              class="progress-track"
+              role="progressbar"
+              aria-labelledby="run-progress-heading"
+              aria-valuenow="80"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuetext="80 percent complete: 4 of 5 tasks done, 1 running"
+            >
+              <div class="progress-fill progress-fill--three-quarters"></div>
+            </div>
+
+            <dl class="kpi-grid kpi-grid--4col" aria-label="Task breakdown by status">
+              <div class="kpi-card">
+                <dt>Completed</dt>
+                <dd>4</dd>
+                <span class="kpi-card__delta"><span aria-hidden="true">✓</span> Passed verification</span>
+              </div>
+              <div class="kpi-card">
+                <dt>Running</dt>
+                <dd>1</dd>
+                <span class="kpi-card__meta"><span aria-hidden="true">●</span> Task t4 · Accessibility</span>
+              </div>
+              <div class="kpi-card">
+                <dt>Touch target size</dt>
+                <dd>48px</dd>
+                <span class="kpi-card__delta"><span aria-hidden="true">✓</span> Exceeds 44×44px WCAG AA</span>
+              </div>
+              <div class="kpi-card">
+                <dt>Contrast ratio</dt>
+                <dd>&gt; 7:1</dd>
+                <span class="kpi-card__meta">WCAG AA/AAA body &amp; UI text</span>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <!-- Section 2: WAI-ARIA Tabs Pattern (role="tablist", role="tab", role="tabpanel") -->
+        <section class="main-content__section a11y-tabs" aria-labelledby="workspace-tabs-heading">
+          <h2 class="sr-only" id="workspace-tabs-heading">Run details and accessibility views</h2>
+
+          <div class="a11y-tablist" id="run-tablist" role="tablist" aria-label="Run inspection views">
+            <button
+              class="a11y-tab"
+              id="tab-tasks"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-tasks"
+              tabindex="0"
+            >
+              <span>Tasks &amp; sortable table</span>
+              <span class="a11y-tab__count" aria-label="5 tasks">5</span>
+            </button>
+
+            <button
+              class="a11y-tab"
+              id="tab-log"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-log"
+              tabindex="-1"
+            >
+              <span>Live agent output</span>
+              <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> Live</span>
+            </button>
+
+            <button
+              class="a11y-tab"
+              id="tab-config"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-config"
+              tabindex="-1"
+            >
+              <span>ARIA controls &amp; steppers</span>
+            </button>
+
+            <button
+              class="a11y-tab"
+              id="tab-audit"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-audit"
+              tabindex="-1"
+            >
+              <span>Keyboard &amp; ARIA reference</span>
+            </button>
+          </div>
+
+          <!-- Tabpanel 1: Sortable Accessible Task Table -->
+          <div
+            class="a11y-tabpanel surface-card"
+            id="panel-tasks"
+            role="tabpanel"
+            aria-labelledby="tab-tasks"
+            tabindex="0"
+          >
+            <div class="surface-card__header">
+              <div>
+                <h3 class="surface-card__title">Run tasks (sortable keyboard-accessible table)</h3>
+                <p class="surface-card__subtitle">Activate any column header button with Enter or Space to sort rows and announce the sort order.</p>
+              </div>
+            </div>
+
+            <table class="run-table" data-sortable-table aria-describedby="tasks-table-caption">
+              <caption class="a11y-table-caption" id="tasks-table-caption">
+                Tasks in Round 2 · Design phase. Column headers with sort buttons reorder rows and announce state via ARIA live regions.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" aria-sort="ascending">
+                    <button class="a11y-sort-btn" type="button" data-col-name="Task ID">
+                      <span>ID</span>
+                      <span class="a11y-sort-icon" aria-hidden="true">▲</span>
+                    </button>
+                  </th>
+                  <th scope="col" aria-sort="none">
+                    <button class="a11y-sort-btn" type="button" data-col-name="Task name">
+                      <span>Task</span>
+                      <span class="a11y-sort-icon" aria-hidden="true">↕</span>
+                    </button>
+                  </th>
+                  <th scope="col">Agent</th>
+                  <th scope="col" aria-sort="none">
+                    <button class="a11y-sort-btn" type="button" data-col-name="Status">
+                      <span>Status</span>
+                      <span class="a11y-sort-icon" aria-hidden="true">↕</span>
+                    </button>
+                  </th>
+                  <th scope="col">Progress</th>
+                  <th scope="col" aria-sort="none">
+                    <button class="a11y-sort-btn" type="button" data-col-name="Duration">
+                      <span>Duration</span>
+                      <span class="a11y-sort-icon" aria-hidden="true">↕</span>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="ID" data-sort-value="1"><code>t1</code></td>
+                  <th scope="row" data-label="Task" data-sort-value="Design System Setup">
+                    <strong>Design System Setup</strong>
+                    <span class="run-table__branch">styles/variables.css · base.css</span>
+                  </th>
+                  <td data-label="Agent"><code>sonnet · med</code></td>
+                  <td data-label="Status" data-sort-value="1-Done">
+                    <span class="status-pill status-pill--success">
+                      <span aria-hidden="true">✓</span>
+                      <span>Done</span>
+                    </span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div
+                        class="progress-track"
+                        role="progressbar"
+                        aria-label="Design System Setup progress"
+                        aria-valuenow="100"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-fill progress-fill--full"></div>
+                      </div>
+                      <span class="progress-label">100%</span>
+                    </div>
+                  </td>
+                  <td data-label="Duration" data-sort-value="1084"><time datetime="PT18M4S">18m 04s</time></td>
+                </tr>
+
+                <tr>
+                  <td data-label="ID" data-sort-value="2"><code>t2</code></td>
+                  <th scope="row" data-label="Task" data-sort-value="Main UI Components">
+                    <strong>Main UI Components</strong>
+                    <span class="run-table__branch">components/*.html · *.css</span>
+                  </th>
+                  <td data-label="Agent"><code>codex · high</code></td>
+                  <td data-label="Status" data-sort-value="1-Done">
+                    <span class="status-pill status-pill--success">
+                      <span aria-hidden="true">✓</span>
+                      <span>Done</span>
+                    </span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div
+                        class="progress-track"
+                        role="progressbar"
+                        aria-label="Main UI Components progress"
+                        aria-valuenow="100"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-fill progress-fill--full"></div>
+                      </div>
+                      <span class="progress-label">100%</span>
+                    </div>
+                  </td>
+                  <td data-label="Duration" data-sort-value="751"><time datetime="PT12M31S">12m 31s</time></td>
+                </tr>
+
+                <tr>
+                  <td data-label="ID" data-sort-value="3"><code>t3</code></td>
+                  <th scope="row" data-label="Task" data-sort-value="Responsive Design">
+                    <strong>Responsive Design</strong>
+                    <span class="run-table__branch">responsive/*.html · responsive.css</span>
+                  </th>
+                  <td data-label="Agent"><code>argon · high</code></td>
+                  <td data-label="Status" data-sort-value="1-Done">
+                    <span class="status-pill status-pill--success">
+                      <span aria-hidden="true">✓</span>
+                      <span>Done</span>
+                    </span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div
+                        class="progress-track"
+                        role="progressbar"
+                        aria-label="Responsive Design progress"
+                        aria-valuenow="100"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-fill progress-fill--full"></div>
+                      </div>
+                      <span class="progress-label">100%</span>
+                    </div>
+                  </td>
+                  <td data-label="Duration" data-sort-value="860"><time datetime="PT14M20S">14m 20s</time></td>
+                </tr>
+
+                <tr>
+                  <td data-label="ID" data-sort-value="4"><code>t4</code></td>
+                  <th scope="row" data-label="Task" data-sort-value="Accessibility Features">
+                    <strong>Accessibility Features</strong>
+                    <span class="run-table__branch">accessibility/*.html · *.css · *.js</span>
+                  </th>
+                  <td data-label="Agent"><code>argon · high</code></td>
+                  <td data-label="Status" data-sort-value="2-Running">
+                    <span class="status-pill status-pill--info">
+                      <span aria-hidden="true">●</span>
+                      <span>Running</span>
+                    </span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div
+                        class="progress-track"
+                        role="progressbar"
+                        aria-label="Accessibility Features progress"
+                        aria-valuenow="75"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-fill progress-fill--three-quarters"></div>
+                      </div>
+                      <span class="progress-label">75%</span>
+                    </div>
+                  </td>
+                  <td data-label="Duration" data-sort-value="552"><time datetime="PT9M12S">9m 12s</time></td>
+                </tr>
+
+                <tr>
+                  <td data-label="ID" data-sort-value="5"><code>t5</code></td>
+                  <th scope="row" data-label="Task" data-sort-value="Visual Design Mockups">
+                    <strong>Visual Design Mockups</strong>
+                    <span class="run-table__branch">mockups/01..06.svg</span>
+                  </th>
+                  <td data-label="Agent"><code>opus · high</code></td>
+                  <td data-label="Status" data-sort-value="1-Done">
+                    <span class="status-pill status-pill--success">
+                      <span aria-hidden="true">✓</span>
+                      <span>Done</span>
+                    </span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div
+                        class="progress-track"
+                        role="progressbar"
+                        aria-label="Visual Design Mockups progress"
+                        aria-valuenow="100"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-fill progress-fill--full"></div>
+                      </div>
+                      <span class="progress-label">100%</span>
+                    </div>
+                  </td>
+                  <td data-label="Duration" data-sort-value="1127"><time datetime="PT18M47S">18m 47s</time></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Tabpanel 2: Live Agent Output (role="log" aria-live="polite") -->
+          <div
+            class="a11y-tabpanel surface-card"
+            id="panel-log"
+            role="tabpanel"
+            aria-labelledby="tab-log"
+            tabindex="0"
+            hidden
+          >
+            <div class="surface-card__header">
+              <div>
+                <h3 class="surface-card__title" id="live-log-heading">Task t4 · Live agent output stream</h3>
+                <p class="surface-card__subtitle">Uses <code>role="log"</code>, <code>aria-live="polite"</code>, and <code>aria-relevant="additions"</code> so screen readers announce new lines without interrupting speech.</p>
+              </div>
+              <div class="a11y-toolbar" role="toolbar" aria-label="Live log stream controls">
+                <button class="a11y-btn" type="button" data-log-toggle aria-pressed="false">
+                  ⏸ Pause stream
+                </button>
+                <button class="a11y-btn" type="button" data-log-append>
+                  + Append log step
+                </button>
+                <button class="a11y-btn" type="button" data-log-clear>
+                  Clear log
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="terminal-output"
+              id="agent-log-output"
+              role="log"
+              aria-labelledby="live-log-heading"
+              aria-live="polite"
+              aria-atomic="false"
+              aria-relevant="additions"
+              tabindex="0"
+            >
+              <div>[06:53:40] Step 1: Inspected design tokens in styles/variables.css and components/components.css... OK</div>
+              <div>[06:54:15] Step 2: Added semantic landmarks, skip links, and breadcrumb hierarchy... OK</div>
+              <div>[06:55:20] Step 3: Configured WAI-ARIA tablist, radiogroup, switch, spinbutton, and menu widgets... OK</div>
+              <div>[06:56:10] Step 4: Bound roving tabindex, modal focus trapping, and sortable table headers... OK</div>
+            </div>
+          </div>
+
+          <!-- Tabpanel 3: Custom WAI-ARIA Widgets (RadioGroup, Spinbutton Steppers, Switch) -->
+          <div
+            class="a11y-tabpanel surface-card"
+            id="panel-config"
+            role="tabpanel"
+            aria-labelledby="tab-config"
+            tabindex="0"
+            hidden
+          >
+            <div class="surface-card__header">
+              <div>
+                <h3 class="surface-card__title">Interactive WAI-ARIA widgets (keyboard roving focus)</h3>
+                <p class="surface-card__subtitle">Use Arrow keys to select a default agent card or adjust spinbutton steppers, and Space to toggle the review switch.</p>
+              </div>
+            </div>
+
+            <div class="a11y-field">
+              <div class="a11y-label" id="inline-agent-group-label">
+                <span>Default agent tier</span>
+                <span class="a11y-hint">Use Left/Right or Up/Down arrow keys</span>
+              </div>
+              <div
+                class="a11y-radiogroup"
+                role="radiogroup"
+                aria-labelledby="inline-agent-group-label"
+              >
+                <div
+                  class="a11y-radio-card"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <div>
+                    <span class="a11y-radio-card__title">Opus 5.5</span>
+                    <span class="a11y-radio-card__meta">High effort · Complex architecture</span>
+                  </div>
+                  <span class="a11y-radio-indicator" aria-hidden="true"></span>
+                </div>
+
+                <div
+                  class="a11y-radio-card"
+                  role="radio"
+                  aria-checked="true"
+                  tabindex="0"
+                >
+                  <div>
+                    <span class="a11y-radio-card__title">Sonnet 5.5</span>
+                    <span class="a11y-radio-card__meta">Medium effort · Balanced default</span>
+                  </div>
+                  <span class="a11y-radio-indicator" aria-hidden="true">●</span>
+                </div>
+
+                <div
+                  class="a11y-radio-card"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <div>
+                    <span class="a11y-radio-card__title">Haiku 5.5</span>
+                    <span class="a11y-radio-card__meta">Low effort · Fast targeted edits</span>
+                  </div>
+                  <span class="a11y-radio-indicator" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="a11y-form-grid a11y-form-grid--2col">
+              <div class="a11y-field">
+                <span class="a11y-label" id="inline-parallel-label">Tasks in parallel (1 to 8)</span>
+                <div class="a11y-stepper" data-stepper>
+                  <button
+                    class="a11y-stepper__btn"
+                    type="button"
+                    data-stepper-dec
+                    aria-label="Decrease tasks in parallel"
+                  >−</button>
+                  <span
+                    class="a11y-stepper__value"
+                    role="spinbutton"
+                    tabindex="0"
+                    aria-labelledby="inline-parallel-label"
+                    aria-valuenow="3"
+                    aria-valuemin="1"
+                    aria-valuemax="8"
+                    aria-valuetext="3 parallel tasks"
+                    data-unit="parallel tasks"
+                  >3</span>
+                  <button
+                    class="a11y-stepper__btn"
+                    type="button"
+                    data-stepper-inc
+                    aria-label="Increase tasks in parallel"
+                  >+</button>
+                </div>
+              </div>
+
+              <div class="a11y-field">
+                <span class="a11y-label" id="inline-attempts-label">Attempts per task (1 to 5)</span>
+                <div class="a11y-stepper" data-stepper>
+                  <button
+                    class="a11y-stepper__btn"
+                    type="button"
+                    data-stepper-dec
+                    aria-label="Decrease attempts per task"
+                  >−</button>
+                  <span
+                    class="a11y-stepper__value"
+                    role="spinbutton"
+                    tabindex="0"
+                    aria-labelledby="inline-attempts-label"
+                    aria-valuenow="3"
+                    aria-valuemin="1"
+                    aria-valuemax="5"
+                    aria-valuetext="3 attempts"
+                    data-unit="attempts"
+                  >3</span>
+                  <button
+                    class="a11y-stepper__btn"
+                    type="button"
+                    data-stepper-inc
+                    aria-label="Increase attempts per task"
+                  >+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="a11y-switch-row">
+              <button
+                class="a11y-switch"
+                type="button"
+                role="switch"
+                aria-checked="true"
+                aria-labelledby="inline-review-switch-label"
+                aria-describedby="inline-review-switch-desc"
+              >
+                <span class="a11y-switch__thumb" aria-hidden="true"></span>
+              </button>
+              <div>
+                <span class="a11y-label" id="inline-review-switch-label">Require human review before merging</span>
+                <p class="a11y-hint" id="inline-review-switch-desc">Each completed task waits for explicit approval before merging into <code>main</code>.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabpanel 4: Keyboard & ARIA Audit Matrix -->
+          <div
+            class="a11y-tabpanel surface-card"
+            id="panel-audit"
+            role="tabpanel"
+            aria-labelledby="tab-audit"
+            tabindex="0"
+            hidden
+          >
+            <div class="surface-card__header">
+              <div>
+                <h3 class="surface-card__title">Implemented ARIA, Keyboard &amp; Semantic HTML Matrix</h3>
+                <p class="surface-card__subtitle">Every widget follows WAI-ARIA Authoring Practices 1.2 and WCAG 2.1 AA guidelines.</p>
+              </div>
+            </div>
+
+            <table class="run-table" aria-label="Accessibility implementation matrix">
+              <thead>
+                <tr>
+                  <th scope="col">Pattern</th>
+                  <th scope="col">Semantic HTML &amp; ARIA Attributes</th>
+                  <th scope="col">Keyboard Interaction</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" data-label="Pattern">Bypass blocks</th>
+                  <td data-label="HTML &amp; ARIA"><code>&lt;nav aria-label="Skip links"&gt;</code>, <code>&lt;main tabindex="-1"&gt;</code></td>
+                  <td data-label="Keyboard"><kbd class="kbd">Tab</kbd> on page load reveals skip links; <kbd class="kbd">Enter</kbd> jumps focus</td>
+                </tr>
+                <tr>
+                  <th scope="row" data-label="Pattern">Tabs widget</th>
+                  <td data-label="HTML &amp; ARIA"><code>role="tablist"</code>, <code>role="tab"</code>, <code>aria-selected</code>, <code>aria-controls</code>, <code>role="tabpanel"</code></td>
+                  <td data-label="Keyboard"><kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> <kbd class="kbd">Home</kbd> <kbd class="kbd">End</kbd> roving focus; <kbd class="kbd">Alt+1..4</kbd> direct jump</td>
+                </tr>
+                <tr>
+                  <th scope="row" data-label="Pattern">Modal dialog</th>
+                  <td data-label="HTML &amp; ARIA"><code>&lt;dialog&gt;</code>, <code>aria-labelledby</code>, <code>aria-describedby</code>, <code>aria-haspopup="dialog"</code></td>
+                  <td data-label="Keyboard">Traps <kbd class="kbd">Tab</kbd> / <kbd class="kbd">Shift+Tab</kbd>; <kbd class="kbd">Esc</kbd> closes &amp; restores trigger focus</td>
+                </tr>
+                <tr>
+                  <th scope="row" data-label="Pattern">Radio cards &amp; Switch</th>
+                  <td data-label="HTML &amp; ARIA"><code>role="radiogroup"</code>, <code>role="radio"</code>, <code>role="switch"</code>, <code>aria-checked</code></td>
+                  <td data-label="Keyboard"><kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> <kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd> for radios; <kbd class="kbd">Space</kbd> / <kbd class="kbd">Enter</kbd> to toggle</td>
+                </tr>
+                <tr>
+                  <th scope="row" data-label="Pattern">Live log &amp; Status</th>
+                  <td data-label="HTML &amp; ARIA"><code>role="log"</code>, <code>aria-live="polite"</code>, <code>role="status"</code>, <code>role="alert"</code></td>
+                  <td data-label="Keyboard">Toolbar <kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> pauses/resumes live announcements</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 3: Native Semantic Disclosures (<details>/<summary>) -->
+        <section class="main-content__section" id="projects-section" aria-labelledby="projects-title">
+          <h2 id="projects-title">Workspace deliverables (native semantic disclosures)</h2>
+          <p class="main-content__lead">Uses native <code>&lt;details&gt;</code> and <code>&lt;summary&gt;</code> elements for zero-JS keyboard disclosure support with <kbd class="kbd">Enter</kbd> and <kbd class="kbd">Space</kbd>.</p>
+          <div class="main-content__projects">
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Semantic HTML &amp; Landmarks</span>
+                <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Active</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Structured with <code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code> (distinct <code>aria-label</code> per region), <code>&lt;main&gt;</code>, <code>&lt;aside&gt;</code>, <code>&lt;section&gt;</code>, <code>&lt;article&gt;</code>, <code>&lt;dl&gt;</code>, <code>&lt;table&gt;</code>, <code>&lt;dialog&gt;</code>, and <code>&lt;footer&gt;</code>.</p>
+                <p class="main-content__muted"><a href="./landmarks-and-navigation.html">Inspect landmark architecture →</a></p>
+              </div>
+            </details>
+
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Accessible Forms &amp; Dialogs</span>
+                <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Active</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Includes explicit <code>&lt;label for&gt;</code> associations, <code>&lt;fieldset&gt;</code> + <code>&lt;legend&gt;</code>, <code>aria-invalid</code>, <code>aria-describedby</code>, and focusable <code>role="alert"</code> validation summaries.</p>
+                <p class="main-content__muted"><a href="./forms-and-dialogs.html">Open accessible sign-in &amp; dialog forms →</a></p>
+              </div>
+            </details>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="app-footer">
+      <div>
+        <strong>Orkiestra Accessibility Suite</strong> · Built with semantic HTML5, WAI-ARIA 1.2, and design system tokens.
+      </div>
+      <nav aria-label="Footer links">
+        <a class="breadcrumb-list__link" href="./index.html">ARIA Hub</a>
+        <a class="breadcrumb-list__link" href="./forms-and-dialogs.html">Accessible Forms</a>
+        <a class="breadcrumb-list__link" href="./landmarks-and-navigation.html">Landmarks &amp; Live Logs</a>
+      </nav>
+    </footer>
+  </div>
+
+  <!-- ========================================================================
+       Modal Dialog 1: New Run Dialog (from mockups/05-new-run-modal.svg)
+       Traps Tab focus, closes on Escape, restores focus to trigger button
+       ======================================================================== -->
+  <dialog
+    class="a11y-dialog"
+    id="new-run-dialog"
+    aria-labelledby="new-run-title"
+    aria-describedby="new-run-desc"
+  >
+    <form class="a11y-form" data-a11y-validate aria-label="New orchestrator run" novalidate>
+      <div class="a11y-dialog__header">
+        <div>
+          <h2 class="a11y-dialog__title" id="new-run-title">New run</h2>
+          <p class="surface-card__subtitle" id="new-run-desc">Choose a repository and a task plan. Agents start right away.</p>
+        </div>
+        <button
+          class="a11y-btn"
+          type="button"
+          data-dialog-close
+          aria-label="Close New run dialog"
+        >✕</button>
+      </div>
+
+      <div class="a11y-dialog__body">
+        <div class="a11y-error-summary" role="alert" tabindex="-1" hidden>
+          <h3 class="a11y-error-summary__title">Please correct the following before starting the run:</h3>
+          <ul class="a11y-error-summary__list"></ul>
+        </div>
+
+        <div class="a11y-field">
+          <label class="a11y-label" for="modal-run-name">
+            <span>Run name <span class="a11y-required" aria-hidden="true">*</span></span>
+          </label>
+          <input
+            class="a11y-input"
+            id="modal-run-name"
+            name="runName"
+            type="text"
+            value="Round 3 · Build phase"
+            required
+            aria-required="true"
+            aria-describedby="modal-run-name-hint modal-run-name-error"
+            data-error-id="modal-run-name-error"
+            autofocus
+          >
+          <p class="a11y-hint" id="modal-run-name-hint">Human-readable label shown in the dashboard and notifications.</p>
+          <p class="a11y-error-msg" id="modal-run-name-error" hidden></p>
+        </div>
+
+        <div class="a11y-form-grid a11y-form-grid--2col">
+          <div class="a11y-field">
+            <label class="a11y-label" for="modal-repo">Repository</label>
+            <select class="a11y-select" id="modal-repo" name="repository">
+              <option value="orkiestrA" selected>orkiestrA</option>
+              <option value="orkiestrA-cli">orkiestrA-cli</option>
+            </select>
+          </div>
+
+          <div class="a11y-field">
+            <label class="a11y-label" for="modal-branch">Base branch</label>
+            <select class="a11y-select" id="modal-branch" name="branch">
+              <option value="main" selected>main</option>
+              <option value="develop">develop</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="a11y-field">
+          <span class="a11y-label" id="modal-agent-label">
+            <span>Default agent</span>
+            <span class="a11y-hint">Tasks can override this</span>
+          </span>
+          <div class="a11y-radiogroup" role="radiogroup" aria-labelledby="modal-agent-label">
+            <div class="a11y-radio-card" role="radio" aria-checked="false" tabindex="-1">
+              <div>
+                <span class="a11y-radio-card__title">Opus 5.5</span>
+                <span class="a11y-radio-card__meta">High effort</span>
+              </div>
+              <span class="a11y-radio-indicator" aria-hidden="true"></span>
+            </div>
+            <div class="a11y-radio-card" role="radio" aria-checked="true" tabindex="0">
+              <div>
+                <span class="a11y-radio-card__title">Sonnet 5.5</span>
+                <span class="a11y-radio-card__meta">Medium effort</span>
+              </div>
+              <span class="a11y-radio-indicator" aria-hidden="true">●</span>
+            </div>
+            <div class="a11y-radio-card" role="radio" aria-checked="false" tabindex="-1">
+              <div>
+                <span class="a11y-radio-card__title">Haiku 5.5</span>
+                <span class="a11y-radio-card__meta">Low effort</span>
+              </div>
+              <span class="a11y-radio-indicator" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="a11y-switch-row">
+          <button
+            class="a11y-switch"
+            type="button"
+            role="switch"
+            aria-checked="true"
+            aria-labelledby="modal-review-label"
+            aria-describedby="modal-review-desc"
+          >
+            <span class="a11y-switch__thumb" aria-hidden="true"></span>
+          </button>
+          <div>
+            <span class="a11y-label" id="modal-review-label">Require my review before merging</span>
+            <p class="a11y-hint" id="modal-review-desc">Each finished task waits for your approval before it merges into main.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="a11y-dialog__footer">
+        <button class="a11y-btn" type="button" data-dialog-close>Cancel</button>
+        <button class="a11y-btn a11y-btn--primary" type="submit">Start run</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ========================================================================
+       Modal Dialog 2: Keyboard Shortcuts Help Dialog (? key)
+       ======================================================================== -->
+  <dialog
+    class="a11y-dialog"
+    id="shortcuts-dialog"
+    aria-labelledby="shortcuts-title"
+    aria-describedby="shortcuts-desc"
+  >
+    <div class="a11y-dialog__header">
+      <div>
+        <h2 class="a11y-dialog__title" id="shortcuts-title">Keyboard navigation shortcuts</h2>
+        <p class="surface-card__subtitle" id="shortcuts-desc">Navigate the entire Orkiestra interface without a mouse.</p>
+      </div>
+      <button
+        class="a11y-btn"
+        type="button"
+        data-dialog-close
+        aria-label="Close keyboard shortcuts dialog"
+        autofocus
+      >✕</button>
+    </div>
+
+    <div class="a11y-dialog__body">
+      <table class="run-table" aria-label="Keyboard shortcuts">
+        <thead>
+          <tr>
+            <th scope="col">Key combination</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">Tab</kbd> / <kbd class="kbd">Shift+Tab</kbd></td>
+            <td data-label="Action">Move focus between interactive landmarks and controls</td>
+          </tr>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">/</kbd></td>
+            <td data-label="Action">Focus the global workspace search input</td>
+          </tr>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">?</kbd></td>
+            <td data-label="Action">Open this keyboard shortcuts help dialog</td>
+          </tr>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">Alt+N</kbd></td>
+            <td data-label="Action">Open the New Run modal dialog</td>
+          </tr>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">Alt+1</kbd> … <kbd class="kbd">Alt+4</kbd></td>
+            <td data-label="Action">Switch directly between Run inspection tabs</td>
+          </tr>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> <kbd class="kbd">Home</kbd> <kbd class="kbd">End</kbd></td>
+            <td data-label="Action">Navigate within tablists, radiogroups, toolbars, and sidebar links</td>
+          </tr>
+          <tr>
+            <td data-label="Key"><kbd class="kbd">Esc</kbd></td>
+            <td data-label="Action">Close open modal dialog or dropdown menu and restore focus</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="a11y-dialog__footer">
+      <button class="a11y-btn a11y-btn--primary" type="button" data-dialog-close>Got it</button>
+    </div>
+  </dialog>
+</body>
+</html>

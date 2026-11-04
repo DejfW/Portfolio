@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Tablet layout variation · Orkiestra</title>
+  <link rel="stylesheet" href="./responsive.css">
+</head>
+<body>
+  <div class="app-shell layout-tablet">
+    <header class="app-header">
+      <a class="skip-link ui-link" href="#main-content">Skip to main content</a>
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra responsive overview">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+      <span class="app-header__context">Tablet workspace · 768px–1023px</span>
+      <nav class="app-header__actions" aria-label="Quick links">
+        <a class="ui-link" href="#projects">View projects</a>
+      </nav>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Layout variations">
+      <span class="variation-switcher__label">Layout variation:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html">All variations</a></li>
+        <li><a class="variation-switcher__link" href="./mobile.html">Mobile</a></li>
+        <li><a class="variation-switcher__link" href="./tablet.html" aria-current="page">Tablet</a></li>
+        <li><a class="variation-switcher__link" href="./desktop.html">Desktop</a></li>
+        <li><a class="variation-switcher__link" href="./split-detail.html">Split detail</a></li>
+      </ul>
+    </nav>
+
+    <nav class="app-subnav" aria-label="Workspace sections">
+      <div>
+        <strong>Workspace navigation</strong>
+        <span class="main-content__muted"> · Horizontal sub-bar replaces wide sidebar on tablets</span>
+      </div>
+      <ul class="app-subnav__list">
+        <li><a class="app-subnav__link" href="#overview" aria-current="page">Overview</a></li>
+        <li><a class="app-subnav__link" href="#projects">Projects</a></li>
+        <li><a class="app-subnav__link" href="#activity">Recent activity</a></li>
+      </ul>
+    </nav>
+
+    <div class="app-layout">
+      <main class="main-content responsive-container" id="main-content" tabindex="-1">
+        <section class="main-content__section" id="overview" aria-labelledby="tablet-overview-title">
+          <div class="main-content__intro">
+            <p class="main-content__eyebrow">Tablet layout variation (horizontal sub-navigation + 2-column grid)</p>
+            <h1 id="tablet-overview-title">Overview</h1>
+            <p class="main-content__lead">On medium viewports, navigation condenses into a horizontal top bar so two-column cards have full horizontal breathing room.</p>
+          </div>
+
+          <dl class="main-content__stats" aria-label="Project summary">
+            <div class="main-content__stat"><dt>Total projects</dt><dd>4</dd></div>
+            <div class="main-content__stat"><dt>In progress</dt><dd>2</dd></div>
+            <div class="main-content__stat"><dt>Ready for review</dt><dd>2</dd></div>
+          </dl>
+        </section>
+
+        <section class="main-content__section" id="projects" aria-labelledby="tablet-projects-title">
+          <h2 id="tablet-projects-title">Projects (2-column tablet grid)</h2>
+          <p class="main-content__lead">Cards pair side-by-side in a balanced two-column grid at 768px and above, collapsing to a single column on phones.</p>
+          <div class="tablet-grid-2col">
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Workspace experience</span>
+                <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Bring navigation, project summaries, and team updates into one shared workspace.</p>
+                <p class="main-content__muted">Next step: review tablet navigation bar spacing.</p>
+              </div>
+            </details>
+
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Design foundations</span>
+                <span class="status-pill status-pill--warning"><span aria-hidden="true">!</span> Ready for review</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Establish consistent colors, typography, and spacing for the team’s interface.</p>
+                <p class="main-content__muted">Next step: check components in light and dark mode.</p>
+              </div>
+            </details>
+
+            <details class="project-card">
+              <summary>
+                <span class="project-card__name">Responsive layouts</span>
+                <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Completed</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Ensure fluid grids, media queries, and touch-friendly 44px targets across breakpoints.</p>
+                <p class="main-content__muted">Next step: test portrait and landscape orientations.</p>
+              </div>
+            </details>
+
+            <details class="project-card">
+              <summary>
+                <span class="project-card__name">Getting started</span>
+                <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Help new teammates find their projects and understand the workspace.</p>
+                <p class="main-content__muted">Next step: review the onboarding content.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="main-content__section" id="activity" aria-labelledby="tablet-activity-title">
+          <h2 id="tablet-activity-title">Recent activity</h2>
+          <div class="tablet-grid-2col">
+            <article class="surface-card">
+              <h3 class="surface-card__title">Design foundations is ready for review</h3>
+              <p class="surface-card__subtitle">The shared styles and semantic tokens are ready across light and dark mode.</p>
+            </article>
+            <article class="surface-card">
+              <h3 class="surface-card__title">Tablet grid variation active</h3>
+              <p class="surface-card__subtitle">Two-column card layout maximizes medium screen real estate without crowding prose.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

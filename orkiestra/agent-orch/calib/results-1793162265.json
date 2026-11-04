@@ -1,0 +1,386 @@
+[
+ {
+  "task": "simple",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 7,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 7,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 7,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 8,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 16,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 11,
+  "detail": ""
+ },
+ {
+  "task": "simple",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 13,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 18,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 12,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 18,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 8,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 16,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 29,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 146,
+  "detail": ""
+ },
+ {
+  "task": "implement",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 37,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 7,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 13,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 8,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 22,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 51,
+  "detail": ""
+ },
+ {
+  "task": "debug",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 26,
+  "detail": ""
+ },
+ {
+  "task": "tests",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 14,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 30,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 9,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 23,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 21,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "tests",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 19,
+  "detail": "tests pass and kill both mutants"
+ },
+ {
+  "task": "refactor",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 24,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 27,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 42,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 25,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 33,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 45,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 143,
+  "detail": ""
+ },
+ {
+  "task": "refactor",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 36,
+  "detail": ""
+ },
+ {
+  "task": "ui",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 13,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'div', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 10,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 19,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 11,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 22,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 21,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 16,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'div', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ },
+ {
+  "task": "ui",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 53,
+  "detail": "ids=['add', 'list', 'new-todo'] tags=['body', 'button', 'h1', 'head', 'html', 'input', 'meta', 'script', 'style', 'title', 'ul']"
+ }
+]

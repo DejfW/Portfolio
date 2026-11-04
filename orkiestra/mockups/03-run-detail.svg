@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <title>orkiestrA: Run detail with task list (desktop, light)</title>
+  <defs>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:#0f172a;font-size:16px}
+      .xs{font-size:12px}.sm{font-size:14px}.lg{font-size:20px}.h{font-size:32px;font-weight:700}
+      .m{font-weight:500}.b{font-weight:700}.up{letter-spacing:.04em}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .mu{fill:#64748b}.pr{fill:#4f46e5}.pr7{fill:#4338ca}.ok{fill:#15803d}.wa{fill:#b45309}.in{fill:#0369a1}.da{fill:#b91c1c}.w{fill:#fff}
+      .e{text-anchor:end}.c{text-anchor:middle}
+      .card{fill:#fff;stroke:#e2e8f0;filter:url(#sh)}
+      .ic{fill:none;stroke:#64748b;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+      .ic.a{stroke:#4338ca}.ic.w{stroke:#fff}
+      .chk{fill:none;stroke:#15803d;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+      .sep{stroke:#e2e8f0}
+    </style>
+  </defs>
+
+  <rect width="1440" height="960" fill="#ffffff"/>
+
+  <!-- ============ Sidebar ============ -->
+  <rect width="240" height="960" fill="#f8fafc"/>
+  <path d="M240.5 0V960" stroke="#e2e8f0"/>
+  <rect x="24" y="16" width="32" height="32" rx="8" fill="#4f46e5"/>
+  <path d="M32.5 40V30M37.5 40V24M42.5 40V28M47.5 40V33" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="68" y="39" class="lg b">orkiestrA</text>
+
+  <g transform="translate(24 84)" class="ic"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></g>
+  <text x="56" y="99">Dashboard</text>
+  <rect x="12" y="120" width="216" height="44" rx="8" fill="#eef2ff"/>
+  <g transform="translate(24 132)" class="ic a"><circle cx="10" cy="10" r="8"/><path d="M8 6.5l5 3.5-5 3.5z"/></g>
+  <text x="56" y="147" class="m pr7">Runs</text>
+  <g transform="translate(24 180)" class="ic"><rect x="2" y="2" width="16" height="16" rx="3"/><path d="M6 10l3 3 5-6"/></g>
+  <text x="56" y="195">Tasks</text>
+  <g transform="translate(24 228)" class="ic"><rect x="5" y="5" width="10" height="10" rx="2"/><path d="M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3"/></g>
+  <text x="56" y="243">Agents</text>
+  <g transform="translate(24 276)" class="ic"><circle cx="6" cy="4" r="2"/><circle cx="6" cy="16" r="2"/><circle cx="14" cy="7" r="2"/><path d="M6 6v8M14 9c0 3-4 3-7 5"/></g>
+  <text x="56" y="291">Repositories</text>
+
+  <path d="M24 876.5H216" stroke="#e2e8f0"/>
+  <g transform="translate(24 904)" class="ic"><circle cx="10" cy="10" r="3"/><circle cx="10" cy="10" r="7" stroke-dasharray="2.75 2.75"/></g>
+  <text x="56" y="919">Settings</text>
+
+  <!-- ============ Top bar ============ -->
+  <path d="M240 64.5H1440" stroke="#e2e8f0"/>
+  <rect x="272.5" y="10.5" width="400" height="43" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+  <g transform="translate(288 22)" class="ic"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5L18 18"/></g>
+  <text x="318" y="37" class="sm mu">Search runs, tasks, branches…</text>
+  <rect x="640.5" y="22.5" width="20" height="20" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="650.5" y="37" class="xs mu c">/</text>
+  <g transform="translate(1188 22)" class="ic"><path d="M5 14V9a5 5 0 0110 0v5l1.5 2h-13z"/><path d="M8.5 18h3"/></g>
+  <circle cx="1205" cy="23" r="4" fill="#b91c1c" stroke="#fff" stroke-width="2"/>
+  <rect x="1232" y="10" width="120" height="44" rx="8" fill="#4f46e5"/>
+  <g transform="translate(1248 22)" class="ic w"><path d="M10 4v12M4 10h12"/></g>
+  <text x="1276" y="37" class="sm m w">New run</text>
+  <circle cx="1386" cy="32" r="22" fill="#e0e7ff"/>
+  <text x="1386" y="37" class="sm b c" style="fill:#312e81">DW</text>
+
+  <!-- ============ Page header ============ -->
+  <text x="272" y="100" class="sm"><tspan class="pr m">Runs</tspan><tspan class="mu" dx="8">/</tspan><tspan class="mu" dx="8">Round 2 · Design phase</tspan></text>
+  <text x="272" y="144" class="h">Round 2 · Design phase</text>
+  <rect x="660.5" y="120.5" width="87" height="23" rx="11.5" fill="#fff" stroke="#0369a1"/>
+  <circle cx="674" cy="132" r="3" fill="#0369a1"/>
+  <text x="684" y="136" class="xs m in">Running</text>
+  <text x="272" y="176" class="sm mu">orkiestrA · base <tspan class="mono">main</tspan> · started today at 06:29 · up to 3 tasks in parallel</text>
+
+  <rect x="1156.5" y="112.5" width="119" height="43" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <path d="M1176 126v16M1182 126v16" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+  <text x="1194" y="139" class="sm m">Pause run</text>
+  <rect x="1288.5" y="112.5" width="119" height="43" rx="8" fill="#fff" stroke="#b91c1c"/>
+  <text x="1348" y="139" class="sm m da c">Cancel run</text>
+
+  <!-- ============ Progress ============ -->
+  <rect x="272.5" y="204.5" width="1135" height="104" rx="8" class="card"/>
+  <text x="296" y="240" class="sm m">4 of 8 tasks done</text>
+  <text x="1384" y="240" class="sm mu e">About 40 min remaining</text>
+  <rect x="296" y="256" width="542" height="12" rx="2" fill="#15803d"/>
+  <rect x="840" y="256" width="134" height="12" rx="2" fill="#0369a1"/>
+  <rect x="976" y="256" width="134" height="12" rx="2" fill="#b45309"/>
+  <rect x="1112" y="256" width="272" height="12" rx="2" fill="#e2e8f0"/>
+  <rect x="296" y="282" width="10" height="10" rx="2" fill="#15803d"/>
+  <text x="314" y="292" class="xs">Done 4</text>
+  <rect x="384" y="282" width="10" height="10" rx="2" fill="#0369a1"/>
+  <text x="402" y="292" class="xs">Running 1</text>
+  <rect x="488" y="282" width="10" height="10" rx="2" fill="#b45309"/>
+  <text x="506" y="292" class="xs">Needs review 1</text>
+  <rect x="620" y="282.5" width="10" height="10" rx="2" fill="#e2e8f0" stroke="#cbd5e1"/>
+  <text x="638" y="292" class="xs">Queued 2</text>
+
+  <!-- ============ Tabs ============ -->
+  <path d="M272 380.5H1408" stroke="#e2e8f0"/>
+  <text x="272" y="364" class="sm m pr">Tasks</text>
+  <rect x="316" y="350" width="24" height="20" rx="10" fill="#eef2ff"/>
+  <text x="328" y="364" class="xs m pr7 c">8</text>
+  <rect x="272" y="378" width="68" height="3" rx="1.5" fill="#4f46e5"/>
+  <text x="380" y="364" class="sm m mu">Timeline</text>
+  <text x="472" y="364" class="sm m mu">Dependency graph</text>
+  <text x="620" y="364" class="sm m mu">Settings</text>
+
+  <!-- ============ Filters ============ -->
+  <rect x="272.5" y="404.5" width="279" height="43" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <g transform="translate(286 416)" class="ic"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5L18 18"/></g>
+  <text x="316" y="431" class="sm mu">Filter tasks</text>
+  <rect x="568.5" y="404.5" width="171" height="43" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="584" y="431" class="sm"><tspan class="mu">Status:</tspan> All</text>
+  <g transform="translate(708 416)" class="ic"><path d="M6 8l4 4 4-4"/></g>
+  <rect x="756.5" y="404.5" width="171" height="43" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="772" y="431" class="sm"><tspan class="mu">Agent:</tspan> Any</text>
+  <g transform="translate(896 416)" class="ic"><path d="M6 8l4 4 4-4"/></g>
+  <text x="1408" y="431" class="sm mu e">Sorted by order</text>
+
+  <!-- ============ Task table ============ -->
+  <rect x="272.5" y="468.5" width="1135" height="460" rx="8" class="card"/>
+  <path d="M273 508.5H1407" class="sep"/>
+  <text x="296" y="493" class="xs m mu up">ID</text>
+  <text x="352" y="493" class="xs m mu up">TASK</text>
+  <text x="680" y="493" class="xs m mu up">DEPENDS ON</text>
+  <text x="808" y="493" class="xs m mu up">AGENT</text>
+  <text x="952" y="493" class="xs m mu up">ATTEMPTS</text>
+  <text x="1048" y="493" class="xs m mu up">STATUS</text>
+  <text x="1216" y="493" class="xs m mu up">DURATION</text>
+
+  <!-- t1 -->
+  <text x="296" y="539" class="sm mono mu">t1</text>
+  <text x="352" y="539" class="m">Design system setup</text>
+  <text x="680" y="539" class="sm mu">None</text>
+  <text x="808" y="539" class="sm mono">sonnet · med</text>
+  <text x="952" y="539" class="sm">1</text>
+  <rect x="1048.5" y="522.5" width="67" height="23" rx="11.5" fill="#fff" stroke="#15803d"/>
+  <path d="M1058 534l3 3 5-6" class="chk"/>
+  <text x="1072" y="538" class="xs m ok">Done</text>
+  <text x="1216" y="539" class="sm">18m 04s</text>
+  <path d="M273 560.5H1407" class="sep"/>
+
+  <!-- t2 -->
+  <text x="296" y="591" class="sm mono mu">t2</text>
+  <text x="352" y="591" class="m">Information architecture</text>
+  <text x="680" y="591" class="sm mono">t1</text>
+  <text x="808" y="591" class="sm mono">sonnet · med</text>
+  <text x="952" y="591" class="sm">1</text>
+  <rect x="1048.5" y="574.5" width="67" height="23" rx="11.5" fill="#fff" stroke="#15803d"/>
+  <path d="M1058 586l3 3 5-6" class="chk"/>
+  <text x="1072" y="590" class="xs m ok">Done</text>
+  <text x="1216" y="591" class="sm">12m 31s</text>
+  <path d="M273 612.5H1407" class="sep"/>
+
+  <!-- t3 -->
+  <text x="296" y="643" class="sm mono mu">t3</text>
+  <text x="352" y="643" class="m">User flows</text>
+  <text x="680" y="643" class="sm mono">t2</text>
+  <text x="808" y="643" class="sm mono">opus · high</text>
+  <text x="952" y="643" class="sm">2</text>
+  <rect x="1048.5" y="626.5" width="67" height="23" rx="11.5" fill="#fff" stroke="#15803d"/>
+  <path d="M1058 638l3 3 5-6" class="chk"/>
+  <text x="1072" y="642" class="xs m ok">Done</text>
+  <text x="1216" y="643" class="sm">31m 12s</text>
+  <path d="M273 664.5H1407" class="sep"/>
+
+  <!-- t4 -->
+  <text x="296" y="695" class="sm mono mu">t4</text>
+  <text x="352" y="695" class="m">Wireframes</text>
+  <text x="680" y="695" class="sm mono">t3</text>
+  <text x="808" y="695" class="sm mono">opus · high</text>
+  <text x="952" y="695" class="sm">1</text>
+  <rect x="1048.5" y="678.5" width="67" height="23" rx="11.5" fill="#fff" stroke="#15803d"/>
+  <path d="M1058 690l3 3 5-6" class="chk"/>
+  <text x="1072" y="694" class="xs m ok">Done</text>
+  <text x="1216" y="695" class="sm">22m 47s</text>
+  <path d="M273 716.5H1407" class="sep"/>
+
+  <!-- t5 (current, highlighted) -->
+  <rect x="273" y="717" width="1134" height="51" fill="#eef2ff"/>
+  <rect x="273" y="717" width="3" height="51" fill="#4f46e5"/>
+  <text x="296" y="747" class="sm mono pr7">t5</text>
+  <text x="352" y="747" class="m">Visual design mockups</text>
+  <text x="680" y="747" class="sm mono">t1, t4</text>
+  <text x="808" y="747" class="sm mono">opus · high</text>
+  <text x="952" y="747" class="sm">1</text>
+  <rect x="1048.5" y="730.5" width="87" height="23" rx="11.5" fill="#fff" stroke="#0369a1"/>
+  <circle cx="1062" cy="742" r="3" fill="#0369a1"/>
+  <text x="1072" y="746" class="xs m in">Running</text>
+  <text x="1216" y="747" class="sm">9m 12s <tspan class="mu xs">elapsed</tspan></text>
+  <text x="1384" y="747" class="sm m pr e">Open →</text>
+  <path d="M273 768.5H1407" class="sep"/>
+
+  <!-- t6 -->
+  <text x="296" y="799" class="sm mono mu">t6</text>
+  <text x="352" y="799" class="m">UX copy pass</text>
+  <text x="680" y="799" class="sm mono">t4</text>
+  <text x="808" y="799" class="sm mono">haiku · low</text>
+  <text x="952" y="799" class="sm">1</text>
+  <rect x="1048.5" y="782.5" width="115" height="23" rx="11.5" fill="#fff" stroke="#b45309"/>
+  <text x="1062" y="798" class="xs b wa c">!</text>
+  <text x="1072" y="798" class="xs m wa">Needs review</text>
+  <text x="1216" y="799" class="sm">6m 40s</text>
+  <text x="1384" y="799" class="sm m pr e">Review →</text>
+  <path d="M273 820.5H1407" class="sep"/>
+
+  <!-- t7 -->
+  <text x="296" y="851" class="sm mono mu">t7</text>
+  <text x="352" y="851" class="m mu">Interactive prototype</text>
+  <text x="680" y="851" class="sm mono">t5</text>
+  <text x="808" y="851" class="sm mu">Not assigned</text>
+  <text x="952" y="851" class="sm mu">0</text>
+  <rect x="1048.5" y="834.5" width="79" height="23" rx="11.5" fill="#fff" stroke="#cbd5e1"/>
+  <circle cx="1062" cy="846" r="3" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <text x="1072" y="850" class="xs m mu">Queued</text>
+  <text x="1216" y="851" class="sm mu">Waiting on t5</text>
+  <path d="M273 872.5H1407" class="sep"/>
+
+  <!-- t8 -->
+  <text x="296" y="903" class="sm mono mu">t8</text>
+  <text x="352" y="903" class="m mu">Accessibility audit</text>
+  <text x="680" y="903" class="sm mono">t5, t7</text>
+  <text x="808" y="903" class="sm mu">Not assigned</text>
+  <text x="952" y="903" class="sm mu">0</text>
+  <rect x="1048.5" y="886.5" width="79" height="23" rx="11.5" fill="#fff" stroke="#cbd5e1"/>
+  <circle cx="1062" cy="898" r="3" fill="none" stroke="#64748b" stroke-width="1.5"/>
+  <text x="1072" y="902" class="xs m mu">Queued</text>
+  <text x="1216" y="903" class="sm mu">Waiting on t5, t7</text>
+</svg>

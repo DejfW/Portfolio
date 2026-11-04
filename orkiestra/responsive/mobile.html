@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Mobile layout variation · Orkiestra</title>
+  <link rel="stylesheet" href="./responsive.css">
+</head>
+<body>
+  <div class="app-shell layout-mobile">
+    <header class="app-header">
+      <a class="skip-link ui-link" href="#main-content">Skip to main content</a>
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra responsive overview">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Dashboard</span>
+      </a>
+      <span class="app-header__context">Wed, Oct 28 · 1 run in progress</span>
+      <nav class="app-header__actions" aria-label="Quick links">
+        <a class="ui-link" href="#runs">Review (1)</a>
+      </nav>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Layout variations">
+      <span class="variation-switcher__label">Layout variation:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html">All variations</a></li>
+        <li><a class="variation-switcher__link" href="./mobile.html" aria-current="page">Mobile</a></li>
+        <li><a class="variation-switcher__link" href="./tablet.html">Tablet</a></li>
+        <li><a class="variation-switcher__link" href="./desktop.html">Desktop</a></li>
+        <li><a class="variation-switcher__link" href="./split-detail.html">Split detail</a></li>
+      </ul>
+    </nav>
+
+    <div class="app-layout">
+      <main class="main-content" id="main-content" tabindex="-1">
+        <section class="main-content__section" id="overview" aria-labelledby="mobile-overview-title">
+          <div class="main-content__intro">
+            <p class="main-content__eyebrow">Mobile layout variation (bottom tab bar + 2×2 KPI grid)</p>
+            <h1 id="mobile-overview-title">Workspace pulse</h1>
+            <p class="main-content__lead">Designed for single-handed check-ins and quick approvals while away from a desk.</p>
+          </div>
+
+          <dl class="kpi-grid" aria-label="Key performance indicators">
+            <div class="kpi-card">
+              <dt>Active runs</dt>
+              <dd>1</dd>
+              <span class="kpi-card__meta">4 of 8 tasks done</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Tasks completed</dt>
+              <dd>128</dd>
+              <span class="kpi-card__delta">▲ 18% vs. 14d</span>
+            </div>
+            <div class="kpi-card">
+              <dt>First-attempt pass</dt>
+              <dd>87%</dd>
+              <span class="kpi-card__delta">▲ 4 pts</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Median task time</dt>
+              <dd>14m</dd>
+              <span class="kpi-card__meta">▼ 2m faster</span>
+            </div>
+          </dl>
+        </section>
+
+        <section class="main-content__section" id="attention" aria-labelledby="attention-title">
+          <h2 id="attention-title">Needs your attention</h2>
+          <div class="attention-card">
+            <div class="attention-card__info">
+              <span class="attention-card__icon" aria-hidden="true">!</span>
+              <div>
+                <h3 class="attention-card__title">Responsive UI &amp; layout pass</h3>
+                <p class="attention-card__meta">Round 2 · t3 · ready for review</p>
+              </div>
+            </div>
+            <div class="attention-card__action">
+              <a class="ui-link" href="./split-detail.html">Review task</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="main-content__section" id="runs" aria-labelledby="runs-title">
+          <h2 id="runs-title">Recent runs</h2>
+          <div class="main-content__projects">
+            <article class="surface-card" aria-labelledby="run-1-title">
+              <div class="surface-card__header">
+                <h3 class="surface-card__title" id="run-1-title">Round 2 · Design phase</h3>
+                <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> Running</span>
+              </div>
+              <div class="progress-row" aria-label="4 of 8 tasks complete">
+                <div class="progress-track"><div class="progress-fill progress-fill--half"></div></div>
+                <span class="progress-label">4 / 8</span>
+              </div>
+              <p class="surface-card__subtitle">3 agents · started today at 06:29</p>
+            </article>
+
+            <article class="surface-card" aria-labelledby="run-2-title">
+              <div class="surface-card__header">
+                <h3 class="surface-card__title" id="run-2-title">Hotfix · Token contrast</h3>
+                <span class="status-pill status-pill--warning"><span aria-hidden="true">!</span> Needs review</span>
+              </div>
+              <div class="progress-row" aria-label="1 of 2 tasks complete">
+                <div class="progress-track"><div class="progress-fill progress-fill--half"></div></div>
+                <span class="progress-label">1 / 2</span>
+              </div>
+              <p class="surface-card__subtitle">1 agent · started yesterday at 21:40</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="main-content__section" id="projects" aria-labelledby="mobile-projects-title">
+          <h2 id="mobile-projects-title">Projects</h2>
+          <div class="main-content__projects">
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Workspace experience</span>
+                <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Bring navigation, project summaries, and team updates into one shared workspace.</p>
+                <p class="main-content__muted">Next step: verify mobile bottom tab navigation targets.</p>
+              </div>
+            </details>
+            <details class="project-card">
+              <summary>
+                <span class="project-card__name">Design foundations</span>
+                <span class="status-pill status-pill--warning"><span aria-hidden="true">!</span> Ready for review</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Establish consistent colors, typography, and spacing for the team’s interface.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="app-tabbar" aria-label="Primary mobile navigation">
+      <ul class="app-tabbar__list">
+        <li>
+          <a class="app-tabbar__link" href="#overview" aria-current="page">
+            <span class="app-tabbar__icon" aria-hidden="true">⊞</span>
+            <span>Home</span>
+          </a>
+        </li>
+        <li>
+          <a class="app-tabbar__link" href="#runs">
+            <span class="app-tabbar__icon" aria-hidden="true">▶</span>
+            <span>Runs</span>
+          </a>
+        </li>
+        <li>
+          <a class="app-tabbar__link" href="#attention">
+            <span class="app-tabbar__icon" aria-hidden="true">✓</span>
+            <span>Tasks</span>
+          </a>
+        </li>
+        <li>
+          <a class="app-tabbar__link" href="#projects">
+            <span class="app-tabbar__icon" aria-hidden="true">◈</span>
+            <span>Projects</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</body>
+</html>

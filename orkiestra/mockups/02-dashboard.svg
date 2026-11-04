@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <title>orkiestrA: Dashboard (desktop, light)</title>
+  <defs>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:#0f172a;font-size:16px}
+      .xs{font-size:12px}.sm{font-size:14px}.lg{font-size:20px}.h{font-size:32px;font-weight:700}
+      .m{font-weight:500}.b{font-weight:700}.up{letter-spacing:.04em}
+      .mu{fill:#64748b}.pr{fill:#4f46e5}.pr7{fill:#4338ca}.ok{fill:#15803d}.wa{fill:#b45309}.in{fill:#0369a1}.w{fill:#fff}
+      .e{text-anchor:end}.c{text-anchor:middle}
+      .card{fill:#fff;stroke:#e2e8f0;filter:url(#sh)}
+      .ic{fill:none;stroke:#64748b;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+      .ic.a{stroke:#4338ca}.ic.w{stroke:#fff}
+      .grid{stroke:#e2e8f0;stroke-dasharray:4 4}
+    </style>
+  </defs>
+
+  <rect width="1440" height="960" fill="#ffffff"/>
+
+  <!-- ============ Sidebar ============ -->
+  <rect width="240" height="960" fill="#f8fafc"/>
+  <path d="M240.5 0V960" stroke="#e2e8f0"/>
+  <rect x="24" y="16" width="32" height="32" rx="8" fill="#4f46e5"/>
+  <path d="M32.5 40V30M37.5 40V24M42.5 40V28M47.5 40V33" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="68" y="39" class="lg b">orkiestrA</text>
+
+  <rect x="12" y="72" width="216" height="44" rx="8" fill="#eef2ff"/>
+  <g transform="translate(24 84)" class="ic a"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></g>
+  <text x="56" y="99" class="m pr7">Dashboard</text>
+
+  <g transform="translate(24 132)" class="ic"><circle cx="10" cy="10" r="8"/><path d="M8 6.5l5 3.5-5 3.5z"/></g>
+  <text x="56" y="147">Runs</text>
+  <g transform="translate(24 180)" class="ic"><rect x="2" y="2" width="16" height="16" rx="3"/><path d="M6 10l3 3 5-6"/></g>
+  <text x="56" y="195">Tasks</text>
+  <g transform="translate(24 228)" class="ic"><rect x="5" y="5" width="10" height="10" rx="2"/><path d="M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3"/></g>
+  <text x="56" y="243">Agents</text>
+  <g transform="translate(24 276)" class="ic"><circle cx="6" cy="4" r="2"/><circle cx="6" cy="16" r="2"/><circle cx="14" cy="7" r="2"/><path d="M6 6v8M14 9c0 3-4 3-7 5"/></g>
+  <text x="56" y="291">Repositories</text>
+
+  <path d="M24 876.5H216" stroke="#e2e8f0"/>
+  <g transform="translate(24 904)" class="ic"><circle cx="10" cy="10" r="3"/><circle cx="10" cy="10" r="7" stroke-dasharray="2.75 2.75"/></g>
+  <text x="56" y="919">Settings</text>
+
+  <!-- ============ Top bar ============ -->
+  <path d="M240 64.5H1440" stroke="#e2e8f0"/>
+  <rect x="272.5" y="10.5" width="400" height="43" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+  <g transform="translate(288 22)" class="ic"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5L18 18"/></g>
+  <text x="318" y="37" class="sm mu">Search runs, tasks, branches…</text>
+  <rect x="640.5" y="22.5" width="20" height="20" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="650.5" y="37" class="xs mu c">/</text>
+
+  <g transform="translate(1188 22)" class="ic"><path d="M5 14V9a5 5 0 0110 0v5l1.5 2h-13z"/><path d="M8.5 18h3"/></g>
+  <circle cx="1205" cy="23" r="4" fill="#b91c1c" stroke="#fff" stroke-width="2"/>
+  <rect x="1232" y="10" width="120" height="44" rx="8" fill="#4f46e5"/>
+  <g transform="translate(1248 22)" class="ic w"><path d="M10 4v12M4 10h12"/></g>
+  <text x="1276" y="37" class="sm m w">New run</text>
+  <circle cx="1386" cy="32" r="22" fill="#e0e7ff"/>
+  <text x="1386" y="37" class="sm b c" style="fill:#312e81">DW</text>
+
+  <!-- ============ Page header ============ -->
+  <text x="272" y="124" class="h">Dashboard</text>
+  <text x="272" y="156" class="mu">Wednesday, October 28 · 1 run in progress, 2 tasks waiting for review</text>
+  <rect x="1248.5" y="104.5" width="159" height="43" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="1264" y="131" class="sm">Last 14 days</text>
+  <g transform="translate(1376 116)" class="ic"><path d="M6 8l4 4 4-4"/></g>
+
+  <!-- ============ KPI cards ============ -->
+  <rect x="272.5" y="184.5" width="266" height="120" rx="8" class="card"/>
+  <text x="296" y="220" class="sm mu">Active runs</text>
+  <text x="296" y="264" class="h">1</text>
+  <text x="296" y="288" class="sm mu">4 of 8 tasks done</text>
+
+  <rect x="562.5" y="184.5" width="266" height="120" rx="8" class="card"/>
+  <text x="586" y="220" class="sm mu">Tasks completed</text>
+  <text x="586" y="264" class="h">128</text>
+  <text x="586" y="288" class="sm ok">▲ 18% vs. previous 14 days</text>
+
+  <rect x="852.5" y="184.5" width="266" height="120" rx="8" class="card"/>
+  <text x="876" y="220" class="sm mu">First-attempt pass rate</text>
+  <text x="876" y="264" class="h">87%</text>
+  <text x="876" y="288" class="sm ok">▲ 4 pts vs. previous 14 days</text>
+
+  <rect x="1142.5" y="184.5" width="265" height="120" rx="8" class="card"/>
+  <text x="1166" y="220" class="sm mu">Median task time</text>
+  <text x="1166" y="264" class="h">14m 20s</text>
+  <text x="1166" y="288" class="sm ok">▼ 2m faster</text>
+
+  <!-- ============ Chart: tasks completed ============ -->
+  <rect x="272.5" y="328.5" width="740" height="300" rx="8" class="card"/>
+  <text x="296" y="368" class="lg m">Tasks completed</text>
+  <text x="296" y="392" class="sm mu">Per day, all runs</text>
+
+  <path d="M316 420.5H988M316 464.5H988M316 508.5H988M316 552.5H988" class="grid"/>
+  <path d="M316 596.5H988" stroke="#cbd5e1"/>
+  <text x="304" y="424" class="xs mu e">16</text>
+  <text x="304" y="468" class="xs mu e">12</text>
+  <text x="304" y="512" class="xs mu e">8</text>
+  <text x="304" y="556" class="xs mu e">4</text>
+  <text x="304" y="600" class="xs mu e">0</text>
+
+  <g fill="#4f46e5">
+    <rect x="328" y="530" width="24" height="66" rx="2"/>
+    <rect x="376" y="497" width="24" height="99" rx="2"/>
+    <rect x="424" y="519" width="24" height="77" rx="2"/>
+    <rect x="472" y="475" width="24" height="121" rx="2"/>
+    <rect x="520" y="508" width="24" height="88" rx="2"/>
+    <rect x="568" y="464" width="24" height="132" rx="2"/>
+    <rect x="616" y="486" width="24" height="110" rx="2"/>
+    <rect x="664" y="552" width="24" height="44" rx="2"/>
+    <rect x="712" y="563" width="24" height="33" rx="2"/>
+    <rect x="760" y="497" width="24" height="99" rx="2"/>
+    <rect x="808" y="453" width="24" height="143" rx="2"/>
+    <rect x="856" y="475" width="24" height="121" rx="2"/>
+    <rect x="904" y="442" width="24" height="154" rx="2"/>
+  </g>
+  <rect x="952" y="464" width="24" height="132" rx="2" fill="#312e81"/>
+  <text x="964" y="456" class="xs b c">12</text>
+  <text x="340" y="616" class="xs mu c">Oct 15</text>
+  <text x="628" y="616" class="xs mu c">Oct 21</text>
+  <text x="964" y="616" class="xs mu c">Today</text>
+
+  <!-- ============ Agent usage ============ -->
+  <rect x="1036.5" y="328.5" width="371" height="300" rx="8" class="card"/>
+  <text x="1060" y="368" class="lg m">Agent usage</text>
+  <text x="1060" y="392" class="sm mu">Share of task attempts</text>
+
+  <text x="1060" y="436" class="sm">Opus 5.5 · high effort</text>
+  <text x="1384" y="436" class="sm m e">46%</text>
+  <rect x="1060" y="448" width="324" height="8" rx="4" fill="#f1f5f9"/>
+  <rect x="1060" y="448" width="149" height="8" rx="4" fill="#4f46e5"/>
+
+  <text x="1060" y="500" class="sm">Sonnet 5.5 · medium effort</text>
+  <text x="1384" y="500" class="sm m e">38%</text>
+  <rect x="1060" y="512" width="324" height="8" rx="4" fill="#f1f5f9"/>
+  <rect x="1060" y="512" width="123" height="8" rx="4" fill="#4f46e5"/>
+
+  <text x="1060" y="564" class="sm">Haiku 5.5 · low effort</text>
+  <text x="1384" y="564" class="sm m e">16%</text>
+  <rect x="1060" y="576" width="324" height="8" rx="4" fill="#f1f5f9"/>
+  <rect x="1060" y="576" width="52" height="8" rx="4" fill="#4f46e5"/>
+
+  <text x="1060" y="608" class="xs mu">412 attempts in the last 14 days</text>
+
+  <!-- ============ Recent runs ============ -->
+  <rect x="272.5" y="652.5" width="1135" height="272" rx="8" class="card"/>
+  <text x="296" y="692" class="lg m">Recent runs</text>
+  <text x="1384" y="692" class="sm m pr e">View all runs →</text>
+
+  <rect x="273" y="716" width="1134" height="40" fill="#f8fafc"/>
+  <path d="M273 716.5H1407M273 756.5H1407" stroke="#e2e8f0"/>
+  <text x="296" y="741" class="xs m mu up">RUN</text>
+  <text x="600" y="741" class="xs m mu up">STATUS</text>
+  <text x="760" y="741" class="xs m mu up">PROGRESS</text>
+  <text x="1000" y="741" class="xs m mu up">AGENTS</text>
+  <text x="1160" y="741" class="xs m mu up">STARTED</text>
+
+  <!-- row 1 -->
+  <text x="296" y="780" class="m">Round 2 · Design phase</text>
+  <text x="296" y="798" class="xs mu">orkiestrA · main</text>
+  <rect x="600.5" y="772.5" width="87" height="23" rx="11.5" fill="#fff" stroke="#0369a1"/>
+  <circle cx="614" cy="784" r="3" fill="#0369a1"/>
+  <text x="624" y="788" class="xs m in">Running</text>
+  <rect x="760" y="780" width="160" height="8" rx="4" fill="#f1f5f9"/>
+  <rect x="760" y="780" width="80" height="8" rx="4" fill="#4f46e5"/>
+  <text x="932" y="789" class="sm mu">4 / 8</text>
+  <text x="1000" y="789" class="sm">3 agents</text>
+  <text x="1160" y="789" class="sm">Today, 06:29</text>
+  <g fill="#64748b"><circle cx="1376" cy="784" r="1.75"/><circle cx="1383" cy="784" r="1.75"/><circle cx="1369" cy="784" r="1.75"/></g>
+  <path d="M273 812.5H1407" stroke="#e2e8f0"/>
+
+  <!-- row 2 -->
+  <text x="296" y="836" class="m">Hotfix · Token contrast</text>
+  <text x="296" y="854" class="xs mu">orkiestrA · fix/contrast</text>
+  <rect x="600.5" y="828.5" width="115" height="23" rx="11.5" fill="#fff" stroke="#b45309"/>
+  <text x="614" y="844" class="xs b wa c">!</text>
+  <text x="624" y="844" class="xs m wa">Needs review</text>
+  <rect x="760" y="836" width="160" height="8" rx="4" fill="#f1f5f9"/>
+  <rect x="760" y="836" width="80" height="8" rx="4" fill="#4f46e5"/>
+  <text x="932" y="845" class="sm mu">1 / 2</text>
+  <text x="1000" y="845" class="sm">1 agent</text>
+  <text x="1160" y="845" class="sm">Yesterday, 21:40</text>
+  <g fill="#64748b"><circle cx="1376" cy="840" r="1.75"/><circle cx="1383" cy="840" r="1.75"/><circle cx="1369" cy="840" r="1.75"/></g>
+  <path d="M273 868.5H1407" stroke="#e2e8f0"/>
+
+  <!-- row 3 -->
+  <text x="296" y="892" class="m">Round 1 · Foundations</text>
+  <text x="296" y="910" class="xs mu">orkiestrA · main</text>
+  <rect x="600.5" y="884.5" width="103" height="23" rx="11.5" fill="#fff" stroke="#15803d"/>
+  <path d="M610 896l3 3 5-6" fill="none" stroke="#15803d" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="624" y="900" class="xs m ok">Completed</text>
+  <rect x="760" y="892" width="160" height="8" rx="4" fill="#15803d"/>
+  <text x="932" y="901" class="sm mu">4 / 4</text>
+  <text x="1000" y="901" class="sm">2 agents</text>
+  <text x="1160" y="901" class="sm">Oct 27, 18:02</text>
+  <g fill="#64748b"><circle cx="1376" cy="896" r="1.75"/><circle cx="1383" cy="896" r="1.75"/><circle cx="1369" cy="896" r="1.75"/></g>
+</svg>

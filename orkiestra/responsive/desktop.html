@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Desktop layout variation · Orkiestra</title>
+  <link rel="stylesheet" href="./responsive.css">
+</head>
+<body>
+  <div class="app-shell layout-desktop">
+    <header class="app-header">
+      <a class="skip-link ui-link" href="#main-content">Skip to main content</a>
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra responsive overview">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+      <span class="app-header__context">Wednesday, October 28 · 1 run in progress, 2 tasks waiting for review</span>
+      <nav class="app-header__actions" aria-label="Quick links">
+        <a class="ui-link" href="./split-detail.html">Inspect active run</a>
+      </nav>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Layout variations">
+      <span class="variation-switcher__label">Layout variation:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html">All variations</a></li>
+        <li><a class="variation-switcher__link" href="./mobile.html">Mobile</a></li>
+        <li><a class="variation-switcher__link" href="./tablet.html">Tablet</a></li>
+        <li><a class="variation-switcher__link" href="./desktop.html" aria-current="page">Desktop</a></li>
+        <li><a class="variation-switcher__link" href="./split-detail.html">Split detail</a></li>
+      </ul>
+    </nav>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-labelledby="desktop-workspace-title">
+        <div class="app-sidebar__workspace">
+          <h2 class="app-sidebar__title" id="desktop-workspace-title">Workspace</h2>
+          <p class="app-sidebar__description">Persistent 240px navigation rail on desktop viewports.</p>
+        </div>
+        <nav aria-label="Workspace sections">
+          <ul class="app-sidebar__nav">
+            <li><a class="app-sidebar__link" href="#overview" aria-current="page">Dashboard</a></li>
+            <li><a class="app-sidebar__link" href="#runs">Recent runs</a></li>
+            <li><a class="app-sidebar__link" href="#projects">Projects</a></li>
+            <li><a class="app-sidebar__link" href="#activity">Agent activity</a></li>
+          </ul>
+        </nav>
+        <div class="app-sidebar__note">
+          <p class="app-sidebar__note-title">Desktop split shell</p>
+          <p>Pairs a persistent sidebar with a 4-column KPI strip and a 2:1 asymmetric workspace split.</p>
+        </div>
+      </aside>
+
+      <main class="main-content" id="main-content" tabindex="-1">
+        <section class="main-content__section" id="overview" aria-labelledby="desktop-overview-title">
+          <div class="main-content__intro">
+            <p class="main-content__eyebrow">Desktop layout variation (persistent sidebar + 2:1 asymmetric split)</p>
+            <h1 id="desktop-overview-title">Dashboard</h1>
+            <p class="main-content__lead">Monitor run health, agent throughput, and active workspace deliverables side by side.</p>
+          </div>
+
+          <dl class="kpi-grid kpi-grid--4col" aria-label="Workspace metrics">
+            <div class="kpi-card">
+              <dt>Active runs</dt>
+              <dd>1</dd>
+              <span class="kpi-card__meta">4 of 8 tasks done</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Tasks completed</dt>
+              <dd>128</dd>
+              <span class="kpi-card__delta">▲ 18% vs. previous 14 days</span>
+            </div>
+            <div class="kpi-card">
+              <dt>First-attempt pass rate</dt>
+              <dd>87%</dd>
+              <span class="kpi-card__delta">▲ 4 pts vs. previous 14 days</span>
+            </div>
+            <div class="kpi-card">
+              <dt>Median task time</dt>
+              <dd>14m 20s</dd>
+              <span class="kpi-card__delta">▼ 2m faster</span>
+            </div>
+          </dl>
+        </section>
+
+        <div class="workspace-split">
+          <section class="main-content__section surface-card" id="runs" aria-labelledby="desktop-runs-title">
+            <div class="surface-card__header">
+              <div>
+                <h2 class="surface-card__title" id="desktop-runs-title">Recent runs</h2>
+                <p class="surface-card__subtitle">Table on desktop/tablet; automatically converts to stacked cards below 768px</p>
+              </div>
+              <a class="ui-link" href="./split-detail.html">Open run detail</a>
+            </div>
+
+            <table class="run-table" aria-label="Recent orchestrator runs">
+              <thead>
+                <tr>
+                  <th scope="col">Run</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Progress</th>
+                  <th scope="col">Agents</th>
+                  <th scope="col">Started</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Run">
+                    <strong>Round 2 · Design phase</strong>
+                    <span class="run-table__branch">orkiestrA · main</span>
+                  </td>
+                  <td data-label="Status">
+                    <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> Running</span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div class="progress-track"><div class="progress-fill progress-fill--half"></div></div>
+                      <span class="progress-label">4 / 8</span>
+                    </div>
+                  </td>
+                  <td data-label="Agents">3 agents</td>
+                  <td data-label="Started">Today, 06:29</td>
+                </tr>
+                <tr>
+                  <td data-label="Run">
+                    <strong>Hotfix · Token contrast</strong>
+                    <span class="run-table__branch">orkiestrA · fix/contrast</span>
+                  </td>
+                  <td data-label="Status">
+                    <span class="status-pill status-pill--warning"><span aria-hidden="true">!</span> Needs review</span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div class="progress-track"><div class="progress-fill progress-fill--half"></div></div>
+                      <span class="progress-label">1 / 2</span>
+                    </div>
+                  </td>
+                  <td data-label="Agents">1 agent</td>
+                  <td data-label="Started">Yesterday, 21:40</td>
+                </tr>
+                <tr>
+                  <td data-label="Run">
+                    <strong>Round 1 · Foundations</strong>
+                    <span class="run-table__branch">orkiestrA · main</span>
+                  </td>
+                  <td data-label="Status">
+                    <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Completed</span>
+                  </td>
+                  <td data-label="Progress">
+                    <div class="progress-row">
+                      <div class="progress-track"><div class="progress-fill progress-fill--full"></div></div>
+                      <span class="progress-label">4 / 4</span>
+                    </div>
+                  </td>
+                  <td data-label="Agents">2 agents</td>
+                  <td data-label="Started">Oct 27, 18:02</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <aside class="main-content__section surface-card" id="activity" aria-labelledby="desktop-usage-title">
+            <div class="surface-card__header">
+              <div>
+                <h2 class="surface-card__title" id="desktop-usage-title">Agent usage &amp; activity</h2>
+                <p class="surface-card__subtitle">412 attempts in the last 14 days</p>
+              </div>
+            </div>
+
+            <div class="task-list">
+              <div>
+                <div class="surface-card__header">
+                  <span>High effort tier</span>
+                  <strong>46%</strong>
+                </div>
+                <div class="progress-track"><div class="progress-fill progress-fill--half"></div></div>
+              </div>
+              <div>
+                <div class="surface-card__header">
+                  <span>Medium effort tier</span>
+                  <strong>38%</strong>
+                </div>
+                <div class="progress-track"><div class="progress-fill progress-fill--half"></div></div>
+              </div>
+            </div>
+
+            <ul class="main-content__activity">
+              <li>
+                <h3>Design foundations ready</h3>
+                <p>Shared tokens verified across desktop and mobile shells.</p>
+              </li>
+              <li>
+                <h3>Responsive layout variations</h3>
+                <p>Added media queries and layout variations in <code>responsive/</code>.</p>
+              </li>
+            </ul>
+          </aside>
+        </div>
+
+        <section class="main-content__section" id="projects" aria-labelledby="desktop-projects-title">
+          <h2 id="desktop-projects-title">Active workspace projects</h2>
+          <div class="main-content__projects">
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Workspace experience</span>
+                <span class="project-card__status">In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Bring navigation, project summaries, and team updates into one shared workspace.</p>
+                <p class="main-content__muted">Next step: review the main interface components.</p>
+              </div>
+            </details>
+            <details class="project-card" open>
+              <summary>
+                <span class="project-card__name">Design foundations</span>
+                <span class="project-card__status">Ready for review</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Establish consistent colors, typography, and spacing for the team’s interface.</p>
+                <p class="main-content__muted">Next step: check the components in light and dark mode.</p>
+              </div>
+            </details>
+            <details class="project-card">
+              <summary>
+                <span class="project-card__name">Getting started</span>
+                <span class="project-card__status">In progress</span>
+              </summary>
+              <div class="project-card__body">
+                <p>Help new teammates find their projects and understand the workspace.</p>
+                <p class="main-content__muted">Next step: review the onboarding content.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Semantic Landmarks, Keyboard Navigation &amp; Live Logs · Orkiestra</title>
+  <link rel="stylesheet" href="./accessibility.css">
+  <script src="./keyboard-navigation.js" defer></script>
+</head>
+<body>
+  <div id="a11y-live-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="a11y-alert-announcer" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <div class="app-shell">
+    <nav class="skip-links" aria-label="Skip links">
+      <ul class="skip-links__list">
+        <li><a class="skip-link ui-link" href="#main-content">Skip to main content</a></li>
+        <li><a class="skip-link ui-link" href="#master-task-nav">Skip to task list</a></li>
+        <li><a class="skip-link ui-link" href="#agent-log-output">Skip to live agent log</a></li>
+      </ul>
+    </nav>
+
+    <header class="app-header">
+      <a class="app-header__brand" href="./index.html" aria-label="Orkiestra accessibility home">
+        <span class="app-header__mark" aria-hidden="true">O</span>
+        <span>Orkiestra</span>
+      </a>
+      <span class="app-header__context">Task t4 · Accessibility Features (Semantic HTML &amp; Live Output)</span>
+      <nav class="app-header__actions" aria-label="Quick navigation">
+        <a class="ui-link" href="./index.html">Back to ARIA hub</a>
+      </nav>
+    </header>
+
+    <nav class="variation-switcher" aria-label="Accessibility views">
+      <span class="variation-switcher__label">Accessibility suite:</span>
+      <ul class="variation-switcher__nav">
+        <li><a class="variation-switcher__link" href="./index.html">Run &amp; ARIA hub</a></li>
+        <li><a class="variation-switcher__link" href="./forms-and-dialogs.html">Forms, auth &amp; modal dialogs</a></li>
+        <li><a class="variation-switcher__link" href="./landmarks-and-navigation.html" aria-current="page">Semantic landmarks &amp; live logs</a></li>
+        <li><a class="variation-switcher__link" href="../components/index.html">Component shell</a></li>
+        <li><a class="variation-switcher__link" href="../responsive/index.html">Responsive layouts</a></li>
+      </ul>
+    </nav>
+
+    <nav class="breadcrumb-bar" aria-label="Breadcrumb">
+      <ol class="breadcrumb-list">
+        <li class="breadcrumb-list__item"><a class="breadcrumb-list__link" href="./index.html">Runs</a></li>
+        <li class="breadcrumb-list__item"><a class="breadcrumb-list__link" href="./index.html">Round 2 · Design phase</a></li>
+        <li class="breadcrumb-list__item"><span class="breadcrumb-list__current" aria-current="page">Task t4 · Accessibility Features</span></li>
+      </ol>
+    </nav>
+
+    <div class="a11y-status-banner" role="region" aria-label="Screen reader live announcement monitor">
+      <span>
+        <strong>ARIA live region output:</strong>
+        <span id="a11y-last-announcement">Inspecting Task t4. Use Up/Down arrow keys in the task list or toolbar controls to test keyboard navigation.</span>
+      </span>
+    </div>
+
+    <div class="app-layout">
+      <aside class="app-sidebar" aria-labelledby="landmark-sidebar-title">
+        <div class="app-sidebar__workspace">
+          <h2 class="app-sidebar__title" id="landmark-sidebar-title">Document Landmarks</h2>
+          <p class="app-sidebar__description">Every landmark has a unique accessible name for screen reader rotor navigation.</p>
+        </div>
+        <nav aria-label="Page sections">
+          <ul class="app-sidebar__nav" data-roving-nav>
+            <li><a class="app-sidebar__link" href="#task-brief" aria-current="page">Task brief &amp; criteria</a></li>
+            <li><a class="app-sidebar__link" href="#live-log-section">Live streaming log</a></li>
+            <li><a class="app-sidebar__link" href="#changed-files-section">Changed files</a></li>
+            <li><a class="app-sidebar__link" href="#landmark-map">Landmark tree</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="main-content" id="main-content" tabindex="-1">
+        <section class="main-content__section" id="task-brief" aria-labelledby="task-detail-heading">
+          <p class="main-content__eyebrow">Task <code>t4</code> · Attempt 1 of 3 · Branch <code>orch/r2-t4-a2</code></p>
+          <h1 id="task-detail-heading">Accessibility Features</h1>
+          <p class="main-content__lead">Add accessibility features such as ARIA labels, keyboard navigation, and semantic HTML in the <code>accessibility/</code> directory.</p>
+        </section>
+
+        <div class="split-pane">
+          <!-- Master Pane: Roving Keyboard Task List -->
+          <section class="split-pane__master surface-card" aria-labelledby="master-tasks-heading">
+            <div class="surface-card__header">
+              <h2 class="surface-card__title" id="master-tasks-heading">Run tasks</h2>
+              <span class="status-pill status-pill--info">
+                <span aria-hidden="true">●</span>
+                <span>4 / 5 done</span>
+              </span>
+            </div>
+            <p class="surface-card__subtitle">Supports both <kbd class="kbd">Tab</kbd> and <kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd> <kbd class="kbd">Home</kbd> <kbd class="kbd">End</kbd> arrow navigation.</p>
+
+            <nav id="master-task-nav" aria-label="Tasks in Round 2">
+              <ul class="task-list" data-roving-nav>
+                <li>
+                  <a class="task-list__item" href="./index.html#panel-tasks">
+                    <div>
+                      <strong>t1 · Design System Setup</strong>
+                      <span class="task-list__meta">styles/variables.css · base.css</span>
+                    </div>
+                    <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="task-list__item" href="../components/index.html">
+                    <div>
+                      <strong>t2 · Main UI Components</strong>
+                      <span class="task-list__meta">components/*.html · *.css</span>
+                    </div>
+                    <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="task-list__item" href="../responsive/index.html">
+                    <div>
+                      <strong>t3 · Responsive Design</strong>
+                      <span class="task-list__meta">responsive/*.html · responsive.css</span>
+                    </div>
+                    <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="task-list__item" href="#live-log-section" aria-current="true">
+                    <div>
+                      <strong>t4 · Accessibility Features</strong>
+                      <span class="task-list__meta">accessibility/*.html · *.css · *.js</span>
+                    </div>
+                    <span class="status-pill status-pill--info"><span aria-hidden="true">●</span> Running</span>
+                  </a>
+                </li>
+                <li>
+                  <a class="task-list__item" href="../mockups/README.md">
+                    <div>
+                      <strong>t5 · Visual Design Mockups</strong>
+                      <span class="task-list__meta">mockups/01..06.svg</span>
+                    </div>
+                    <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> Done</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </section>
+
+          <!-- Detail Pane: Live Output, Changed Files & Metadata -->
+          <div class="split-pane__detail a11y-form">
+            <section class="surface-card" id="live-log-section" aria-labelledby="live-log-heading">
+              <div class="surface-card__header">
+                <div>
+                  <h2 class="surface-card__title" id="live-log-heading">Live agent output (<code>role="log"</code>)</h2>
+                  <p class="surface-card__subtitle">Polite ARIA live region with keyboard toolbar controls</p>
+                </div>
+                <div class="a11y-toolbar" role="toolbar" aria-label="Agent stream actions">
+                  <button class="a11y-btn" type="button" data-log-toggle aria-pressed="false">
+                    ⏸ Pause stream
+                  </button>
+                  <button class="a11y-btn" type="button" data-log-append>
+                    + Append log step
+                  </button>
+                  <button class="a11y-btn" type="button" data-log-clear>
+                    Clear log
+                  </button>
+                </div>
+              </div>
+
+              <div
+                class="terminal-output"
+                id="agent-log-output"
+                role="log"
+                aria-labelledby="live-log-heading"
+                aria-live="polite"
+                aria-atomic="false"
+                aria-relevant="additions"
+                tabindex="0"
+              >
+                <div>[06:53:26] Created worktree orch/r2-t4-a2 from main</div>
+                <div>[06:54:10] Verified tokens in styles/variables.css and components/components.css</div>
+                <div>[06:56:15] ✓ Wrote accessibility/accessibility.css</div>
+                <div>[06:57:35] ✓ Wrote accessibility/keyboard-navigation.js</div>
+                <div>[06:59:22] ✓ Wrote accessibility/index.html and accessibility/forms-and-dialogs.html</div>
+              </div>
+            </section>
+
+            <section class="surface-card" id="changed-files-section" aria-labelledby="changed-files-heading">
+              <div class="surface-card__header">
+                <h2 class="surface-card__title" id="changed-files-heading">Changed files in <code>accessibility/</code></h2>
+                <span class="status-pill status-pill--success"><span aria-hidden="true">✓</span> 5 files added</span>
+              </div>
+
+              <dl class="main-content__stats" aria-label="Changed files summary">
+                <div class="main-content__stat">
+                  <dt><code>accessibility.css</code></dt>
+                  <dd>Styles</dd>
+                  <span class="kpi-card__delta"><span class="sr-only">Added file: </span>Focus rings, .sr-only, forced-colors</span>
+                </div>
+                <div class="main-content__stat">
+                  <dt><code>keyboard-navigation.js</code></dt>
+                  <dd>Scripts</dd>
+                  <span class="kpi-card__delta"><span class="sr-only">Added file: </span>Roving tabindex, modal trap, live sort</span>
+                </div>
+                <div class="main-content__stat">
+                  <dt><code>*.html</code> (3 pages)</dt>
+                  <dd>Markup</dd>
+                  <span class="kpi-card__delta"><span class="sr-only">Added files: </span>Semantic landmarks &amp; ARIA widgets</span>
+                </div>
+              </dl>
+            </section>
+          </div>
+        </div>
+
+        <!-- Section: Semantic Landmark Architecture Map -->
+        <section class="main-content__section surface-card" id="landmark-map" aria-labelledby="landmark-map-heading">
+          <div class="surface-card__header">
+            <div>
+              <h2 class="surface-card__title" id="landmark-map-heading">Semantic HTML5 Landmark Tree</h2>
+              <p class="surface-card__subtitle">How assistive technologies parse the Orkiestra document outline</p>
+            </div>
+          </div>
+
+          <ul class="main-content__activity">
+            <li>
+              <h3><code>&lt;nav aria-label="Skip links"&gt;</code> (navigation landmark)</h3>
+              <p>Provides immediate keyboard bypass blocks to <code>#main-content</code>, <code>#sidebar-nav</code>, and search.</p>
+            </li>
+            <li>
+              <h3><code>&lt;header class="app-header"&gt;</code> (banner landmark)</h3>
+              <p>Houses brand link, <code>&lt;form role="search"&gt;</code> landmark, <code>role="toolbar"</code> quick actions, and <code>aria-haspopup="menu"</code> account button.</p>
+            </li>
+            <li>
+              <h3><code>&lt;nav aria-label="Breadcrumb"&gt;</code> (navigation landmark)</h3>
+              <p>Ordered list (<code>&lt;ol&gt;</code>) of hierarchical links with <code>aria-current="page"</code> on the active location.</p>
+            </li>
+            <li>
+              <h3><code>&lt;aside aria-labelledby="..."&gt;</code> (complementary landmark)</h3>
+              <p>Pairs workspace context with <code>&lt;nav aria-label="Workspace sections"&gt;</code> supporting roving arrow keys.</p>
+            </li>
+            <li>
+              <h3><code>&lt;main id="main-content" tabindex="-1"&gt;</code> (main landmark)</h3>
+              <p>Primary content target with named <code>&lt;section aria-labelledby="..."&gt;</code> regions, <code>&lt;dl&gt;</code> key-value stats, <code>&lt;table&gt;</code> with <code>&lt;caption&gt;</code>, and <code>&lt;details&gt;</code> disclosures.</p>
+            </li>
+            <li>
+              <h3><code>&lt;footer class="app-footer"&gt;</code> (contentinfo landmark)</h3>
+              <p>Document-level metadata and secondary accessibility navigation links.</p>
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer class="app-footer">
+      <div><strong>Orkiestra Accessibility Suite</strong> · Semantic Landmarks &amp; Live Logs</div>
+      <nav aria-label="Footer links">
+        <a class="breadcrumb-list__link" href="./index.html">ARIA Hub</a>
+        <a class="breadcrumb-list__link" href="./forms-and-dialogs.html">Accessible Forms</a>
+      </nav>
+    </footer>
+  </div>
+</body>
+</html>

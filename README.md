@@ -1,3 +1,14 @@
+# Portfolio: automatyzacja i AI
+
+## Projekty
+
+| Projekt | Opis | Gdzie |
+|---|---|---|
+| Automatyzacja sklepu z meblami na zamówienie | n8n + Supabase + AI: zamówienia, wyceny, magazyn, zakupy, statusy, raporty | ten plik (poniżej) |
+| orkiestrA | Orkiestrator agentów kodujących (Claude Code, Codex, Antigravity): plan, routing po koszcie i trudności, sędzia, scalanie w worktree gita | [`orkiestra/`](orkiestra/README.md) |
+
+---
+
 # Automatyzacja sklepu z meblami na zamówienie
 
 Portfolio z zakresu automatyzacji i AI. System obsługuje małą pracownię mebli robionych na zamówienie i jej salony: przyjmuje zamówienia z formularza, maila, kalkulatora i tabletu w salonie, wycenia je, pilnuje magazynu i cen hurtowni, zamawia brakujące materiały, rozdziela zadania zespołowi, pilnuje wycen bez odpowiedzi, informuje klienta o statusie i prosi o opinię, a raz w tygodniu raportuje bestsellery. Całość działa na n8n i Supabase (Postgres), a kod napisał Claude z recenzją drugiego modelu (Codex).

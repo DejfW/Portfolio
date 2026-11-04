@@ -1,0 +1,322 @@
+[
+ {
+  "task": "h_debug",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 27,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 14,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 34,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 21,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 30,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 42,
+  "detail": ""
+ },
+ {
+  "task": "h_debug",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 37,
+  "detail": ""
+ },
+ {
+  "task": "h_checkout",
+  "profile": "claude-haiku-low",
+  "passed": false,
+  "exit": 0,
+  "secs": 22,
+  "detail": "Traceback (most recent call last):\n  File \"/tmp/tmp7ev8ussu.py\", line 13, in <module>\n    try: checkout(items)\n         ^^^^^^^^^^^^^^^\n  File \"/tmp/calib-h_checkout-n978keps/checkout.py\", line 15, in checkout\n    inventory.reserve(sku, qty)\n  File \"/tmp/calib-h_checkout-n978keps/inventory.py\", line 10, in reserve\n    raise OutOfStock(sku)\ninventory.OutOfStock: Z\n"
+ },
+ {
+  "task": "h_checkout",
+  "profile": "claude-sonnet-med",
+  "passed": false,
+  "exit": 0,
+  "secs": 29,
+  "detail": "Traceback (most recent call last):\n  File \"/tmp/tmpyf2k49u3.py\", line 13, in <module>\n    try: checkout(items)\n         ^^^^^^^^^^^^^^^\n  File \"/tmp/calib-h_checkout-juo6_sj8/checkout.py\", line 17, in checkout\n    inventory.reserve(sku, qty)\n  File \"/tmp/calib-h_checkout-juo6_sj8/inventory.py\", line 10, in reserve\n    raise OutOfStock(sku)\ninventory.OutOfStock: Z\n"
+ },
+ {
+  "task": "h_checkout",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 47,
+  "detail": ""
+ },
+ {
+  "task": "h_checkout",
+  "profile": "codex-luna-low",
+  "passed": false,
+  "exit": 0,
+  "secs": 19,
+  "detail": "Traceback (most recent call last):\n  File \"/tmp/tmpq0joz2us.py\", line 13, in <module>\n    try: checkout(items)\n         ^^^^^^^^^^^^^^^\n  File \"/tmp/calib-h_checkout-2cvgmr7e/checkout.py\", line 16, in checkout\n    inventory.reserve(sku, qty)\n  File \"/tmp/calib-h_checkout-2cvgmr7e/inventory.py\", line 10, in reserve\n    raise OutOfStock(sku)\ninventory.OutOfStock: Z\n"
+ },
+ {
+  "task": "h_checkout",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 30,
+  "detail": ""
+ },
+ {
+  "task": "h_checkout",
+  "profile": "codex-astra-high",
+  "passed": false,
+  "exit": 0,
+  "secs": 50,
+  "detail": "Traceback (most recent call last):\n  File \"/tmp/tmpo7a4h9w8.py\", line 13, in <module>\n    try: checkout(items)\n         ^^^^^^^^^^^^^^^\n  File \"/tmp/calib-h_checkout-vm3rzraz/checkout.py\", line 16, in checkout\n    inventory.reserve(sku, qty)\n  File \"/tmp/calib-h_checkout-vm3rzraz/inventory.py\", line 10, in reserve\n    raise OutOfStock(sku)\ninventory.OutOfStock: Z\n"
+ },
+ {
+  "task": "h_checkout",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 333,
+  "detail": ""
+ },
+ {
+  "task": "h_checkout",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 143,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 18,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 19,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 25,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 10,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 30,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 42,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 91,
+  "detail": ""
+ },
+ {
+  "task": "h_duration",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 43,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 30,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 13,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 35,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 15,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 28,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 53,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 383,
+  "detail": ""
+ },
+ {
+  "task": "h_security",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 58,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "claude-haiku-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 20,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "claude-sonnet-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 18,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "claude-opus-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 30,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "codex-luna-low",
+  "passed": true,
+  "exit": 0,
+  "secs": 13,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "codex-sol-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 23,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "codex-astra-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 28,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "agy-flash-med",
+  "passed": true,
+  "exit": 0,
+  "secs": 48,
+  "detail": ""
+ },
+ {
+  "task": "h_split",
+  "profile": "agy-argon-high",
+  "passed": true,
+  "exit": 0,
+  "secs": 46,
+  "detail": ""
+ }
+]

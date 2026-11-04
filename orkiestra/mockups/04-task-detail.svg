@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960">
+  <title>orkiestrA: Task detail with live agent output (desktop, light)</title>
+  <defs>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:#0f172a;font-size:16px}
+      .xs{font-size:12px}.sm{font-size:14px}.lg{font-size:20px}.h{font-size:32px;font-weight:700}
+      .m{font-weight:500}.b{font-weight:700}.up{letter-spacing:.04em}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .mu{fill:#64748b}.pr{fill:#4f46e5}.pr7{fill:#4338ca}.ok{fill:#15803d}.wa{fill:#b45309}.in{fill:#0369a1}.da{fill:#b91c1c}.w{fill:#fff}
+      .e{text-anchor:end}.c{text-anchor:middle}
+      .card{fill:#fff;stroke:#e2e8f0;filter:url(#sh)}
+      .ic{fill:none;stroke:#64748b;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+      .ic.a{stroke:#4338ca}.ic.w{stroke:#fff}
+      .chk{fill:none;stroke:#15803d;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+      .sep{stroke:#e2e8f0}
+      .log text{font-size:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    </style>
+  </defs>
+
+  <rect width="1440" height="960" fill="#ffffff"/>
+
+  <!-- ============ Sidebar ============ -->
+  <rect width="240" height="960" fill="#f8fafc"/>
+  <path d="M240.5 0V960" stroke="#e2e8f0"/>
+  <rect x="24" y="16" width="32" height="32" rx="8" fill="#4f46e5"/>
+  <path d="M32.5 40V30M37.5 40V24M42.5 40V28M47.5 40V33" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="68" y="39" class="lg b">orkiestrA</text>
+
+  <g transform="translate(24 84)" class="ic"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></g>
+  <text x="56" y="99">Dashboard</text>
+  <rect x="12" y="120" width="216" height="44" rx="8" fill="#eef2ff"/>
+  <g transform="translate(24 132)" class="ic a"><circle cx="10" cy="10" r="8"/><path d="M8 6.5l5 3.5-5 3.5z"/></g>
+  <text x="56" y="147" class="m pr7">Runs</text>
+  <g transform="translate(24 180)" class="ic"><rect x="2" y="2" width="16" height="16" rx="3"/><path d="M6 10l3 3 5-6"/></g>
+  <text x="56" y="195">Tasks</text>
+  <g transform="translate(24 228)" class="ic"><rect x="5" y="5" width="10" height="10" rx="2"/><path d="M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3"/></g>
+  <text x="56" y="243">Agents</text>
+  <g transform="translate(24 276)" class="ic"><circle cx="6" cy="4" r="2"/><circle cx="6" cy="16" r="2"/><circle cx="14" cy="7" r="2"/><path d="M6 6v8M14 9c0 3-4 3-7 5"/></g>
+  <text x="56" y="291">Repositories</text>
+
+  <path d="M24 876.5H216" stroke="#e2e8f0"/>
+  <g transform="translate(24 904)" class="ic"><circle cx="10" cy="10" r="3"/><circle cx="10" cy="10" r="7" stroke-dasharray="2.75 2.75"/></g>
+  <text x="56" y="919">Settings</text>
+
+  <!-- ============ Top bar ============ -->
+  <path d="M240 64.5H1440" stroke="#e2e8f0"/>
+  <rect x="272.5" y="10.5" width="400" height="43" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+  <g transform="translate(288 22)" class="ic"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5L18 18"/></g>
+  <text x="318" y="37" class="sm mu">Search runs, tasks, branches…</text>
+  <rect x="640.5" y="22.5" width="20" height="20" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="650.5" y="37" class="xs mu c">/</text>
+  <g transform="translate(1188 22)" class="ic"><path d="M5 14V9a5 5 0 0110 0v5l1.5 2h-13z"/><path d="M8.5 18h3"/></g>
+  <circle cx="1205" cy="23" r="4" fill="#b91c1c" stroke="#fff" stroke-width="2"/>
+  <rect x="1232" y="10" width="120" height="44" rx="8" fill="#4f46e5"/>
+  <g transform="translate(1248 22)" class="ic w"><path d="M10 4v12M4 10h12"/></g>
+  <text x="1276" y="37" class="sm m w">New run</text>
+  <circle cx="1386" cy="32" r="22" fill="#e0e7ff"/>
+  <text x="1386" y="37" class="sm b c" style="fill:#312e81">DW</text>
+
+  <!-- ============ Page header ============ -->
+  <text x="272" y="100" class="sm"><tspan class="pr m">Runs</tspan><tspan class="mu" dx="8">/</tspan><tspan class="pr m" dx="8">Round 2 · Design phase</tspan><tspan class="mu" dx="8">/</tspan><tspan class="mu" dx="8">t5</tspan></text>
+  <text x="272" y="144" class="h">Visual design mockups</text>
+  <rect x="668.5" y="120.5" width="87" height="23" rx="11.5" fill="#fff" stroke="#0369a1"/>
+  <circle cx="682" cy="132" r="3" fill="#0369a1"/>
+  <text x="692" y="136" class="xs m in">Running</text>
+  <text x="272" y="176" class="sm mu">Task <tspan class="mono">t5</tspan> · attempt 1 of 3 · branch <tspan class="mono">orch/r2-t5-a1</tspan></text>
+
+  <!-- ============ Brief ============ -->
+  <rect x="272.5" y="204.5" width="767" height="212" rx="8" class="card"/>
+  <text x="296" y="244" class="lg m">Brief</text>
+  <text x="296" y="276">Create visual design mockups for key screens using Figma or a similar tool.</text>
+  <text x="296" y="300">Output should be a Figma file or a <tspan class="mono sm">mockups/</tspan> directory with PNG/SVG files.</text>
+  <text x="296" y="340" class="xs m mu up">ACCEPTANCE CRITERIA</text>
+  <rect x="296.5" y="352.5" width="19" height="19" rx="4" fill="#fff" stroke="#cbd5e1"/>
+  <text x="328" y="367">Visual design mockups for key screens are created in a Figma file or</text>
+  <text x="328" y="391"><tspan class="mono sm">mockups/</tspan> directory with PNG/SVG files.</text>
+
+  <!-- ============ Live output ============ -->
+  <rect x="272.5" y="440.5" width="767" height="488" rx="8" class="card"/>
+  <text x="296" y="480" class="lg m">Live output</text>
+  <circle cx="420" cy="473" r="4" fill="#0369a1"/>
+  <text x="430" y="478" class="xs m in">Streaming</text>
+  <rect x="864.5" y="452.5" width="151" height="43" rx="4" fill="#fff" stroke="#e2e8f0"/>
+  <text x="880" y="479" class="sm">Attempt 1</text>
+  <g transform="translate(984 464)" class="ic"><path d="M6 8l4 4 4-4"/></g>
+
+  <rect x="296.5" y="512.5" width="719" height="215" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+  <g class="log">
+    <text x="312" y="540" class="mu">06:29:41</text><text x="392" y="540">Created worktree orch/r2-t5-a1 from main</text>
+    <text x="312" y="564" class="mu">06:29:44</text><text x="392" y="564">Read design-system.md and styles/variables.css</text>
+    <text x="312" y="588" class="mu">06:30:12</text><text x="392" y="588">Figma not connected; writing SVG files to mockups/</text>
+    <text x="312" y="612" class="mu">06:31:02</text><text x="392" y="612">Planned 6 screens: sign-in, dashboard, run, task, new run, mobile</text>
+    <text x="312" y="636" class="mu">06:33:18</text><text x="392" y="636" class="ok">✓ Wrote mockups/02-dashboard.svg (1440×960)</text>
+    <text x="312" y="660" class="mu">06:35:50</text><text x="392" y="660" class="ok">✓ Wrote mockups/03-run-detail.svg (1440×960)</text>
+    <text x="312" y="684" class="mu">06:38:09</text><text x="392" y="684" class="in">Writing mockups/04-task-detail.svg…</text>
+  </g>
+  <rect x="392" y="696" width="8" height="16" fill="#4f46e5"/>
+
+  <text x="296" y="768" class="sm m">Changed files <tspan class="mu">· 3</tspan></text>
+  <text x="1016" y="768" class="sm m pr e">View diff →</text>
+  <path d="M296 784.5H1016" class="sep"/>
+  <rect x="296" y="798" width="20" height="20" rx="4" fill="#fff" stroke="#15803d"/>
+  <text x="306" y="812" class="xs b ok c">A</text>
+  <text x="328" y="813" class="sm mono">mockups/02-dashboard.svg</text>
+  <text x="1016" y="813" class="sm mono ok e">+214</text>
+  <path d="M296 832.5H1016" class="sep"/>
+  <rect x="296" y="846" width="20" height="20" rx="4" fill="#fff" stroke="#15803d"/>
+  <text x="306" y="860" class="xs b ok c">A</text>
+  <text x="328" y="861" class="sm mono">mockups/03-run-detail.svg</text>
+  <text x="1016" y="861" class="sm mono ok e">+243</text>
+  <path d="M296 880.5H1016" class="sep"/>
+  <rect x="296" y="894" width="20" height="20" rx="4" fill="#fff" stroke="#0369a1"/>
+  <text x="306" y="908" class="xs b in c">A</text>
+  <text x="328" y="909" class="sm mono">mockups/04-task-detail.svg</text>
+  <text x="1016" y="909" class="sm mu e">In progress</text>
+
+  <!-- ============ Actions ============ -->
+  <rect x="1064.5" y="204.5" width="343" height="212" rx="8" class="card"/>
+  <text x="1088" y="244" class="lg m">Actions</text>
+  <rect x="1088.5" y="264.5" width="295" height="43" rx="8" fill="#f1f5f9" stroke="#e2e8f0"/>
+  <text x="1236" y="291" class="sm m mu c">Approve and merge</text>
+  <text x="1088" y="328" class="xs mu">Available when the attempt finishes.</text>
+  <rect x="1088.5" y="348.5" width="139" height="43" rx="8" fill="#fff" stroke="#cbd5e1"/>
+  <text x="1158" y="375" class="sm m c">Retry</text>
+  <rect x="1244.5" y="348.5" width="139" height="43" rx="8" fill="#fff" stroke="#b91c1c"/>
+  <text x="1314" y="375" class="sm m da c">Stop attempt</text>
+
+  <!-- ============ Details ============ -->
+  <rect x="1064.5" y="440.5" width="343" height="284" rx="8" class="card"/>
+  <text x="1088" y="480" class="lg m">Details</text>
+  <text x="1088" y="516" class="sm mu">Agent</text>
+  <text x="1384" y="516" class="sm mono e">opus · high</text>
+  <path d="M1088 532.5H1384" class="sep"/>
+  <text x="1088" y="556" class="sm mu">Status</text>
+  <text x="1384" y="556" class="sm m in e">Running</text>
+  <circle cx="1314" cy="551" r="3" fill="#0369a1"/>
+  <path d="M1088 572.5H1384" class="sep"/>
+  <text x="1088" y="596" class="sm mu">Started</text>
+  <text x="1384" y="596" class="sm e">Today, 06:29</text>
+  <path d="M1088 612.5H1384" class="sep"/>
+  <text x="1088" y="636" class="sm mu">Elapsed</text>
+  <text x="1384" y="636" class="sm e">9m 12s</text>
+  <path d="M1088 652.5H1384" class="sep"/>
+  <text x="1088" y="676" class="sm mu">Base</text>
+  <text x="1384" y="676" class="sm mono e">main</text>
+  <path d="M1088 692.5H1384" class="sep"/>
+  <text x="1088" y="708" class="xs mu">Time limit 45m · auto-retry on failure</text>
+
+  <!-- ============ Dependencies ============ -->
+  <rect x="1064.5" y="748.5" width="343" height="180" rx="8" class="card"/>
+  <text x="1088" y="788" class="lg m">Dependencies</text>
+  <path d="M1090 816l3 3 5-6" class="chk"/>
+  <text x="1108" y="821" class="sm"><tspan class="mono mu">t1</tspan><tspan dx="8">Design system setup</tspan></text>
+  <text x="1384" y="821" class="sm ok e">Done</text>
+  <path d="M1090 848l3 3 5-6" class="chk"/>
+  <text x="1108" y="853" class="sm"><tspan class="mono mu">t4</tspan><tspan dx="8">Wireframes</tspan></text>
+  <text x="1384" y="853" class="sm ok e">Done</text>
+  <path d="M1088 872.5H1384" class="sep"/>
+  <text x="1088" y="900" class="sm mu">Blocks</text>
+  <text x="1384" y="900" class="sm e"><tspan class="mono pr">t7</tspan>, <tspan class="mono pr">t8</tspan></text>
+</svg>
