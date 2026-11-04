@@ -2,13 +2,17 @@
   "slug": "meble-automatyzacja",
   "title": "Furniture Workshop Automation",
   "status": "shipped",
+  "year": 2026,
+  "role": "Design and implementation",
   "tagline": "Orders, quotes, stock and purchasing for a made-to-order furniture workshop, automated end to end.",
-  "summary": "An automation system built on n8n and Supabase (Postgres) that turns emails, forms and showroom tablets into priced orders.",
+  "summary": "A system for a small made-to-order furniture workshop and its showrooms. It takes orders from a form, e-mail, a calculator and a showroom tablet, prices them, watches stock and supplier prices, reorders missing materials, assigns team tasks, chases unanswered quotes and reports bestsellers weekly. It runs on n8n and Supabase (Postgres); the code was written by Claude and reviewed by a second model (Codex).",
   "tags": [
     "n8n",
     "Supabase",
     "PostgreSQL",
-    "AI"
+    "SQL",
+    "JavaScript",
+    "LLM"
   ],
   "links": [
     {
@@ -16,30 +20,344 @@
       "url": "https://github.com/DejfW/Portfolio"
     }
   ],
+  "stats": [
+    {
+      "value": "14",
+      "label": "n8n workflows"
+    },
+    {
+      "value": "20",
+      "label": "database migrations"
+    },
+    {
+      "value": "17",
+      "label": "SQL test files"
+    },
+    {
+      "value": "4",
+      "label": "order channels"
+    }
+  ],
   "sections": [
     {
       "type": "prose",
       "title": "The problem",
       "paragraphs": [
-        "Full case study coming in Task 7."
+        "The owner of a small made-to-order furniture workshop loses time on work that can be automated: orders arrive by e-mail and forms in any shape, quotes are done by eye, and a missing material is noticed only when the work has started.",
+        "This system takes the order, prices it with the same code every time, reserves materials once a human approves, reorders what is missing and keeps the customer informed.",
+        "All companies, addresses and customers in the demo data are fictional."
+      ]
+    },
+    {
+      "type": "table",
+      "title": "What the system does",
+      "columns": [
+        "Pain point",
+        "Solution"
+      ],
+      "rows": [
+        [
+          "Orders arrive by e-mail and form in any shape",
+          "AI turns the text into a structured order; the database prices it"
+        ],
+        [
+          "Quotes done by eye",
+          "Price from the supplier list + labour + margin + waste, always by the same code"
+        ],
+        [
+          "A missing material shows up only during the work",
+          "Approving an order reserves materials and raises an alert on shortages immediately"
+        ],
+        [
+          "Hunting for the cheapest supplier",
+          "Daily CSV price-list import and best_price (only prices no older than 30 days)"
+        ],
+        [
+          "Customers want a price right now",
+          "Public calculator with a live quote and one-click ordering"
+        ],
+        [
+          "Nobody knows what sells",
+          "Monday bestseller report on Slack with an AI summary"
+        ],
+        [
+          "Materials run out without warning",
+          "Purchase-order drafts to the cheapest supplier, approved in one click; receiving a delivery raises stock"
+        ],
+        [
+          "Quotes hang without a reply",
+          "Reminders after 3 and 7 days; after 14 days the quote is closed and a 'why not' survey is sent"
+        ],
+        [
+          "'Where is my furniture?'",
+          "Status page with a timeline, a start-of-work e-mail and a review request at the end"
+        ],
+        [
+          "Inbox full of questions, complaints and spam",
+          "AI triage: orders never get lost, questions get a draft reply for approval"
+        ],
+        [
+          "Customers browse samples in showrooms",
+          "Showroom tablet: on-the-spot quote and a lead assigned to a showroom and salesperson"
+        ]
       ]
     },
     {
       "type": "diagram",
       "title": "Architecture",
       "src": "media/architecture.svg",
-      "alt": "Input channels feed n8n workflows, which call SQL functions in Supabase; notifications leave through outbox queues to Slack and Gmail.",
-      "caption": "Click to enlarge."
+      "alt": "Input channels (form and e-mail, calculator, showroom tablet, status page, owner links) feed n8n workflows, which call SQL functions in Supabase. The database is the source of truth; notifications leave through email_outbox and slack_outbox queues to Gmail and Slack. A local AI model is called through a shared sub-workflow.",
+      "caption": "Click to enlarge. Workflows only call SQL functions and queue notifications; decisions are made by the database."
     },
     {
-      "type": "gallery",
-      "title": "Screenshots (temporary)",
+      "type": "graph",
+      "title": "Dependencies",
+      "nodes": [
+        {
+          "id": "form",
+          "label": "Form and e-mail",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "calc",
+          "label": "Calculator",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "tab",
+          "label": "Showroom tablet",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "owner",
+          "label": "Owner approval links",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "llm",
+          "label": "Local AI model",
+          "layer": 1,
+          "kind": "ai"
+        },
+        {
+          "id": "n8n",
+          "label": "n8n workflows",
+          "layer": 1,
+          "kind": "workflow"
+        },
+        {
+          "id": "sql",
+          "label": "Supabase SQL functions",
+          "layer": 2,
+          "kind": "db"
+        },
+        {
+          "id": "out",
+          "label": "Outbox and 05-deliver",
+          "layer": 3,
+          "kind": "workflow"
+        },
+        {
+          "id": "slack",
+          "label": "Slack",
+          "layer": 4,
+          "kind": "output"
+        },
+        {
+          "id": "mail",
+          "label": "Customer and supplier e-mail",
+          "layer": 4,
+          "kind": "output"
+        },
+        {
+          "id": "status",
+          "label": "Status page",
+          "layer": 4,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "form",
+          "to": "n8n"
+        },
+        {
+          "from": "calc",
+          "to": "n8n"
+        },
+        {
+          "from": "tab",
+          "to": "n8n"
+        },
+        {
+          "from": "owner",
+          "to": "n8n"
+        },
+        {
+          "from": "n8n",
+          "to": "sql"
+        },
+        {
+          "from": "llm",
+          "to": "sql"
+        },
+        {
+          "from": "sql",
+          "to": "out"
+        },
+        {
+          "from": "sql",
+          "to": "status"
+        },
+        {
+          "from": "out",
+          "to": "slack"
+        },
+        {
+          "from": "out",
+          "to": "mail"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "n8n workflows",
+      "columns": [
+        "File",
+        "Trigger",
+        "Job"
+      ],
+      "rows": [
+        [
+          "00-llm",
+          "sub-workflow",
+          "Calls the local model through scripts/llm.sh (no API key)"
+        ],
+        [
+          "01-order-intake",
+          "POST /webhook/order",
+          "Order from a form or e-mail → AI → validation → quote → saved"
+        ],
+        [
+          "02-intake-sweeper",
+          "every 5 min",
+          "Resumes orders stuck in processing"
+        ],
+        [
+          "03-team-tasks",
+          "GET/POST /webhook/approve, /task-done",
+          "Owner approval (Basic Auth), material reservation, team task, task completion"
+        ],
+        [
+          "04-stock-prices",
+          "daily 7:00",
+          "Imports CSV price lists, low-stock report"
+        ],
+        [
+          "05-deliver",
+          "every minute",
+          "Sends the e-mail and Slack queues"
+        ],
+        [
+          "06-calculator",
+          "GET /catalog, POST /quote-preview, /calculator-order",
+          "Public calculator API"
+        ],
+        [
+          "07-weekly-report",
+          "Monday 8:00",
+          "Bestsellers for 7 and 30 days + AI summary on Slack"
+        ],
+        [
+          "08-purchase-orders",
+          "daily 7:15, GET/POST /webhook/po-approve, /po-received",
+          "Purchase-order drafts from materials below minimum, link approval (e-mail to supplier), delivery raises stock"
+        ],
+        [
+          "09-quote-followup",
+          "daily 9:00, GET/POST /webhook/lost-reason",
+          "Quote reminders after 3 and 7 days (AI intro, validated, fallback template), lost status after 14 days with a survey"
+        ],
+        [
+          "10-status-notify",
+          "every 2 min",
+          "E-mail to the customer when work starts, with a status-page link"
+        ],
+        [
+          "11-inbox-triage",
+          "POST /webhook/triage, repair every 5 min",
+          "AI classifies mail (order, question, complaint, spam); orders and uncertain cases go to intake, the rest to the owner on Slack"
+        ],
+        [
+          "12-review-request",
+          "daily 10:00",
+          "Google review request 7 days after completion, only when GOOGLE_REVIEW_URL is set"
+        ],
+        [
+          "13-showroom",
+          "GET /webhook/showroom-info, POST /webhook/showroom-order",
+          "Showroom tablet API: quote for the customer and e-mail to the salesperson (or a lead with a note)"
+        ]
+      ]
+    },
+    {
+      "type": "chart",
+      "title": "Test coverage",
+      "unit": "files",
+      "bars": [
+        {
+          "label": "SQL test files",
+          "value": 17
+        },
+        {
+          "label": "n8n unit-test files",
+          "value": 11
+        },
+        {
+          "label": "Shell test scripts",
+          "value": 12
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Design decisions",
       "items": [
         {
-          "type": "image",
-          "src": "media/architecture.svg",
-          "alt": "Architecture diagram",
-          "caption": "Temporary item"
+          "title": "Logic in SQL, not in workflows",
+          "text": "Quotes, reservations and reports are Postgres functions with tests. n8n only orchestrates, so the logic is testable without running n8n."
+        },
+        {
+          "title": "AI only where needed",
+          "text": "The model reads order text and writes the report summary. Prices, stock and decisions come from code, and model output is validated; a model failure never loses an order."
+        },
+        {
+          "title": "A human approves",
+          "text": "An order from e-mail does not reserve materials until the owner clicks the approval link."
+        },
+        {
+          "title": "Idempotency",
+          "text": "upsert_order and calculator_order work by external_id, so a retried request never duplicates an order."
+        },
+        {
+          "title": "Outbox",
+          "text": "E-mails and Slack messages are queued first with a dedup key and sent by 05-deliver. Delivery is at-least-once: a message may repeat after a crash but never disappears."
+        },
+        {
+          "title": "Safe defaults",
+          "text": "E-mail delivery is off by default and, once on, goes only to an allowlist. The mock LLM must be enabled deliberately."
+        },
+        {
+          "title": "The database decides, not the model",
+          "text": "The model proposes (mail category, order content, reminder intro); SQL functions decide the route, the quote and reservations. Uncertain output takes a safe path, never a silent skip."
+        },
+        {
+          "title": "Minimum data outside",
+          "text": "The public API returns selling prices and totals, never material cost, labour or margin. RLS is on with no policies, so only service_role has access."
         }
       ]
     },
@@ -47,109 +365,6 @@
       "type": "gallery",
       "title": "Recordings and screenshots",
       "items": []
-    },
-    {
-      "type": "chart",
-      "title": "Test coverage (temp)",
-      "unit": "files",
-      "bars": [
-        {
-          "label": "SQL tests",
-          "value": 18
-        },
-        {
-          "label": "n8n unit tests",
-          "value": 11
-        },
-        {
-          "label": "e2e scripts",
-          "value": 9
-        }
-      ]
-    },
-    {
-      "type": "graph",
-      "title": "Dependencies (temp)",
-      "nodes": [
-        {
-          "id": "f",
-          "label": "Form and e-mail",
-          "layer": 0,
-          "kind": "channel"
-        },
-        {
-          "id": "k",
-          "label": "Calculator",
-          "layer": 0,
-          "kind": "channel"
-        },
-        {
-          "id": "t",
-          "label": "Showroom tablet",
-          "layer": 0,
-          "kind": "channel"
-        },
-        {
-          "id": "w",
-          "label": "n8n workflows",
-          "layer": 1,
-          "kind": "workflow"
-        },
-        {
-          "id": "db",
-          "label": "Supabase SQL functions",
-          "layer": 2,
-          "kind": "db"
-        },
-        {
-          "id": "ob",
-          "label": "Outbox and delivery",
-          "layer": 3,
-          "kind": "workflow"
-        },
-        {
-          "id": "sl",
-          "label": "Slack",
-          "layer": 4,
-          "kind": "output"
-        },
-        {
-          "id": "em",
-          "label": "Customer e-mail",
-          "layer": 4,
-          "kind": "output"
-        }
-      ],
-      "edges": [
-        {
-          "from": "f",
-          "to": "w"
-        },
-        {
-          "from": "k",
-          "to": "w"
-        },
-        {
-          "from": "t",
-          "to": "w"
-        },
-        {
-          "from": "w",
-          "to": "db"
-        },
-        {
-          "from": "db",
-          "to": "ob"
-        },
-        {
-          "from": "ob",
-          "to": "sl"
-        },
-        {
-          "from": "ob",
-          "to": "em"
-        }
-      ]
     }
   ]
 }
