@@ -1,4 +1,5 @@
 // Walidator danych portfolio. Bez importów Node: działa w przeglądarce i w CLI.
+import { ICON_NAMES } from './icons.js';
 
 export const STATUSES = ['shipped', 'in-progress', 'planned'];
 export const BLOCK_TYPES = ['prose', 'list', 'table', 'gallery', 'diagram', 'chart', 'graph'];
@@ -107,6 +108,7 @@ const BLOCKS = {
       if (!Number.isInteger(n.layer) || n.layer < 0) errors.push(`${np}.layer: must be an integer >= 0`);
       else layers.set(n.id, n.layer);
       if (n.kind !== undefined && !NODE_KINDS.includes(n.kind)) errors.push(`${np}.kind: must be one of ${NODE_KINDS.join(', ')}`);
+      if (n.icon !== undefined && !ICON_NAMES.includes(n.icon)) errors.push(`${np}.icon: must be one of ${ICON_NAMES.join(', ')}`);
     });
     if (!Array.isArray(b.edges)) { errors.push(`${p}.edges: required (may be empty)`); return; }
     b.edges.forEach((e, i) => {

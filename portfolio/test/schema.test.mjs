@@ -188,3 +188,10 @@ test('gallery layout accepts "wide" and rejects other values', () => {
   const bad = validateProject(shipped([{ type: 'gallery', layout: 'huge', items: [] }]), ctx());
   assert.ok(bad.some((e) => e.startsWith('sections[0].layout:')), bad.join('\n'));
 });
+
+test('graph node icon accepts known tools and rejects others', () => {
+  const mk = (icon) => shipped([{ type: 'graph', nodes: [{ id: 'a', label: 'A', layer: 0, icon }], edges: [] }]);
+  assert.deepEqual(validateProject(mk('slack'), ctx()), []);
+  const bad = validateProject(mk('myspace'), ctx());
+  assert.ok(bad.some((e) => e.startsWith('sections[0].nodes[0].icon:')), bad.join('\n'));
+});

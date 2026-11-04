@@ -3,6 +3,54 @@
   "name": "04 Stock and prices",
   "nodes": [
     {
+      "id": "n247-note-trigger-and-guard",
+      "name": "Note: Trigger and guard",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -150
+      ],
+      "parameters": {
+        "content": "## Trigger and guard\nRuns every day at 7:00. The test webhook is checked before anything runs.",
+        "width": 1280,
+        "height": 515,
+        "color": 4
+      }
+    },
+    {
+      "id": "n248-note-files-supplier-price-lists",
+      "name": "Note: Files: supplier price lists",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -70
+      ],
+      "parameters": {
+        "content": "## Files: supplier price lists\nCSV price lists from the data folder are read and parsed.",
+        "width": 400,
+        "height": 195,
+        "color": 7
+      }
+    },
+    {
+      "id": "n249-note-supabase-rpc-prices-and-shortages",
+      "name": "Note: Supabase RPC: prices and shortages",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        -70
+      ],
+      "parameters": {
+        "content": "## Supabase RPC: prices and shortages\nPrices are imported and low stock is found. A Slack digest is queued only when there is something to report.",
+        "width": 840,
+        "height": 195,
+        "color": 6
+      }
+    },
+    {
       "id": "n056-schedule-7-00",
       "name": "Schedule 7:00",
       "type": "n8n-nodes-base.scheduleTrigger",

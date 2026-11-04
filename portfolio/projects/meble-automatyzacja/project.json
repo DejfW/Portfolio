@@ -116,7 +116,8 @@
           "id": "text",
           "label": "E-mail or form text",
           "layer": 0,
-          "kind": "channel"
+          "kind": "channel",
+          "icon": "gmail"
         },
         {
           "id": "cat",
@@ -134,7 +135,8 @@
           "id": "quote",
           "label": "Quote and save in SQL",
           "layer": 2,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "review",
@@ -152,19 +154,22 @@
           "id": "task",
           "label": "create_task: reserve materials",
           "layer": 4,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "cust",
           "label": "Customer e-mail and status page",
           "layer": 5,
-          "kind": "output"
+          "kind": "output",
+          "icon": "gmail"
         },
         {
           "id": "done",
           "label": "Task done: stock consumed",
           "layer": 5,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "opinion",
@@ -245,7 +250,8 @@
           "id": "t",
           "label": "Incoming mail to classify",
           "layer": 0,
-          "kind": "channel"
+          "kind": "channel",
+          "icon": "gmail"
         },
         {
           "id": "llm",
@@ -257,13 +263,15 @@
           "id": "val",
           "label": "Code validates the output",
           "layer": 2,
-          "kind": "workflow"
+          "kind": "workflow",
+          "icon": "n8n"
         },
         {
           "id": "ok",
           "label": "Accepted output is used",
           "layer": 3,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "safe",
@@ -374,49 +382,57 @@
           "id": "imp",
           "label": "04 Import prices",
           "layer": 1,
-          "kind": "workflow"
+          "kind": "workflow",
+          "icon": "n8n"
         },
         {
           "id": "task",
           "label": "create_task: check and reserve",
           "layer": 1,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "prices",
           "label": "supplier_prices: cheapest, max 30 days old",
           "layer": 2,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "mats",
           "label": "materials: stock minus reserved",
           "layer": 2,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "low",
           "label": "low_stock: below minimum",
           "layer": 3,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "po",
           "label": "08 Purchase-order drafts, 7:15",
           "layer": 4,
-          "kind": "workflow"
+          "kind": "workflow",
+          "icon": "n8n"
         },
         {
           "id": "mail",
           "label": "Owner approves, supplier is e-mailed",
           "layer": 5,
-          "kind": "output"
+          "kind": "output",
+          "icon": "gmail"
         },
         {
           "id": "recv",
           "label": "Delivery received: stock goes up",
           "layer": 6,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         }
       ],
       "edges": [
@@ -517,31 +533,36 @@
           "id": "q",
           "label": "Quote sent, no reply (09, daily 9:00)",
           "layer": 0,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "d3",
           "label": "Day 3: reminder",
           "layer": 1,
-          "kind": "output"
+          "kind": "output",
+          "icon": "gmail"
         },
         {
           "id": "d7",
           "label": "Day 7: last reminder",
           "layer": 2,
-          "kind": "output"
+          "kind": "output",
+          "icon": "gmail"
         },
         {
           "id": "d14",
           "label": "Day 14: quote marked lost",
           "layer": 3,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "sv",
           "label": "E-mail survey: why not?",
           "layer": 4,
-          "kind": "output"
+          "kind": "output",
+          "icon": "gmail"
         }
       ],
       "edges": [
@@ -571,7 +592,8 @@
           "id": "m",
           "label": "Incoming mail",
           "layer": 0,
-          "kind": "channel"
+          "kind": "channel",
+          "icon": "gmail"
         },
         {
           "id": "tr",
@@ -583,19 +605,22 @@
           "id": "db",
           "label": "triage_complete (SQL) picks route",
           "layer": 2,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "ord",
           "label": "Order or unsure: 01 Intake",
           "layer": 3,
-          "kind": "workflow"
+          "kind": "workflow",
+          "icon": "n8n"
         },
         {
           "id": "q2",
           "label": "Question or complaint: Slack",
           "layer": 3,
-          "kind": "output"
+          "kind": "output",
+          "icon": "slack"
         },
         {
           "id": "sp",
@@ -641,7 +666,8 @@
           "id": "sq",
           "label": "SQL: bestsellers, 7 and 30 days",
           "layer": 1,
-          "kind": "db"
+          "kind": "db",
+          "icon": "postgresql"
         },
         {
           "id": "sm",
@@ -653,7 +679,8 @@
           "id": "sl",
           "label": "Report on Slack",
           "layer": 3,
-          "kind": "output"
+          "kind": "output",
+          "icon": "slack"
         }
       ],
       "edges": [
@@ -683,7 +710,8 @@
           "id": "form",
           "label": "Form and e-mail",
           "layer": 0,
-          "kind": "channel"
+          "kind": "channel",
+          "icon": "gmail"
         },
         {
           "id": "calc",
@@ -713,31 +741,36 @@
           "id": "n8n",
           "label": "n8n workflows",
           "layer": 1,
-          "kind": "workflow"
+          "kind": "workflow",
+          "icon": "n8n"
         },
         {
           "id": "sql",
           "label": "Supabase SQL functions",
           "layer": 2,
-          "kind": "db"
+          "kind": "db",
+          "icon": "supabase"
         },
         {
           "id": "out",
           "label": "Outbox and 05-deliver",
           "layer": 3,
-          "kind": "workflow"
+          "kind": "workflow",
+          "icon": "n8n"
         },
         {
           "id": "slack",
           "label": "Slack",
           "layer": 4,
-          "kind": "output"
+          "kind": "output",
+          "icon": "slack"
         },
         {
           "id": "mail",
           "label": "Customer and supplier e-mail",
           "layer": 4,
-          "kind": "output"
+          "kind": "output",
+          "icon": "gmail"
         },
         {
           "id": "status",
@@ -877,32 +910,32 @@
         {
           "type": "image",
           "src": "media/n8n-01-order-intake-1.png",
-          "alt": "n8n canvas of workflow 01 Order intake, first half: Webhook, Config, Normalize, Valid input?, Receive, Accepted, First delivery?, Catalog, with a Rejected branch.",
-          "caption": "01 Order intake (1/2): the webhook validates input, answers at once and loads the product catalog."
+          "alt": "n8n canvas of workflow 01 Order intake, first part. A green note groups the entry nodes (Webhook, Config, Normalize, Valid input?). A purple Supabase RPC note groups Receive, Accepted, First delivery? and the Rejected branch.",
+          "caption": "01 Order intake (1/2): entry validation, then a Supabase RPC stores the order and the sender gets an answer at once."
         },
         {
           "type": "image",
           "src": "media/n8n-01-order-intake-2.png",
-          "alt": "n8n canvas of workflow 01 Order intake, second half: Build prompt, Ask LLM, Validate, Complete, Context, Compose emails, Queue email.",
-          "caption": "01 Order intake (2/2): prompt, AI call through the shared sub-workflow, validation in code, then saved in SQL and the e-mails queued."
+          "alt": "n8n canvas of workflow 01 Order intake, second part. A blue note, AI proposes and code checks, groups Catalog, Build prompt, Ask LLM and Validate. A purple Supabase RPC note groups Complete, Context, Compose emails and Queue email.",
+          "caption": "01 Order intake (2/2): the model proposes, code validates, then a Supabase RPC prices and saves the order and the e-mails are queued."
         },
         {
           "type": "image",
           "src": "media/n8n-04-stock-prices-1.png",
-          "alt": "n8n canvas of workflow 04 Stock and prices, first half: Schedule 7:00 and a Webhook feed Config, Stock params and an Allowed? check, with a Forbidden branch.",
-          "caption": "04 Stock and prices (1/2): runs daily at 7:00 or by an authorised webhook."
+          "alt": "n8n canvas of workflow 04 Stock and prices, first part. A green Trigger and guard note groups the 7:00 schedule, the webhook, Config, Stock params, the Allowed? check and the Forbidden and Started responses.",
+          "caption": "04 Stock and prices (1/2): runs daily at 7:00; the test webhook is checked first."
         },
         {
           "type": "image",
           "src": "media/n8n-04-stock-prices-2.png",
-          "alt": "n8n canvas of workflow 04 Stock and prices, second half: Read CSV, Parse CSV, Import prices, Stock report, Digest, Queue notifications.",
-          "caption": "04 Stock and prices (2/2): read the CSV price lists, import prices, build the low-stock report and queue the Slack digest."
+          "alt": "n8n canvas of workflow 04 Stock and prices, second part. A grey note groups Read CSV and Parse CSV. A purple Supabase RPC note groups Import prices, Stock report, Digest and Queue notifications.",
+          "caption": "04 Stock and prices (2/2): CSV price lists are read, then Supabase RPCs import prices and find low stock, and the Slack digest is queued."
         },
         {
           "type": "image",
           "src": "media/n8n-03-team-tasks.png",
-          "alt": "n8n canvas of workflow 03 Team tasks with four webhook paths: GET and POST approve, GET and POST task-done, each validating its link or form and answering through one Respond page node.",
-          "caption": "03 Team tasks: approval and task-completion links, each with its own validation, answered by one response node."
+          "alt": "n8n canvas of workflow 03 Team tasks with three notes: a grey Approval page (GET) note, a purple Approval (POST) Supabase RPC note, and a purple Task completion note, all feeding one Respond page node.",
+          "caption": "03 Team tasks: approval and task-completion links; the POST approval calls a Supabase RPC that reserves materials."
         }
       ],
       "layout": "wide"

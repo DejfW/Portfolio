@@ -133,6 +133,61 @@ const workflow = (id, name, nodes, links) => ({
   settings: { executionOrder: 'v1', saveDataErrorExecution: 'none' }, versionId: `${id}-v1`,
 });
 
+// Notatki (sticky notes) grupujące węzły na płótnie. Czysto wizualne: bez połączeń, rysowane pod węzłami.
+// Obrys liczymy z pozycji wskazanych węzłów (węzeł ma ok. 100 x 100), z miejscem na nagłówek u góry.
+const NOTE_PAD = { x: 40, top: 90, bottom: 5 };
+function withNotes(wf, groups) {
+  const notes = groups.map((g) => {
+    const members = g.nodes.map((name) => {
+      const found = wf.nodes.find((n) => n.name === name);
+      if (!found) throw new Error(`notatka "${g.title}": brak węzła "${name}" w ${wf.name}`);
+      return found;
+    });
+    const xs = members.map((n) => n.position[0]);
+    const ys = members.map((n) => n.position[1]);
+    const x = Math.min(...xs) - NOTE_PAD.x;
+    const y = Math.min(...ys) - NOTE_PAD.top;
+    return node(`Note: ${g.title}`, 'n8n-nodes-base.stickyNote', 1, [x, y], {
+      content: `## ${g.title}\n${g.text}`,
+      width: Math.max(...xs) + 100 + NOTE_PAD.x - x,
+      height: Math.max(...ys) + 100 + NOTE_PAD.bottom - y,
+      color: g.color,
+    });
+  });
+  wf.nodes.unshift(...notes);
+  return wf;
+}
+
+// Kolory notatek: 6 = funkcje SQL w Supabase, 5 = AI i walidacja, 4 = wyzwalacze i bramki, 7 = pliki i strony.
+const NOTES = {
+  '01-order-intake.json': [
+    { title: 'Entry: validate the request', color: 4, nodes: ['Webhook', 'Config', 'Normalize', 'Valid input?'],
+      text: 'Only the expected fields get through. A failed check leaves through the Rejected branch: 400 for bad input, 401 for a wrong token.' },
+    { title: 'Supabase RPC: store, then answer', color: 6, nodes: ['Receive', 'Accepted', 'Rejected', 'First delivery?'],
+      text: 'intake_receive saves the raw order once (idempotent by external_id) and the sender gets an answer at once.' },
+    { title: 'AI proposes, code checks', color: 5, nodes: ['Catalog', 'Build prompt', 'Ask LLM', 'Validate'],
+      text: 'The model reads the text. Its answer is validated against the catalog and limits before anything is saved.' },
+    { title: 'Supabase RPC: price, save, queue', color: 6, nodes: ['Complete', 'Context', 'Compose emails', 'Queue email'],
+      text: 'intake_complete prices and saves the order. E-mails are composed from database state and queued.' },
+  ],
+  '03-team-tasks.json': [
+    { title: 'Approval page (GET)', color: 7, nodes: ['GET approve', 'Config page', 'Parse approve page', 'Approve link valid?', 'Order context', 'Approve page'],
+      text: 'The owner opens the link. The link is checked, then the order is shown for approval.' },
+    { title: 'Approval (POST): Supabase RPC', color: 6, nodes: ['POST approve', 'Config POST', 'Parse approve', 'Approve form valid?', 'Approve order', 'Approve result'],
+      text: 'Needs the operator login. create_task checks stock, reserves the materials and opens the team task.' },
+    { title: 'Task completion (GET and POST)', color: 6, nodes: ['GET task-done', 'Parse done page', 'Done page', 'POST task-done', 'Parse done', 'Done form valid?', 'Task done', 'Done result', 'Bad link'],
+      text: 'Finishing a task turns the reservation into consumption. Invalid links get a safe answer.' },
+  ],
+  '04-stock-prices.json': [
+    { title: 'Trigger and guard', color: 4, nodes: ['Schedule 7:00', 'Webhook', 'Config', 'Stock params', 'Allowed?', 'Via webhook?', 'Started', 'Forbidden'],
+      text: 'Runs every day at 7:00. The test webhook is checked before anything runs.' },
+    { title: 'Files: supplier price lists', color: 7, nodes: ['Read CSV', 'Parse CSV'],
+      text: 'CSV price lists from the data folder are read and parsed.' },
+    { title: 'Supabase RPC: prices and shortages', color: 6, nodes: ['Import prices', 'Stock report', 'Digest', 'Queue notifications'],
+      text: 'Prices are imported and low stock is found. A Slack digest is queued only when there is something to report.' },
+  ],
+};
+
 // Wspólny koniec obu przepływów: kontekst zamówienia z bazy -> maile -> email_outbox.
 // Maile zawsze wynikają ze stanu w bazie, więc sweeper odtwarza je tą samą ścieżką.
 const queueEmailNode = (position) =>
@@ -950,6 +1005,7 @@ for (const [file, wf] of [
   ['12-review-request.json', buildReviewRequest()],
   ['13-showroom.json', buildShowroom()],
 ]) {
+  if (NOTES[file]) withNotes(wf, NOTES[file]);
   writeFileSync(join(outDir, file), JSON.stringify(wf, null, 2) + '\n');
   console.log(`zapisano n8n/workflows/${file} (${wf.nodes.length} węzłów)`);
 }

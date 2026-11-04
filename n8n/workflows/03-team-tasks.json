@@ -3,6 +3,54 @@
   "name": "03 Team tasks",
   "nodes": [
     {
+      "id": "n244-note-approval-page-get-",
+      "name": "Note: Approval page (GET)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -150
+      ],
+      "parameters": {
+        "content": "## Approval page (GET)\nThe owner opens the link. The link is checked, then the order is shown for approval.",
+        "width": 1280,
+        "height": 255,
+        "color": 7
+      }
+    },
+    {
+      "id": "n245-note-approval-post-supabase-rpc",
+      "name": "Note: Approval (POST): Supabase RPC",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        110
+      ],
+      "parameters": {
+        "content": "## Approval (POST): Supabase RPC\nNeeds the operator login. create_task checks stock, reserves the materials and opens the team task.",
+        "width": 1280,
+        "height": 255,
+        "color": 6
+      }
+    },
+    {
+      "id": "n246-note-task-completion-get-and-post-",
+      "name": "Note: Task completion (GET and POST)",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        370
+      ],
+      "parameters": {
+        "content": "## Task completion (GET and POST)\nFinishing a task turns the reservation into consumption. Invalid links get a safe answer.",
+        "width": 1280,
+        "height": 435,
+        "color": 6
+      }
+    },
+    {
       "id": "n034-get-approve",
       "name": "GET approve",
       "type": "n8n-nodes-base.webhook",
