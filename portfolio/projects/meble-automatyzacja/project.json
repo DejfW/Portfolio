@@ -363,8 +363,27 @@
     },
     {
       "type": "gallery",
-      "title": "Recordings and screenshots",
-      "items": []
+      "title": "Screenshots",
+      "items": [
+        {
+          "type": "image",
+          "src": "media/calculator.png",
+          "alt": "Public quote calculator with two catalog items, a live total of 4793.38 PLN and an order form.",
+          "caption": "Public calculator: live quote from the database, one-click order. Demo data."
+        },
+        {
+          "type": "image",
+          "src": "media/showroom-tablet.png",
+          "alt": "Showroom tablet form with customer details, consent checkbox, one product and a live quote.",
+          "caption": "Showroom tablet: quote on the spot; the salon and salesperson come from the database, never from the tablet."
+        },
+        {
+          "type": "image",
+          "src": "media/order-status.png",
+          "alt": "Order status page with the current stage 'In progress' and a three-step timeline.",
+          "caption": "Customer status page: stages and dates only, no e-mail or prices."
+        }
+      ]
     }
   ]
 }

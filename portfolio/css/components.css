@@ -115,10 +115,10 @@
 .data-table td, .data-table tbody th { min-width: 160px; }
 
 /* Media */
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-24); }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-24); align-items: start; }
 .media { display: flex; flex-direction: column; gap: var(--spacing-8); }
 .media-open { display: block; width: 100%; padding: 0; border: 1px solid var(--color-line); border-radius: var(--radius-cards); overflow: hidden; background: var(--surface-void-base); cursor: zoom-in; }
-.media-open img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.media-open img { width: 100%; height: auto; }
 .diagram { max-width: 1000px; }
 .diagram .media-open { background: var(--surface-deep-panel); }
 .diagram .media-open img { aspect-ratio: auto; object-fit: contain; }
