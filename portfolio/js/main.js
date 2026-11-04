@@ -1,6 +1,7 @@
 import { el } from './lib/dom.js';
 import { fetchJson, loadProjects } from './lib/load.js';
 import { coverFor } from './lib/cover.js';
+import { validateSite } from './lib/schema.js';
 import { renderHero } from './hero.js';
 import { renderAbout, linkButtons } from './about.js';
 
@@ -48,7 +49,9 @@ async function main() {
   ]);
   errors.forEach((e) => console.warn('portfolio:', e));
 
-  if (site) {
+  const siteErrors = site ? validateSite(site, { fileExists: () => true }) : [];
+  if (siteErrors.length) siteErrors.forEach((e) => console.warn('portfolio: site.json:', e));
+  if (site && !siteErrors.length) {
     document.getElementById('brand').textContent = site.name;
     document.getElementById('hero-title').textContent = site.headline;
     document.title = `${site.name} — ${site.headline}`;

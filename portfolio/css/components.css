@@ -134,7 +134,7 @@
 .chart { display: grid; gap: var(--spacing-16); max-width: 820px; }
 .chart-row { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-16); }
 .chart-track { height: 14px; border-radius: var(--radius-lg); background: var(--surface-elevated-surface); overflow: hidden; }
-.chart-fill { height: 100%; border-radius: var(--radius-lg); background: var(--gradient-electric-current); min-width: 2px; }
+.chart-fill { height: 100%; border-radius: var(--radius-lg); background: var(--color-electric-current); min-width: 2px; }
 .chart-value { color: var(--color-cloud-white); min-width: 4.5em; text-align: right; }
 @media (max-width: 560px) {
   .chart-row { grid-template-columns: minmax(0, 1fr) auto; }

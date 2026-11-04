@@ -17,6 +17,7 @@ before(async () => {
   writeFileSync(join(root, 'a.txt'), 'plain');
   writeFileSync(join(root, '.secret'), 'nope');
   writeFileSync(join(root, 'v.mp4'), Buffer.alloc(1000, 1));
+  writeFileSync(join(root, 'empty.mp4'), '');
   outside = base;
   server = createPortfolioServer(root);
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -87,4 +88,11 @@ test('sets nosniff and CSP', async () => {
 
 test('unknown path returns 404', async () => {
   assert.equal((await req('/nope.html')).status, 404);
+});
+
+test('empty file is served with 200 and does not crash the server', async () => {
+  const r = await req('/empty.mp4');
+  assert.equal(r.status, 200);
+  assert.equal(r.body.length, 0);
+  assert.equal((await req('/a.txt')).status, 200); // server still alive
 });

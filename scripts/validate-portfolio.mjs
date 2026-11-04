@@ -14,18 +14,19 @@ const siteDir = dirname(projectsDir);
 const errors = [];
 const warnings = [];
 
+const UNREADABLE = Symbol('unreadable');
 function readJson(file, label) {
   try { return JSON.parse(readFileSync(file, 'utf8')); } catch (e) {
     errors.push(`${label}: cannot read (${e.message})`);
-    return null;
+    return UNREADABLE;
   }
 }
 
 const manifest = readJson(join(projectsDir, 'index.json'), 'projects/index.json');
 let slugs = [];
-if (manifest) {
+if (manifest !== UNREADABLE) {
   validateManifest(manifest).forEach((e) => errors.push(`projects/index.json: ${e}`));
-  slugs = Array.isArray(manifest.projects) ? manifest.projects.filter(isSlug) : [];
+  slugs = manifest && Array.isArray(manifest.projects) ? manifest.projects.filter(isSlug) : [];
 }
 
 for (const slug of slugs) {
@@ -33,10 +34,10 @@ for (const slug of slugs) {
   const file = join(dir, 'project.json');
   if (!existsSync(file)) { errors.push(`${slug}: project.json not found (listed in manifest)`); continue; }
   const project = readJson(file, `${slug}/project.json`);
-  if (!project) continue;
+  if (project === UNREADABLE) continue;
   validateProject(project, { slug, fileExists: (rel) => existsSync(join(dir, rel)) })
     .forEach((e) => errors.push(`${slug}: ${e}`));
-  (project.sections || []).forEach((b, i) => {
+  (Array.isArray(project && project.sections) ? project.sections : []).forEach((b, i) => {
     if (b && b.type === 'gallery' && Array.isArray(b.items) && b.items.length === 0) {
       warnings.push(`${slug}: sections[${i}] gallery is empty (placeholder shown on the page)`);
     }
@@ -55,7 +56,7 @@ if (existsSync(projectsDir)) {
 const siteFile = join(siteDir, 'site.json');
 if (existsSync(siteFile)) {
   const site = readJson(siteFile, 'site.json');
-  if (site) validateSite(site, { fileExists: (rel) => existsSync(join(siteDir, rel)) }).forEach((e) => errors.push(`site.json: ${e}`));
+  if (site !== UNREADABLE) validateSite(site, { fileExists: (rel) => existsSync(join(siteDir, rel)) }).forEach((e) => errors.push(`site.json: ${e}`));
 }
 
 warnings.forEach((w) => console.log(`WARN ${w}`));

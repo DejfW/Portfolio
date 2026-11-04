@@ -68,3 +68,33 @@ test('cli exits 1 when site.json is invalid', () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /cv\.url/);
 });
+
+test('cli exits 1 when project.json is null', () => {
+  const dir = tree();
+  writeFileSync(join(dir, 'demo', 'project.json'), 'null');
+  const r = run(dir);
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stderr, /demo/);
+});
+
+test('cli exits 1 when site.json is null', () => {
+  const dir = tree();
+  writeFileSync(join(dir, '..', 'site.json'), 'null');
+  const r = run(dir);
+  assert.equal(r.status, 1, r.stdout);
+});
+
+test('cli does not crash when sections is not an array', () => {
+  const r = run(tree({ projects: { demo: project({ sections: 'oops' }) } }));
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /sections/);
+  assert.doesNotMatch(r.stderr, /TypeError/);
+});
+
+test('cli exits 1 without a stack trace when the manifest is null', () => {
+  const dir = tree();
+  writeFileSync(join(dir, 'index.json'), 'null');
+  const r = run(dir);
+  assert.equal(r.status, 1);
+  assert.doesNotMatch(r.stderr, /TypeError/);
+});

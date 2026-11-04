@@ -30,3 +30,12 @@ test('no inline scripts or inline style attributes in html (CSP safe)', () => {
     assert.doesNotMatch(html, /\son[a-z]+\s*=/i, `${f}: inline handler`);
   }
 });
+
+test('every html page carries a CSP meta mirroring the server policy', () => {
+  for (const f of walk(root, ['.html'])) {
+    const html = readFileSync(f, 'utf8');
+    const m = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/);
+    assert.ok(m, `${f}: missing CSP meta`);
+    for (const part of ["default-src 'self'", "script-src 'self'", "base-uri 'none'"]) assert.ok(m[1].includes(part), `${f}: ${part}`);
+  }
+});

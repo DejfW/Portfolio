@@ -83,3 +83,13 @@ test('border-radius 9999px only on pills, badges and icon wrappers', () => {
     }
   }
 });
+
+test('electric gradient only on link underlines (base.css anchors)', () => {
+  for (const [name, css] of Object.entries(styled)) {
+    for (const r of rules(css)) {
+      if (r.body.includes('--gradient-electric-current')) {
+        assert.ok(name === 'base.css' && r.selector.split(',').every((x) => /^a\b/.test(x.trim())), `${name}: ${r.selector}`);
+      }
+    }
+  }
+});

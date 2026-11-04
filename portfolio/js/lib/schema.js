@@ -195,3 +195,9 @@ export function validateSite(site, ctx) {
   }
   return errors;
 }
+
+// Przepuszcza tylko poprawne linki (http, https, mailto); reszta jest odrzucana po cichu.
+export function safeLinks(links) {
+  if (!Array.isArray(links)) return [];
+  return links.filter((l) => isObj(l) && isStr(l.label) && isSafeUrl(l.url, { allowMailto: true }));
+}

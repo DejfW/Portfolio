@@ -57,7 +57,7 @@ test('loadProjects with missing manifest returns empty and an error', async () =
 });
 
 test('loadProjects with invalid manifest returns empty and an error', async () => {
-  const { projects, errors } = await loadProjects(fakeFetch({ 'projects/index.json': { projects: ['../x'] } }));
+  const { projects, errors } = await loadProjects(fakeFetch({ 'projects/index.json': { projects: '../x' } }));
   assert.deepEqual(projects, []);
   assert.ok(errors.length >= 1);
 });
@@ -73,4 +73,15 @@ test('loadProject rejects an unsafe slug without fetching', async () => {
   const r = await loadProject(async () => { called = true; return {}; }, '../../etc/passwd');
   assert.equal(r.project, null);
   assert.equal(called, false);
+});
+
+test('loadProjects loads valid slugs despite an invalid or duplicate manifest entry', async () => {
+  const f = fakeFetch({
+    'projects/index.json': { projects: ['a', 'My-Project', 'a', 'b'] },
+    'projects/a/project.json': proj('a'),
+    'projects/b/project.json': proj('b'),
+  });
+  const { projects, errors } = await loadProjects(f);
+  assert.deepEqual(projects.map((p) => p.slug), ['a', 'b']);
+  assert.ok(errors.length >= 2);
 });

@@ -61,10 +61,11 @@ export function createPortfolioServer(rootDir) {
       status = 206;
       headers['Content-Range'] = `bytes ${start}-${end}/${st.size}`;
     }
+    if (st.size === 0) { headers['Content-Length'] = 0; res.writeHead(200, headers); return res.end(); }
     headers['Content-Length'] = end - start + 1;
     res.writeHead(status, headers);
     if (req.method === 'HEAD') return res.end();
-    createReadStream(file, { start, end }).pipe(res);
+    createReadStream(file, { start, end }).on('error', () => res.destroy()).pipe(res);
   });
 }
 

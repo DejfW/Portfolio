@@ -1,9 +1,10 @@
 // Sekcja About: bio, highlights, umiejętności i linki (w tym opcjonalne CV).
 import { el } from './lib/dom.js';
+import { safeLinks } from './lib/schema.js';
 
 export function linkButtons(site, cls = 'btn btn-ghost plain') {
-  const items = [...(site.links || [])];
-  if (site.cv) items.push({ label: site.cv.label, url: site.cv.url, internal: true });
+  const items = [...safeLinks(site.links)];
+  if (site.cv && /\.pdf$/i.test(String(site.cv.url))) items.push({ label: site.cv.label, url: site.cv.url, internal: true });
   return items.map((l) => {
     const a = el('a', { class: cls, text: l.label, attrs: { href: l.url } });
     if (!l.internal && /^https?:/i.test(l.url)) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); }

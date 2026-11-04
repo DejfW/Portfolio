@@ -23,12 +23,13 @@ export async function loadProjects(fetchJson) {
   try { manifest = await fetchJson('projects/index.json'); } catch (e) {
     return { projects: [], errors: [`projects/index.json: ${e.message}`] };
   }
-  const manifestErrors = validateManifest(manifest);
-  if (manifestErrors.length) return { projects: [], errors: manifestErrors.map((e) => `projects/index.json: ${e}`) };
-  const results = await Promise.all(manifest.projects.map((slug) => loadProject(fetchJson, slug)));
+  const manifestErrors = validateManifest(manifest).map((e) => `projects/index.json: ${e}`);
+  if (!manifest || !Array.isArray(manifest.projects)) return { projects: [], errors: manifestErrors };
+  const slugs = [...new Set(manifest.projects.filter(isSlug))]; // zła lub zdublowana pozycja nie blokuje reszty
+  const results = await Promise.all(slugs.map((slug) => loadProject(fetchJson, slug)));
   return {
     projects: results.filter((r) => r.project).map((r) => r.project),
-    errors: results.flatMap((r) => r.errors),
+    errors: [...manifestErrors, ...results.flatMap((r) => r.errors)],
   };
 }
 

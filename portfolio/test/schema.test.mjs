@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  isSafeRelPath, isSafeUrl, validateProject, validateManifest, validateSite,
+  isSafeRelPath, isSafeUrl, validateProject, validateManifest, validateSite, safeLinks,
 } from '../js/lib/schema.js';
 
 const ctx = (over = {}) => ({ slug: 'demo', fileExists: () => true, ...over });
@@ -162,4 +162,22 @@ test('site allows mailto: only in links', () => {
   assert.deepEqual(validateSite(site({ links: [{ label: 'Mail', url: 'mailto:a@example.com' }] }), sctx()), []);
   const errs = validateSite(site({ cv: { label: 'CV', url: 'mailto:a@example.com' } }), sctx());
   assert.ok(errs.some((e) => e.startsWith('cv.url:')));
+});
+
+test('safeLinks drops unsafe and malformed links', () => {
+  const out = safeLinks([
+    { label: 'ok', url: 'https://github.com/DejfW' },
+    { label: 'mail', url: 'mailto:a@example.com' },
+    { label: 'bad', url: 'javascript:alert(1)' },
+    null, { label: 5, url: 'https://x.y' }, { label: 'nourl' },
+  ]);
+  assert.deepEqual(out.map((l) => l.label), ['ok', 'mail']);
+  assert.deepEqual(safeLinks(undefined), []);
+});
+
+test('validateSite never throws on malformed shapes', () => {
+  for (const bad of [{ links: [null] }, { skills: [{ group: 'g', items: 'x' }] }, { highlights: [null] }, { about: null }, { cv: null }]) {
+    assert.doesNotThrow(() => validateSite({ name: 'a', headline: 'b', ...bad }, sctx()));
+    assert.ok(validateSite({ name: 'a', headline: 'b', ...bad }, sctx()).length > 0, JSON.stringify(bad));
+  }
 });
