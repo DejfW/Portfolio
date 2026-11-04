@@ -2,6 +2,7 @@
 import { el, svg } from '../lib/dom.js';
 import { layoutGraph } from '../lib/graph-layout.js';
 
+let graphSeq = 0;
 const OPTS = { colWidth: 204, rowHeight: 84, nodeW: 170, nodeH: 60, pad: 16 };
 
 function wrap(label, max = 20) {
@@ -18,13 +19,18 @@ export function render(block) {
   try { g = layoutGraph(block.nodes, block.edges, OPTS); } catch (e) {
     return el('p', { class: 'notice', text: 'This graph could not be displayed.' });
   }
+  const gid = `graph-grad-${++graphSeq}`;
   const s = svg('svg', { viewBox: `0 0 ${g.width} ${g.height}`, width: g.width, height: g.height, role: 'img', 'aria-hidden': 'true', focusable: 'false' });
   s.style.maxWidth = `${g.width}px`;
   s.style.minWidth = `${Math.min(g.width, 880)}px`;
-  s.append(svg('defs', {}, [svg('linearGradient', { id: 'graph-grad', gradientUnits: 'userSpaceOnUse', x1: 0, y1: 0, x2: g.width, y2: 0 }, [
+  s.append(svg('defs', {}, [svg('linearGradient', { id: gid, gradientUnits: 'userSpaceOnUse', x1: 0, y1: 0, x2: g.width, y2: 0 }, [
     svg('stop', { offset: '0', class: 'cv-stop-a' }), svg('stop', { offset: '1', class: 'cv-stop-b' }),
   ])]));
-  for (const e of g.edges) s.append(svg('path', { d: e.d, class: 'graph-edge' }));
+  for (const e of g.edges) {
+    const path = svg('path', { d: e.d, class: 'graph-edge' });
+    path.style.stroke = `url(#${gid})`;
+    s.append(path);
+  }
   for (const n of g.nodes) {
     const kind = n.kind ? ` graph-${n.kind}` : '';
     const grp = svg('g', { class: `graph-node${kind}` }, [svg('rect', { x: n.x, y: n.y, width: n.w, height: n.h, rx: 12 })]);

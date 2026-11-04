@@ -103,6 +103,236 @@
       ]
     },
     {
+      "type": "graph",
+      "nodes": [
+        {
+          "id": "text",
+          "label": "E-mail or form text",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "cat",
+          "label": "Calculator or showroom tablet",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "ai",
+          "label": "AI reads text, code validates",
+          "layer": 1,
+          "kind": "ai"
+        },
+        {
+          "id": "quote",
+          "label": "Quote and save in SQL",
+          "layer": 2,
+          "kind": "db"
+        },
+        {
+          "id": "review",
+          "label": "Needs review or info: owner told",
+          "layer": 2,
+          "kind": "output"
+        },
+        {
+          "id": "owner",
+          "label": "Owner approves via link",
+          "layer": 3,
+          "kind": "channel"
+        },
+        {
+          "id": "task",
+          "label": "create_task: reserve materials",
+          "layer": 4,
+          "kind": "db"
+        },
+        {
+          "id": "cust",
+          "label": "Customer e-mail and status page",
+          "layer": 5,
+          "kind": "output"
+        },
+        {
+          "id": "done",
+          "label": "Task done: stock consumed",
+          "layer": 5,
+          "kind": "db"
+        },
+        {
+          "id": "opinion",
+          "label": "Review request after 7 days",
+          "layer": 6,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "text",
+          "to": "ai"
+        },
+        {
+          "from": "cat",
+          "to": "quote"
+        },
+        {
+          "from": "ai",
+          "to": "quote"
+        },
+        {
+          "from": "ai",
+          "to": "review"
+        },
+        {
+          "from": "quote",
+          "to": "owner"
+        },
+        {
+          "from": "owner",
+          "to": "task"
+        },
+        {
+          "from": "task",
+          "to": "cust"
+        },
+        {
+          "from": "task",
+          "to": "done"
+        },
+        {
+          "from": "done",
+          "to": "opinion"
+        }
+      ],
+      "title": "Life of one order"
+    },
+    {
+      "type": "prose",
+      "paragraphs": [
+        "An order arrives as free text or as catalog items. Text goes through the AI and is validated by code. Catalog items skip the AI. Both end up as the same priced order, saved once, and nothing reserves a single board until the owner approves it."
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Where AI is used and how it is contained",
+      "nodes": [
+        {
+          "id": "o",
+          "label": "Order text from e-mail",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "r",
+          "label": "Quote needing a reminder",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "w",
+          "label": "Weekly sales numbers",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "t",
+          "label": "Incoming mail to classify",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "llm",
+          "label": "00 LLM: local model, no API key",
+          "layer": 1,
+          "kind": "ai"
+        },
+        {
+          "id": "val",
+          "label": "Code validates the output",
+          "layer": 2,
+          "kind": "workflow"
+        },
+        {
+          "id": "ok",
+          "label": "Accepted output is used",
+          "layer": 3,
+          "kind": "db"
+        },
+        {
+          "id": "safe",
+          "label": "Safe path instead (see table)",
+          "layer": 3,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "o",
+          "to": "llm"
+        },
+        {
+          "from": "r",
+          "to": "llm"
+        },
+        {
+          "from": "w",
+          "to": "llm"
+        },
+        {
+          "from": "t",
+          "to": "llm"
+        },
+        {
+          "from": "llm",
+          "to": "val"
+        },
+        {
+          "from": "val",
+          "to": "ok"
+        },
+        {
+          "from": "val",
+          "to": "safe"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "What happens when the AI output is bad",
+      "columns": [
+        "Use",
+        "The model",
+        "Code checks",
+        "If it fails"
+      ],
+      "rows": [
+        [
+          "Order intake",
+          "Turns e-mail text into an order",
+          "JSON shape, products exist in the catalog, quantities and limits",
+          "Status needs_review (owner) or needs_info (customer data missing). Nothing unchecked is saved."
+        ],
+        [
+          "Quote reminders",
+          "Writes a short intro",
+          "Exactly 3 sentences, 30 to 700 characters, no links, e-mail addresses or formatting",
+          "A fixed template text is sent instead"
+        ],
+        [
+          "Weekly report",
+          "Writes a short summary",
+          "Cut to 900 characters and escaped for Slack",
+          "The report still goes out with the numbers and a note that the summary is missing"
+        ],
+        [
+          "Inbox triage",
+          "Classifies mail and drafts a reply",
+          "JSON is extracted; only expected fields and types are kept",
+          "Garbage, a refusal or no answer is routed to order intake, so nothing is dropped"
+        ]
+      ]
+    },
+    {
       "type": "diagram",
       "title": "Architecture",
       "src": "media/architecture.svg",
@@ -270,6 +500,172 @@
           "The 'delivery arrived' link accepts only a sent order, raises stock by the ordered quantities and logs a 'receive' movement for every line.",
           "receive_delivery (SQL)"
         ]
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Quotes without a reply",
+      "nodes": [
+        {
+          "id": "q",
+          "label": "Quote sent, no reply (09, daily 9:00)",
+          "layer": 0,
+          "kind": "db"
+        },
+        {
+          "id": "d3",
+          "label": "Day 3: reminder",
+          "layer": 1,
+          "kind": "output"
+        },
+        {
+          "id": "d7",
+          "label": "Day 7: last reminder",
+          "layer": 2,
+          "kind": "output"
+        },
+        {
+          "id": "d14",
+          "label": "Day 14: quote marked lost",
+          "layer": 3,
+          "kind": "db"
+        },
+        {
+          "id": "sv",
+          "label": "E-mail survey: why not?",
+          "layer": 4,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "q",
+          "to": "d3"
+        },
+        {
+          "from": "d3",
+          "to": "d7"
+        },
+        {
+          "from": "d7",
+          "to": "d14"
+        },
+        {
+          "from": "d14",
+          "to": "sv"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Inbox triage",
+      "nodes": [
+        {
+          "id": "m",
+          "label": "Incoming mail",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "tr",
+          "label": "11 Triage: AI classifies",
+          "layer": 1,
+          "kind": "ai"
+        },
+        {
+          "id": "db",
+          "label": "triage_complete (SQL) picks route",
+          "layer": 2,
+          "kind": "db"
+        },
+        {
+          "id": "ord",
+          "label": "Order or unsure: 01 Intake",
+          "layer": 3,
+          "kind": "workflow"
+        },
+        {
+          "id": "q2",
+          "label": "Question or complaint: Slack",
+          "layer": 3,
+          "kind": "output"
+        },
+        {
+          "id": "sp",
+          "label": "Spam: only marked",
+          "layer": 3,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "m",
+          "to": "tr"
+        },
+        {
+          "from": "tr",
+          "to": "db"
+        },
+        {
+          "from": "db",
+          "to": "ord"
+        },
+        {
+          "from": "db",
+          "to": "q2"
+        },
+        {
+          "from": "db",
+          "to": "sp"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Weekly report",
+      "nodes": [
+        {
+          "id": "mo",
+          "label": "Monday 8:00",
+          "layer": 0,
+          "kind": "channel"
+        },
+        {
+          "id": "sq",
+          "label": "SQL: bestsellers, 7 and 30 days",
+          "layer": 1,
+          "kind": "db"
+        },
+        {
+          "id": "sm",
+          "label": "AI: short summary",
+          "layer": 2,
+          "kind": "ai"
+        },
+        {
+          "id": "sl",
+          "label": "Report on Slack",
+          "layer": 3,
+          "kind": "output"
+        }
+      ],
+      "edges": [
+        {
+          "from": "mo",
+          "to": "sq"
+        },
+        {
+          "from": "sq",
+          "to": "sm"
+        },
+        {
+          "from": "sm",
+          "to": "sl"
+        },
+        {
+          "from": "sq",
+          "to": "sl"
+        }
       ]
     },
     {
