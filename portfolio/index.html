@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dawid — Automation and AI agents</title>
+  <meta name="description" content="Portfolio of automation and AI agent projects.">
+  <meta name="theme-color" content="#0e0918">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Dawid — Automation and AI agents">
+  <meta property="og:description" content="Portfolio of automation and AI agent projects.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400&display=swap">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#projects">Skip to content</a>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="nav-brand plain" href="index.html" id="brand">Portfolio</a>
+      <nav class="nav-links" aria-label="Main">
+        <a class="plain" href="#projects">Projects</a>
+        <a class="plain" href="#about">About</a>
+        <span id="nav-extra" class="nav-extra"></span>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy stack">
+          <p class="t-label">Portfolio</p>
+          <h1 class="t-display" id="hero-title">Automation and AI agents that run in production</h1>
+          <p class="t-subheading hero-lead">Systems that take messy input from people, decide with code, and ask a human only when it matters.</p>
+          <div class="btn-row">
+            <a class="btn btn-primary plain" href="#projects">View projects</a>
+            <span id="hero-extra" class="btn-row-inline"></span>
+          </div>
+        </div>
+        <div class="hero-canvas" id="hero-canvas" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="section" id="projects" aria-labelledby="projects-title">
+      <div class="container">
+        <h2 class="t-heading-lg section-title" id="projects-title">Projects</h2>
+        <div id="projects-list" class="projects"></div>
+      </div>
+    </section>
+
+    <section class="section about" id="about" aria-labelledby="about-title" hidden>
+      <div class="container" id="about-content"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p class="t-caption" id="footer-note">Built with plain HTML, CSS and JavaScript.</p>
+      <div class="btn-row-inline" id="footer-links"></div>
+    </div>
+  </footer>
+</body>
+</html>

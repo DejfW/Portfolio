@@ -1,0 +1,13 @@
+{
+  "name": "Dawid",
+  "headline": "Automation and AI agents that run in production",
+  "about": {
+    "title": "About me",
+    "paragraphs": [
+      "TODO(author): a short bio — who you are, what you build, what you are looking for."
+    ]
+  },
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/DejfW" }
+  ]
+}

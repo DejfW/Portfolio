@@ -3,6 +3,70 @@
   "name": "01 Order intake",
   "nodes": [
     {
+      "id": "n240-note-entry-validate-the-request",
+      "name": "Note: Entry: validate the request",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -90
+      ],
+      "parameters": {
+        "content": "## Entry: validate the request\nOnly the expected fields get through. A failed check leaves through the Rejected branch: 400 for bad input, 401 for a wrong token.",
+        "width": 840,
+        "height": 195,
+        "color": 4
+      }
+    },
+    {
+      "id": "n241-note-supabase-rpc-store-then-answer",
+      "name": "Note: Supabase RPC: store, then answer",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        -190
+      ],
+      "parameters": {
+        "content": "## Supabase RPC: store, then answer\nintake_receive saves the raw order once (idempotent by external_id) and the sender gets an answer at once.",
+        "width": 620,
+        "height": 415,
+        "color": 6
+      }
+    },
+    {
+      "id": "n242-note-ai-proposes-code-checks",
+      "name": "Note: AI proposes, code checks",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        -190
+      ],
+      "parameters": {
+        "content": "## AI proposes, code checks\nThe model reads the text. Its answer is validated against the catalog and limits before anything is saved.",
+        "width": 840,
+        "height": 195,
+        "color": 5
+      }
+    },
+    {
+      "id": "n243-note-supabase-rpc-price-save-queue",
+      "name": "Note: Supabase RPC: price, save, queue",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        -190
+      ],
+      "parameters": {
+        "content": "## Supabase RPC: price, save, queue\nintake_complete prices and saves the order. E-mails are composed from database state and queued.",
+        "width": 840,
+        "height": 195,
+        "color": 6
+      }
+    },
+    {
       "id": "n005-webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
