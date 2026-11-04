@@ -42,7 +42,7 @@ Each entry in `sections` is `{ "type": ..., "title"?: ..., ... }`:
 | `prose` | `paragraphs: string[]` |
 | `list` | `items: [{ title, text }]` (cards, good for decisions) |
 | `table` | `columns: string[]`, `rows: string[][]` |
-| `gallery` | `items: [{ type: "image", src, alt, caption? } \| { type: "video", src, poster?, caption? }]`; an empty list shows a placeholder |
+| `gallery` | `layout?: "wide"` (larger tiles, good for wide screenshots), `items: [{ type: "image", src, alt, caption? } \| { type: "video", src, poster?, caption? }]`; an empty list shows a placeholder |
 | `diagram` | `src`, `alt`, `caption?` (click to enlarge) |
 | `chart` | `unit?`, `bars: [{ label, value }]` |
 | `graph` | `nodes: [{ id, label, layer, kind? }]`, `edges: [{ from, to }]`; `layer` is the column, edges must go to a later layer; `kind` is `channel`, `workflow`, `db`, `ai` or `output` |

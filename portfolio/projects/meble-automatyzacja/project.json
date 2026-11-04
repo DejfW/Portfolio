@@ -871,6 +871,43 @@
       ]
     },
     {
+      "type": "gallery",
+      "title": "The workflows in n8n",
+      "items": [
+        {
+          "type": "image",
+          "src": "media/n8n-01-order-intake-1.png",
+          "alt": "n8n canvas of workflow 01 Order intake, first half: Webhook, Config, Normalize, Valid input?, Receive, Accepted, First delivery?, Catalog, with a Rejected branch.",
+          "caption": "01 Order intake (1/2): the webhook validates input, answers at once and loads the product catalog."
+        },
+        {
+          "type": "image",
+          "src": "media/n8n-01-order-intake-2.png",
+          "alt": "n8n canvas of workflow 01 Order intake, second half: Build prompt, Ask LLM, Validate, Complete, Context, Compose emails, Queue email.",
+          "caption": "01 Order intake (2/2): prompt, AI call through the shared sub-workflow, validation in code, then saved in SQL and the e-mails queued."
+        },
+        {
+          "type": "image",
+          "src": "media/n8n-04-stock-prices-1.png",
+          "alt": "n8n canvas of workflow 04 Stock and prices, first half: Schedule 7:00 and a Webhook feed Config, Stock params and an Allowed? check, with a Forbidden branch.",
+          "caption": "04 Stock and prices (1/2): runs daily at 7:00 or by an authorised webhook."
+        },
+        {
+          "type": "image",
+          "src": "media/n8n-04-stock-prices-2.png",
+          "alt": "n8n canvas of workflow 04 Stock and prices, second half: Read CSV, Parse CSV, Import prices, Stock report, Digest, Queue notifications.",
+          "caption": "04 Stock and prices (2/2): read the CSV price lists, import prices, build the low-stock report and queue the Slack digest."
+        },
+        {
+          "type": "image",
+          "src": "media/n8n-03-team-tasks.png",
+          "alt": "n8n canvas of workflow 03 Team tasks with four webhook paths: GET and POST approve, GET and POST task-done, each validating its link or form and answering through one Respond page node.",
+          "caption": "03 Team tasks: approval and task-completion links, each with its own validation, answered by one response node."
+        }
+      ],
+      "layout": "wide"
+    },
+    {
       "type": "chart",
       "title": "Test coverage",
       "unit": "files",

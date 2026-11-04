@@ -20,7 +20,7 @@ export function render(block, ctx) {
   if (!block.items.length) {
     return el('div', { class: 'media-placeholder' }, [el('p', { class: 't-body', text: 'Recordings and screenshots will appear here.' })]);
   }
-  return el('div', { class: 'gallery' }, block.items.map((item) => {
+  return el('div', { class: block.layout === 'wide' ? 'gallery gallery-wide' : 'gallery' }, block.items.map((item) => {
     const fig = el('figure', { class: 'media' }, [item.type === 'video' ? videoFigure(item, ctx.base) : imageFigure(item, ctx.base)]);
     if (item.caption) fig.append(el('figcaption', { class: 't-caption', text: item.caption }));
     return fig;

@@ -70,6 +70,7 @@ const BLOCKS = {
     });
   },
   gallery(b, p, ctx, errors) {
+    if (b.layout !== undefined && b.layout !== 'wide') errors.push(`${p}.layout: must be "wide" or omitted`);
     if (!Array.isArray(b.items)) { errors.push(`${p}.items: required (may be empty)`); return; }
     b.items.forEach((it, i) => {
       const ip = `${p}.items[${i}]`;

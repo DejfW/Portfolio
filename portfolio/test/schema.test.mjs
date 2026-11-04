@@ -181,3 +181,10 @@ test('validateSite never throws on malformed shapes', () => {
     assert.ok(validateSite({ name: 'a', headline: 'b', ...bad }, sctx()).length > 0, JSON.stringify(bad));
   }
 });
+
+test('gallery layout accepts "wide" and rejects other values', () => {
+  const ok = validateProject(shipped([{ type: 'gallery', layout: 'wide', items: [] }]), ctx());
+  assert.deepEqual(ok, []);
+  const bad = validateProject(shipped([{ type: 'gallery', layout: 'huge', items: [] }]), ctx());
+  assert.ok(bad.some((e) => e.startsWith('sections[0].layout:')), bad.join('\n'));
+});
